@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "node-html-parser": "9.0.5"
+    "node-html-parser": "9.0.5",
+    "unpdf": "1.9.1"
   }
 }

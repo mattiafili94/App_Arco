@@ -1,0 +1,188 @@
+1	815	17° Outdoor "Archery Dragon"
+1	799	A.S.D. Interamna Archery Team Terni (R2611032)
+1	786	Centro sportivo di tiro con l’arco Interamna Archery Team Loc. San Carlo Terni, 19-07-2026
+1	777	Giudici di Gara: Rossi Mario
+1	769	Direttore dei Tiri: Rossi Mario
+1	760	Comitato Organizzatore: Rossi Mario
+1	742	Arco Ricurvo - Senior Maschile
+1	729	70m-1 70m-2 Tot.
+1	723	Pos. Atleta Cat. Società Totale 10+X X
+1	717	70m-3 70m-4 Tot.
+1	705	281/ 1 271/ 1 552
+1	699	1 1- 1A MARRONI Sara 03 16099 Evo' Archery Team 1.107 13 3
+1	694	278/ 1 277/ 1 555
+1	664	Arco Ricurvo - Senior Femminile
+1	651	70m-1 70m-2 Tot.
+1	645	Pos. Atleta Cat. Società Totale 10+X X
+1	639	70m-3 70m-4 Tot.
+1	627	277/ 1 287/ 1 564
+1	621	1 1- 1C VIOLA Elena MF 01 11016 A.S.D. Gruppo Arcieri Simba 1.118 25 4
+1	616	281/ 1 273/ 2 554
+1	604	270/ 2 280/ 2 550
+1	599	2 1- 2C GRIGI Davide MF 02 12004 Arcieri Romani ASD 1.073 11 6
+1	593	242/ 2 281/ 1 523
+1	582	188/ 3 217/ 3 405
+1	576	3 1- 2A ROSA Franca 11002 Arcieri Interamna - Terni 818 5 2
+1	570	205/ 3 208/ 3 413
+1	540	Arco Ricurvo - Master Maschile
+1	527	60m-1 60m-2 Tot.
+1	522	Pos. Atleta Cat. Società Totale 10+X X
+1	516	60m-3 60m-4 Tot.
+1	504	308/ 1 303/ 2 611
+1	498	1 1- 3C AZZURRI Pietro 02 12136 Gruppo Arcieri Cosmos 1.214 23 4
+1	492	298/ 3 305/ 3 603
+1	481	299/ 4 301/ 3 600
+1	475	2 1- 6C ARANCI Ugo 02 12150 Fiumicino Archery Team 1.213 27 9
+1	470	306/ 1 307/ 2 613
+1	458	294/ 5 290/ 5 584
+1	452	3 1- 5C BRUNI Ida 02 12016 ASD Arcieri Torrevecchia 1.200 27 7
+1	447	305/ 2 311/ 1 616
+1	436	300/ 3 307/ 1 607
+1	430	4 1- 4C PROVA Mario Sara 02 12136 Gruppo Arcieri Cosmos 1.191 31 7
+1	424	297/ 4 287/ 6 584
+1	413	280/ 7 294/ 4 574
+1	407	5 1- 4B BIANCHI Anna 02 11004 A.S.D. Arcieri di Assisi 1.158 24 5
+1	402	295/ 5 289/ 4 584
+1	390	304/ 2 290/ 6 594
+1	384	6 1- 3A VERDI Luca 02 11004 A.S.D. Arcieri di Assisi 1.153 22 7
+1	379	271/ 6 288/ 5 559
+1	368	292/ 6 262/ 7 554
+1	362	7 1- 3B NERI Giulia 03 11002 Arcieri Interamna - Terni 1.098 11 4
+1	356	271/ 7 273/ 7 544
+1	345	245/ 8 258/ 8 503
+1	339	8 1- 4A GIALLI Paolo 02 12016 ASD Arcieri Torrevecchia 1.016 11 3
+1	334	250/ 8 263/ 8 513
+1	322	213/ 9 238/ 9 451
+1	316	9 1- 5B MARRONI Sara 03 12179 Banderentium Tor Di Quinto 904 7 0
+1	311	207/ 9 246/ 9 453
+1	281	Arco Ricurvo - Master Femminile
+1	268	60m-1 60m-2 Tot.
+1	262	Pos. Atleta Cat. Società Totale 10+X X
+1	256	60m-3 60m-4 Tot.
+1	244	289/ 1 295/ 1 584
+1	238	1 1- 7C VIOLA Elena 02 16099 Evo' Archery Team 1.149 19 8
+1	233	271/ 2 294/ 1 565
+1	222	254/ 2 270/ 2 524
+1	216	2 1- 6A DE GRIGI Davide 03 11004 A.S.D. Arcieri di Assisi 1.068 18 7
+1	210	277/ 1 267/ 3 544
+1	199	222/ 3 264/ 3 486
+1	193	3 1- 7A ROSA Franca 03 11004 A.S.D. Arcieri di Assisi 1.004 12 3
+1	188	249/ 3 269/ 2 518
+1	157	Arco Ricurvo - Allievi Maschile
+1	144	60m-1 60m-2 Tot.
+1	139	Pos. Atleta Cat. Società Totale 10+X X
+1	133	60m-3 60m-4 Tot.
+1	121	327/ 1 332/ 1 659
+1	115	1 1- 9C AZZURRI Pietro 01 12169 Asd Arcieri Tiberini 1.314 49 10
+1	109	327/ 1 328/ 1 655
+1	98	260/ 2 281/ 2 541
+1	92	2 1- 9A ARANCI Ugo 03 11002 Arcieri Interamna - Terni 1.094 13 3
+1	87	279/ 2 274/ 2 553
+1	21	1/3 Classifica di Classe - Individuale - 20260719.124738+02:00
+2	815	17° Outdoor "Archery Dragon"
+2	799	A.S.D. Interamna Archery Team Terni (R2611032)
+2	786	Centro sportivo di tiro con l’arco Interamna Archery Team Loc. San Carlo Terni, 19-07-2026
+2	777	Giudici di Gara: Rossi Mario
+2	769	Direttore dei Tiri: Rossi Mario
+2	760	Comitato Organizzatore: Rossi Mario
+2	742	Arco Ricurvo - Allieve Femminile
+2	729	60m-1 60m-2 Tot.
+2	723	Pos. Atleta Cat. Società Totale 10+X X
+2	717	60m-3 60m-4 Tot.
+2	705	315/ 1 310/ 1 625
+2	699	1 1- 8A BRUNI Ida 01 13041 Asd Arcieri Abruzzesi 1.252 38 15
+2	694	316/ 1 311/ 1 627
+2	683	240/ 2 261/ 2 501
+2	677	2 1- 8C PROVA Mario 03 11002 Arcieri Interamna - Terni 1.008 10 4
+2	671	269/ 2 238/ 2 507
+2	641	Arco Ricurvo - Ragazzi Femminile
+2	628	40m-1 40m-2 Tot.
+2	622	Pos. Atleta Cat. Società Totale 10+X X
+2	617	40m-3 40m-4 Tot.
+2	604	317/ 1 328/ 1 645
+2	599	1 1- 16B BIANCHI Anna 02 11002 Arcieri Interamna - Terni 1.294 45 14
+2	593	322/ 1 327/ 1 649
+2	563	Arco Compound - Senior Maschile
+2	550	50m-1 50m-2 Tot.
+2	544	Pos. Atleta Cat. Società Totale 10+X X
+2	539	50m-3 50m-4 Tot.
+2	526	341/ 1 334/ 2 675
+2	521	1 1- 10A VERDI Luca 01 11027 Arcieri Citta' Di Terni 1.354 72 25
+2	515	339/ 1 340/ 1 679
+2	504	330/ 2 342/ 1 672
+2	498	2 1- 10C NERI Giulia 01 12032 A.S.D. Arc.HortinaeClasses 1.335 61 20
+2	492	332/ 3 331/ 3 663
+2	481	322/ 3 329/ 3 651
+2	475	3 1- 10B GIALLI Paolo 01 11018 ASD Arcieri Augusta Perusia 1.317 55 18
+2	470	333/ 2 333/ 2 666
+2	440	Arco Compound - Master Maschile
+2	427	50m-1 50m-2 Tot.
+2	421	Pos. Atleta Cat. Società Totale 10+X X
+2	415	50m-3 50m-4 Tot.
+2	403	332/ 1 335/ 1 667
+2	397	1 1- 11A MARRONI Sara 01 11016 A.S.D. Gruppo Arcieri Simba 1.351 74 19
+2	392	339/ 1 345/ 1 684
+2	362	Arco Compound - Junior Femminile
+2	348	50m-1 50m-2 Tot.
+2	343	Pos. Atleta Cat. Società Totale 10+X X
+2	337	50m-3 50m-4 Tot.
+2	325	305/ 3 319/ 1 624
+2	319	1 1- 12B VIOLA Elena AF 02 16099 Evo' Archery Team 1.279 41 13
+2	314	328/ 1 327/ 1 655
+2	302	326/ 1 311/ 2 637
+2	296	2 1- 12A DE GRIGI Davide 01 12138 ASD Frecce Azzurre 1.250 39 16
+2	291	313/ 2 300/ 3 613
+2	280	308/ 2 296/ 3 604
+2	274	3 1- 11C DE ROSA Franca 04 16099 Evo' Archery Team 1.207 21 6
+2	268	302/ 3 301/ 2 603
+2	257	252/ 4 239/ 4 491
+2	251	4 1- 12C AZZURRI Pietro RF 01 16099 Evo' Archery Team 1.001 10 3
+2	246	234/ 4 276/ 4 510
+2	215	Arco Nudo - Senior Maschile
+2	202	50m-1 50m-2 Tot.
+2	197	Pos. Atleta Cat. Società Totale 10+X X
+2	191	50m-3 50m-4 Tot.
+2	179	293/ 1 299/ 1 592
+2	173	1 1- 13C ARANCI Ugo MM 01 11018 ASD Arcieri Augusta Perusia 1.195 22 4
+2	167	304/ 1 299/ 1 603
+2	156	285/ 2 290/ 2 575
+2	150	2 1- 13B BRUNI Ida 01 10035 ASD Arcieri Matelica 1.154 15 3
+2	145	298/ 2 281/ 2 579
+2	133	274/ 3 275/ 4 549
+2	128	3 1- 14A PROVA Mario 01 10035 ASD Arcieri Matelica 1.090 15 7
+2	122	276/ 3 265/ 4 541
+2	111	272/ 4 278/ 3 550
+2	105	4 1- 14C BIANCHI Anna MM 02 16099 Evo' Archery Team 1.066 13 4
+2	99	239/ 4 277/ 3 516
+2	88	236/ 5 214/ 5 450
+2	82	5 1- 13A VERDI Luca MM 03 10035 ASD Arcieri Matelica 889 4 2
+2	77	230/ 5 209/ 5 439
+2	21	2/3 Classifica di Classe - Individuale - 20260719.124738+02:00
+3	815	17° Outdoor "Archery Dragon"
+3	799	A.S.D. Interamna Archery Team Terni (R2611032)
+3	786	Centro sportivo di tiro con l’arco Interamna Archery Team Loc. San Carlo Terni, 19-07-2026
+3	777	Giudici di Gara: Rossi Mario
+3	769	Direttore dei Tiri: Rossi Mario
+3	760	Comitato Organizzatore: Rossi Mario
+3	742	Arco Nudo - Senior Femminile
+3	729	50m-1 50m-2 Tot.
+3	723	Pos. Atleta Cat. Società Totale 10+X X
+3	717	50m-3 50m-4 Tot.
+3	705	259/ 1 265/ 1 524
+3	699	1 1- 15A NERI Giulia 01 10035 ASD Arcieri Matelica 1.049 12 4
+3	694	279/ 1 246/ 1 525
+3	664	Arco Nudo - Master Maschile
+3	651	50m-1 50m-2 Tot.
+3	645	Pos. Atleta Cat. Società Totale 10+X X
+3	639	50m-3 50m-4 Tot.
+3	627	290/ 1 303/ 1 593
+3	621	1 1- 15B GIALLI Paolo 01 16099 Evo' Archery Team 1.199 23 3
+3	616	303/ 1 303/ 1 606
+3	604	277/ 2 289/ 2 566
+3	599	2 1- 14B MARRONI Sara 01 16099 Evo' Archery Team 1.162 18 2
+3	593	299/ 2 297/ 2 596
+3	582	273/ 3 272/ 3 545
+3	576	3 1- 15C VIOLA Elena 02 16099 Evo' Archery Team 1.078 13 4
+3	570	270/ 3 263/ 3 533
+3	21	3/3 Classifica di Classe - Individuale - 20260719.124738+02:00
+3	1	Powered by TCPDF (www.tcpdf.org)

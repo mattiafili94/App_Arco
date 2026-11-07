@@ -231,7 +231,20 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       - la versione "excel" della ranking non è JSON valido: si usa quella HTML;
       - nello storico atleta la posizione 999 compare in alcuni Campionati Regionali (da capire con i PDF);
       - dalla scheda atleta non si prendono data di nascita né tecnico (non servono);
-   3. lettore dei PDF dei risultati (pdf.js sul server: verificare che il testo esca come con `pdftotext -raw`);
+   3. lettore dei PDF dei risultati ✅ (`pdf-testo.ts` dal PDF alle righe, `risultati.ts` dalle righe alla
+      classifica). Note:
+      - libreria `unpdf` (pdf.js): i pezzi di una riga hanno altezze leggermente diverse, si uniscono entro
+        3 punti. Per le gare semplici il testo è identico a `pdftotext -raw`; provato anche sul server
+        Supabase (stessi risultati). Nel `deno.json` delle funzioni: `"unpdf": "npm:unpdf@<stessa versione>"`;
+      - gare composte (25+18, doppio 70 m): la riga atleta ha solo totale e conteggi, le due prove stanno
+        nella riga **sopra** (prima prova) e **sotto** (seconda), abbinate per vicinanza (~6 punti);
+      - casi veri gestiti: "DNF" (ritirato, parziale senza posizione), colonna "Cat." a volte vuota,
+        classe dell'atleta dopo il nome ("Rita MF", "Brando GM"), "… Continua" nella pagina dopo,
+        "Arco Olimpico", gare annullate senza PDF (il link dà una pagina 404: errore "non è un PDF");
+      - sentinella: la somma dei parziali deve fare il totale (e le due prove il totale); una divisione
+        sconosciuta o una riga atleta che non torna fermano la lettura con `ErroreFormatoFitarco`;
+      - esempi: le righe di testo di 7 PDF veri (18 m, 70 m, 12+12, 3D, doppio 70 m, 24+24 del 2022,
+        25+18), con atleti e giudici rinominati; i PDF veri restano fuori dalla repo;
    4. tabelle, funzioni che salvano solo le novità, test dei permessi, sentinella;
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
       (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,

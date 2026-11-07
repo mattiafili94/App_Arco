@@ -1,0 +1,163 @@
+1	815	Torneo Indoor "Città di Gubbio"
+1	799	A.S.D. Compagnia Arcieri Eugubini (R2611039)
+1	786	CVA "San Marco" Loc. San Marco, Gubbio (PG), Dal 24-10-2026 al 25-10-2026
+1	777	Giudici di Gara: Rossi Mario
+1	769	Direttore dei Tiri: Rossi Mario
+1	760	Comitato Organizzatore: Rossi Mario
+1	742	Arco Ricurvo - Senior Maschile
+1	729	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	717	1 2- 7A PROVA Mario 02 11004 A.S.D. Arcieri di Assisi 280/ 1 272/ 1 552 21 26
+1	705	2 3- 3A BIANCHI Anna 03 11027 Arcieri Citta' Di Terni 268/ 3 267/ 3 535 20 25
+1	694	3 3- 3C VERDI Luca 02 11027 Arcieri Citta' Di Terni 270/ 2 265/ 4 535 16 26
+1	683	4 3- 2D NERI Giulia 02 11003 Arcieri Eugubini 263/ 4 271/ 2 534 17 25
+1	671	5 1- 4B GIALLI Paolo 03 11011 ASD Arcieri Rocca Flea 257/ 5 257/ 5 514 16 20
+1	660	6 3- 3B MARRONI Sara 04 11002 Arcieri Interamna - Terni 203/ 6 229/ 6 432 5 10
+1	630	Arco Ricurvo - Senior Femminile
+1	617	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	604	1 3- 4C VIOLA Elena 04 11002 Arcieri Interamna - Terni 245/ 1 255/ 1 500 14 14
+1	574	Arco Ricurvo - Master Maschile
+1	561	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	549	1 2- 4A GRIGI Davide 02 11004 A.S.D. Arcieri di Assisi 279/ 1 283/ 1 562 30 23
+1	538	2 3- 4B ROSA Franca 03 11002 Arcieri Interamna - Terni 267/ 2 268/ 2 535 19 21
+1	526	3 2- 4C AZZURRI Pietro 03 10035 ASD Arcieri Matelica 265/ 3 267/ 3 532 19 22
+1	515	4 2- 5B ARANCI Ugo 03 11004 A.S.D. Arcieri di Assisi 264/ 4 252/ 7 516 12 24
+1	504	5 2- 6B BRUNI Ida 02 11004 A.S.D. Arcieri di Assisi 250/ 7 264/ 4 514 16 20
+1	492	6 2- 5A PROVA Mario 02 12016 ASD Arcieri Torrevecchia 256/ 5 255/ 6 511 14 20
+1	481	7 2- 4B BIANCHI Anna 01 11004 A.S.D. Arcieri di Assisi 251/ 6 257/ 5 508 13 23
+1	470	8 1- 5B VERDI Luca 03 09054 A.S.D. Arc.della Chimera 249/ 8 249/ 9 498 14 16
+1	458	9 2- 6C NERI Giulia 03 10035 ASD Arcieri Matelica 248/ 10 249/ 10 497 12 20
+1	447	10 1- 6D GIALLI Paolo 04 09054 A.S.D. Arc.della Chimera 244/ 12 251/ 8 495 9 17
+1	436	11 2- 5C MARRONI Sara 03 11004 A.S.D. Arcieri di Assisi 244/ 11 245/ 11 489 10 17
+1	424	12 3- 3D VIOLA Elena 04 11004 A.S.D. Arcieri di Assisi 249/ 9 234/ 12 483 7 18
+1	413	13 3- 5A GRIGI Davide 04 11002 Arcieri Interamna - Terni 237/ 13 216/ 13 453 13 5
+1	402	14 2- 6A ROSA Franca 04 10035 ASD Arcieri Matelica 167/ 14 205/ 14 372 5 8
+1	372	Arco Ricurvo - Master Femminile
+1	359	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	346	1 2- 4D DE AZZURRI Pietro 03 11004 A.S.D. Arcieri di Assisi 250/ 2 266/ 1 516 12 24
+1	335	2 1- 5C ARANCI Ugo 04 09054 A.S.D. Arc.della Chimera 253/ 1 252/ 2 505 12 20
+1	324	3 1- 3D BRUNI Ida 04 11004 A.S.D. Arcieri di Assisi 244/ 3 245/ 3 489 7 23
+1	294	Arco Ricurvo - Junior Maschile
+1	280	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	268	1 1- 4D PROVA Mario 02 11018 ASD Arcieri Augusta Perusia 271/ 1 262/ 1 533 18 26
+1	238	Arco Ricurvo - Allievi Maschile
+1	225	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	213	1 3- 2C BIANCHI Anna 01 11027 Arcieri Citta' Di Terni 287/ 1 289/ 1 576 41 14
+1	201	2 2- 5D VERDI Luca 03 11011 ASD Arcieri Rocca Flea 242/ 2 262/ 2 504 14 19
+1	171	Arco Ricurvo - Allieve Femminile
+1	158	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	146	1 3- 5B NERI Giulia 03 11002 Arcieri Interamna - Terni 259/ 1 259/ 1 518 14 23
+1	116	Arco Ricurvo - Ragazzi Maschile
+1	103	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	91	1 2- 6D GIALLI Paolo 03 11011 ASD Arcieri Rocca Flea 235/ 1 245/ 1 480 7 16
+1	61	Arco Ricurvo - Giovanissimi Maschile
+1	48	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+1	35	1 3- 8A MARRONI Sara 04 11011 ASD Arcieri Rocca Flea 186/ 1 184/ 1 370 7 6
+1	21	1/3 Classifica di Classe - Individuale - 20261025.162934+02:00
+2	815	Torneo Indoor "Città di Gubbio"
+2	799	A.S.D. Compagnia Arcieri Eugubini (R2611039)
+2	786	CVA "San Marco" Loc. San Marco, Gubbio (PG), Dal 24-10-2026 al 25-10-2026
+2	777	Giudici di Gara: Rossi Mario
+2	769	Direttore dei Tiri: Rossi Mario
+2	760	Comitato Organizzatore: Rossi Mario
+2	742	Arco Compound - Senior Maschile
+2	729	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	717	1 2- 2B VIOLA Elena 01 12187 Gruppo Arco Fiamme Gialle 298/ 1 292/ 3 590 50 10
+2	705	2 1- 2D GRIGI Davide 01 12170 Fiamme Oro 295/ 2 293/ 2 588 48 12
+2	694	3 1- 2A ROSA Franca 01 11011 ASD Arcieri Rocca Flea 287/ 6 294/ 1 581 41 19
+2	683	4 1- 1A AZZURRI Pietro 01 11027 Arcieri Citta' Di Terni 291/ 3 289/ 4 580 41 18
+2	671	5 2- 2C ARANCI Ugo 02 11003 Arcieri Eugubini 285/ 7 289/ 4 574 35 24
+2	660	6 3- 2A BRUNI Ida 02 11002 Arcieri Interamna - Terni 289/ 4 284/ 7 573 33 27
+2	648	7 2- 2A PROVA Mario 04 11011 ASD Arcieri Rocca Flea 288/ 5 284/ 7 572 34 25
+2	637	8 1- 1C BIANCHI Anna 02 11018 ASD Arcieri Augusta Perusia 281/ 9 284/ 6 565 26 33
+2	626	9 2- 2D VERDI Luca 02 11018 ASD Arcieri Augusta Perusia 282/ 8 283/ 9 565 25 35
+2	614	10 1- 1D NERI Giulia 03 11011 ASD Arcieri Rocca Flea 278/ 10 269/ 10 547 20 35
+2	603	11 2- 1B GIALLI Paolo 04 11003 Arcieri Eugubini 274/ 11 261/ 14 535 14 36
+2	592	12 2- 1D MARRONI Sara MM 04 11002 Arcieri Interamna - Terni 266/ 12 267/ 12 533 6 41
+2	580	13 2- 3B VIOLA Elena MM 04 11018 ASD Arcieri Augusta Perusia 259/ 14 268/ 11 527 8 42
+2	569	14 1- 3A DE GRIGI Davide Mario MM 04 11002 Arcieri Interamna - Terni 260/ 13 265/ 13 525 6 38
+2	558	15 2- 1C ROSA Franca 04 10035 ASD Arcieri Matelica 250/ 15 242/ 15 492 3 20
+2	528	Arco Compound - Senior Femminile
+2	515	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	502	1 1- 1B AZZURRI Pietro 04 11003 Arcieri Eugubini 286/ 1 279/ 1 565 28 29
+2	491	2 3- 1A ARANCI Ugo 02 11003 Arcieri Eugubini 281/ 2 279/ 1 560 23 34
+2	480	3 1- 2C BRUNI Ida 03 11003 Arcieri Eugubini 273/ 3 277/ 4 550 13 44
+2	468	4 2- 3A PROVA Mario 03 11018 ASD Arcieri Augusta Perusia 269/ 4 279/ 3 548 15 40
+2	438	Arco Compound - Master Maschile
+2	425	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	413	1 1- 2B BIANCHI Anna 01 11016 A.S.D. Gruppo Arcieri Simba 289/ 1 286/ 1 575 35 25
+2	402	2 3- 1C VERDI Luca 01 11011 ASD Arcieri Rocca Flea 286/ 2 285/ 2 571 31 29
+2	390	3 1- 3B NERI Giulia 04 11004 A.S.D. Arcieri di Assisi 278/ 4 280/ 3 558 21 36
+2	379	4 3- 2B GIALLI Paolo 01 11011 ASD Arcieri Rocca Flea 281/ 3 265/ 5 546 27 30
+2	368	5 1- 4A MARRONI Sara 04 11004 A.S.D. Arcieri di Assisi 270/ 6 275/ 4 545 14 37
+2	356	6 2- 1A VIOLA Elena Ida 04 11004 A.S.D. Arcieri di Assisi 276/ 5 262/ 6 538 13 40
+2	326	Arco Compound - Master Femminile
+2	313	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	301	1 1- 3C GRIGI Davide 04 11016 A.S.D. Gruppo Arcieri Simba 272/ 1 274/ 1 546 14 38
+2	271	Arco Compound - Junior Maschile
+2	258	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	246	1 3- 1D ROSA Franca AM 04 11002 Arcieri Interamna - Terni 276/ 1 273/ 1 549 17 37
+2	234	2 2- 3C AZZURRI Pietro 04 11003 Arcieri Eugubini 265/ 2 260/ 2 525 9 33
+2	204	Arco Compound - Junior Femminile
+2	191	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	179	1 2- 3D ARANCI Ugo 01 06074 Arcieri San Marco Stigliano 289/ 1 286/ 1 575 35 25
+2	167	2 3- 1B BRUNI Ida 02 11002 Arcieri Interamna - Terni 283/ 2 275/ 2 558 21 36
+2	137	Arco Compound - Giovanissimi Maschile
+2	124	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	112	1 3- 8B PROVA Mario 04 11002 Arcieri Interamna - Terni 149/ 1 106/ 1 255 2 4
+2	82	Arco Nudo - Senior Maschile
+2	69	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+2	57	1 3- 6A BIANCHI Anna 01 11011 ASD Arcieri Rocca Flea 261/ 2 258/ 1 519 15 24
+2	45	2 1- 6A VERDI Luca 01 11011 ASD Arcieri Rocca Flea 259/ 3 253/ 2 512 15 20
+2	21	2/3 Classifica di Classe - Individuale - 20261025.162934+02:00
+3	815	Torneo Indoor "Città di Gubbio"
+3	799	A.S.D. Compagnia Arcieri Eugubini (R2611039)
+3	786	CVA "San Marco" Loc. San Marco, Gubbio (PG), Dal 24-10-2026 al 25-10-2026
+3	777	Giudici di Gara: Rossi Mario
+3	769	Direttore dei Tiri: Rossi Mario
+3	760	Comitato Organizzatore: Rossi Mario
+3	743	Arco Nudo - Senior Maschile Continua
+3	729	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	717	3 1- 7A NERI Giulia 04 11011 ASD Arcieri Rocca Flea 263/ 1 239/ 6 502 11 24
+3	705	4 1- 6C GIALLI Paolo 01 11040 Asd Arcieri Del Centro 251/ 4 249/ 3 500 11 20
+3	694	5 1- 7B MARRONI Sara 02 11011 ASD Arcieri Rocca Flea 242/ 5 243/ 5 485 6 27
+3	683	6 1- 5A VIOLA Elena 04 11011 ASD Arcieri Rocca Flea 232/ 7 245/ 4 477 6 14
+3	671	7 2- 7B GRIGI Davide 03 10035 ASD Arcieri Matelica 220/ 9 238/ 7 458 5 13
+3	660	8 3- 5C ROSA Franca 02 11003 Arcieri Eugubini 235/ 6 209/ 8 444 5 7
+3	648	9 1- 6B AZZURRI Pietro 02 11011 ASD Arcieri Rocca Flea 225/ 8 208/ 9 433 9 8
+3	637	10 1- 5D ARANCI Ugo 04 11011 ASD Arcieri Rocca Flea 216/ 10 196/ 10 412 6 11
+3	626	11 1- 8D BRUNI Ida 04 11003 Arcieri Eugubini 205/ 11 178/ 11 383 6 6
+3	596	Arco Nudo - Senior Femminile
+3	583	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	570	1 3- 6C PROVA Mario 02 10035 ASD Arcieri Matelica 256/ 1 245/ 1 501 10 18
+3	559	2 3- 6B BIANCHI Anna 04 11011 ASD Arcieri Rocca Flea 208/ 2 239/ 2 447 5 13
+3	548	3 3- 7A VERDI Luca 04 11002 Arcieri Interamna - Terni 188/ 3 205/ 3 393 2 9
+3	518	Arco Nudo - Master Maschile
+3	505	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	492	1 1- 9A NERI Giulia 01 11011 ASD Arcieri Rocca Flea 264/ 1 265/ 1 529 17 22
+3	481	2 2- 7C GIALLI Paolo 04 11011 ASD Arcieri Rocca Flea 262/ 2 255/ 2 517 13 23
+3	470	3 1- 8B MARRONI Sara 01 11011 ASD Arcieri Rocca Flea 251/ 3 246/ 3 497 16 17
+3	458	4 2- 7D VIOLA Elena 02 11018 ASD Arcieri Augusta Perusia 250/ 4 238/ 5 488 10 20
+3	447	5 2- 8A GRIGI Davide 03 10035 ASD Arcieri Matelica 249/ 5 228/ 7 477 5 22
+3	436	6 1- 9C ROSA Franca 02 11002 Arcieri Interamna - Terni 227/ 7 245/ 4 472 9 15
+3	424	7 2- 8B AZZURRI Pietro 03 11018 ASD Arcieri Augusta Perusia 223/ 9 237/ 6 460 7 10
+3	413	8 1- 9B ARANCI Ugo Giulia 03 12070 ASD Arcieri Del Falco 224/ 8 227/ 8 451 7 18
+3	402	9 3- 5D BRUNI Ida 03 11001 Braccio Fortebraccio 229/ 6 211/ 9 440 7 9
+3	390	10 1- 7D PROVA Mario 04 11004 A.S.D. Arcieri di Assisi 189/ 12 203/ 10 392 5 8
+3	379	11 1- 7C BIANCHI Anna 04 11004 A.S.D. Arcieri di Assisi 196/ 10 187/ 11 383 4 6
+3	368	12 1- 8C VERDI Luca 04 11004 A.S.D. Arcieri di Assisi 190/ 11 167/ 12 357 3 11
+3	338	Arco Nudo - Master Femminile
+3	324	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	312	1 3- 4A NERI Giulia 04 11011 ASD Arcieri Rocca Flea 140/ 1 191/ 1 331 4 9
+3	282	Arco Nudo - Junior Maschile
+3	269	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	257	1 1- 9D GIALLI Paolo 01 11011 ASD Arcieri Rocca Flea 259/ 1 252/ 1 511 12 21
+3	227	Arco Nudo - Allievi Maschile
+3	214	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	201	1 2- 8D MARRONI Sara 04 10035 ASD Arcieri Matelica 205/ 1 213/ 1 418 4 10
+3	171	Arco Nudo - Ragazzi Maschile
+3	158	Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9
+3	146	1 3- 7C VIOLA Elena 04 11011 ASD Arcieri Rocca Flea 203/ 2 199/ 1 402 5 4
+3	135	2 3- 4D GRIGI Davide GM 04 11011 ASD Arcieri Rocca Flea 225/ 1 173/ 2 398 4 13
+3	123	3 3- 7B ROSA Franca 04 11011 ASD Arcieri Rocca Flea 138/ 3 144/ 3 282 0 3
+3	21	3/3 Classifica di Classe - Individuale - 20261025.162934+02:00
+3	1	Powered by TCPDF (www.tcpdf.org)
