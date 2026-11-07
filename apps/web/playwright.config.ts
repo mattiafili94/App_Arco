@@ -3,8 +3,15 @@ import { defineConfig, devices } from '@playwright/test'
 const suGitHub = Boolean(process.env.CI)
 
 /**
+ * Indirizzo da provare. Di base è la versione costruita sul PC (build + preview); con
+ * E2E_BASE_URL si provano le versioni pubblicate su Cloudflare, per esempio:
+ *   E2E_BASE_URL=https://arcieri-eugubini.pages.dev npm run test:e2e
+ */
+const indirizzoPubblicato = process.env.E2E_BASE_URL
+const indirizzoLocale = 'http://localhost:4173'
+
+/**
  * Test nel browser vero (Chromium) su schermo da telefono: percorsi, offline e accessibilità.
- * Usano la versione costruita dell'app (build + preview), come quella pubblicata.
  *   npm run test:e2e
  */
 export default defineConfig({
@@ -14,14 +21,16 @@ export default defineConfig({
   retries: suGitHub ? 1 : 0,
   reporter: suGitHub ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: indirizzoPubblicato ?? indirizzoLocale,
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'telefono', use: { ...devices['Pixel 7'] } }],
-  webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
-    reuseExistingServer: !suGitHub,
-    timeout: 120_000,
-  },
+  webServer: indirizzoPubblicato
+    ? undefined
+    : {
+        command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+        url: indirizzoLocale,
+        reuseExistingServer: !suGitHub,
+        timeout: 120_000,
+      },
 })

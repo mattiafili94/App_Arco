@@ -33,6 +33,13 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
     giornaliero lo tiene attivo e avvia anche le letture periodiche di Fitarco.
 - **Cloudflare** (gratis): **Cloudflare Pages** pubblica la web app (anche da repo privata, indirizzo `…pages.dev`;
   GitHub Pages con repo privata è a pagamento) e un **Cloudflare Worker** con cron fa il controllo giornaliero.
+  - **Indirizzo dell'app: https://arcieri-eugubini.pages.dev** (progetto Pages `arcieri-eugubini`, account
+    Cloudflare di Mattia collegato a GitHub, accesso solo alla repo App_Arco).
+  - Pubblicazione automatica: ogni unione in `main` va in produzione; ogni PR riceve un indirizzo di anteprima
+    (Cloudflare lo scrive nella PR). Impostazioni: build `npm run build`, output `apps/web/dist`,
+    `NODE_VERSION=24`. Nessun segreto nella build per ora.
+  - Per provare i test nel browser su un indirizzo pubblicato:
+    `E2E_BASE_URL=https://arcieri-eugubini.pages.dev npm run test:e2e -w @arco/web`.
 - Scelte confermate dalla verifica "avvocato del diavolo" del 7/11/2026: React + Vite (non Next.js: non serve un
   server per le pagine), Supabase (non Firebase: dati relazionali; non PocketBase: niente server da gestire),
   Dexie + sincronizzazione scritta da noi (non PowerSync/RxDB/Dexie Cloud: troppo per 12 persone o a pagamento).
@@ -190,7 +197,7 @@ percorsi, offline, accessibilità axe nei 3 temi, 320 px e testo al 200%). Su Gi
    1. monorepo e test automatici ✅;
    2. design system UI Top: token, temi, componenti ✅;
    3. scheletro PWA: pagine, Impostazioni, installabile, offline, test nel browser ✅;
-   4. pubblicazione su **Cloudflare Pages** (anteprima per ogni PR; serve per installarla sul telefono);
+   4. pubblicazione su **Cloudflare Pages** (anteprima per ogni PR; serve per installarla sul telefono) ✅;
    5. **Supabase** e accesso con link personale (+ test dei permessi).
 2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
