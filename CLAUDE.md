@@ -1,66 +1,187 @@
 # App Arco — istruzioni per Claude
 
-App per il tiro con l'arco, per Android e iOS. Proprietario: Mattia (repo `mattiafili94/App_Arco`).
-Lingua di lavoro: **italiano** (testi dell'app, commenti, messaggi di commit).
+Web app per il tiro con l'arco della **A.S.D. Compagnia Arcieri Eugubini** (Gubbio, codice società Fitarco 11003).
+Proprietario e amministratore: Mattia (repo `mattiafili94/App_Arco`).
+Lingua di lavoro: **italiano** (testi dell'app, commenti, messaggi di commit). Mattia è alle prime armi con
+Claude Code: spiegare le cose in modo semplice.
 
 ## Obiettivo
 
-Un'app sul telefono che:
-1. aiuta l'**allenamento quotidiano** (segnapunti, statistiche, materiale, diario);
-2. mostra il **calendario gare Fitarco** e avvisa delle gare di interesse;
-3. più avanti, mostra **risultati, profilo atleta e ranking** presi dalle pagine pubbliche Fitarco.
+Un'app privata per i 10-12 atleti attivi della compagnia che:
+1. mostra **calendario gare dell'Umbria** e iscrizioni, con promemoria;
+2. mostra **risultati, storico, record personali e posizione in classifica** (ammissione ai Campionati Italiani)
+   di tutti, presi in automatico dal sito pubblico Fitarco;
+3. offre un'area **allenamento** personale: programma settimanale, diario, segnapunti per le simulazioni di gara.
+
+Principio guida: **automatizzare tutto quello che si può**, Mattia vuole scrivere il meno possibile.
 
 ## Decisioni prese (brainstorming del 7/11/2026)
 
-- **Tecnologia:** Expo (React Native) + **TypeScript**. Un solo codice per Android e iOS.
-  - Sviluppo con **Expo Go** sul telefono (QR code, stessa rete Wi-Fi del PC).
-  - Build con **EAS Build** (cloud, non serve un Mac). Correzioni JS con **EAS Update** (OTA).
-  - Dati salvati **sul telefono** (es. SQLite), l'app deve funzionare **offline** (al campo spesso non c'è rete).
-- **Struttura repo (monorepo):**
-  ```
-  apps/mobile/        ← app Expo
-  packages/shared/    ← tipi e logica comune (punteggi, round, statistiche)
-  services/fitarco/   ← (solo se servirà) lettore delle pagine Fitarco
-  ```
-- **Dati Fitarco:** non esiste un'API pubblica. Si leggono le **pagine pubbliche** (calendario, risultati, ranking).
-  - All'inizio la lettura avviene **dentro l'app**, su richiesta dell'utente, con copia locale. Se il sito cambia, si corregge con un aggiornamento OTA.
-  - **Niente GitHub Actions** per leggere il sito (condizioni GitHub in zona grigia, workflow programmati disattivati dopo 60 giorni di inattività nelle repo pubbliche).
-  - Un server vero (funzioni programmate tipo Cloudflare Workers / Supabase) **solo se** servono più utenti, notifiche automatiche, o se le pagine richiedono un browser automatico (Playwright).
-  - Regole: leggere poco e di rado, con cache; prima verificare condizioni d'uso del sito e `robots.txt`; prendere solo i dati necessari; i risultati contengono nomi di atleti → **non pubblicarli** (repo privata, nessun dump pubblico).
-  - Il calendario definitivo esce anche come circolare PDF annuale: possibile fonte alternativa.
-- **Accesso all'area riservata Fitarco (credenziali tesserato): escluso.**
+Queste decisioni sostituiscono quelle della prima versione di questo file (app Expo personale e solo offline).
 
-## Ordine di lavoro
+### Tecnologia
+- **Web app installabile (PWA)** per tutti: si apre da un link e si aggiunge alla schermata Home.
+  Stessa app per Android e iPhone, niente store e niente account Apple Developer.
+- **React + TypeScript + Vite** (non più Expo). Monorepo:
+  ```
+  apps/web/          ← la web app (PWA)
+  packages/shared/   ← tipi e logica comune: punteggi, prove, record, lettura dei PDF
+  supabase/          ← database, permessi, funzioni che leggono Fitarco
+  ```
+- **Server: Supabase** (piano gratuito): database Postgres condiviso, permessi (row-level security), funzioni.
+  - Il piano gratuito va **in pausa dopo una settimana di inattività** (es. ad agosto): un controllo automatico
+    giornaliero lo tiene attivo e avvia anche le letture periodiche di Fitarco.
+- **Cloudflare** (gratis): **Cloudflare Pages** pubblica la web app (anche da repo privata, indirizzo `…pages.dev`;
+  GitHub Pages con repo privata è a pagamento) e un **Cloudflare Worker** con cron fa il controllo giornaliero.
+- Scelte confermate dalla verifica "avvocato del diavolo" del 7/11/2026: React + Vite (non Next.js: non serve un
+  server per le pagine), Supabase (non Firebase: dati relazionali; non PocketBase: niente server da gestire),
+  Dexie + sincronizzazione scritta da noi (non PowerSync/RxDB/Dexie Cloud: troppo per 12 persone o a pagamento).
+  Se in futuro servirà un'app nativa (es. smartwatch) si può impacchettare la stessa web app con **Capacitor**.
+- **Niente AI sul server**: tutte le letture (JSON Fitarco, PDF dei risultati) con codice normale (estrazione testo + regole).
+- **Tutta l'app funziona offline** (in palestra la rete è debole):
+  - database nel telefono (IndexedDB con Dexie) con la copia di **tutti** i dati: calendario, risultati, record, classifica, allenamento;
+  - sincronizzazione quando c'è rete (all'apertura, al ritorno della connessione, periodicamente), con indicatore di stato;
+  - dati condivisi: solo dal server al telefono, scaricando solo le novità;
+  - dati di allenamento: nei due sensi, vince la modifica più recente;
+  - l'app stessa si apre offline (service worker). La copia sul server fa anche da backup.
 
-1. **Fase 1 — Allenamento offline** (nessuna dipendenza da Fitarco):
-   - segnapunti per volée toccando il bersaglio (punteggio + posizione della freccia);
-   - round predefiniti (18 m indoor, 70 m olimpico, 50 m compound, campagna) e sessioni libere;
-   - statistiche: media per freccia, X/10, raggruppamento, andamento, confronto allenamento/gara;
-   - timer della volée; scheda materiale con tacche del mirino per distanza; diario.
-2. **Fase 2 — Esplorazione tecnica del sito Fitarco**: capire da dove arrivano i dati del calendario
-   (`https://www.fitarco.it/gare-e-risultati/calendario.html` si carica in modo dinamico), se c'è una
-   richiesta JSON interna o serve un browser automatico. Definire il formato JSON di una gara.
-3. **Fase 3 — Calendario gare** in sola lettura: filtri (regione, tipo, divisione), preferite,
-   aggiunta al calendario del telefono, promemoria.
-4. **Fase 4 — Risultati, profilo atleta, ranking.**
+### Utenti e accesso
+- Si parte con i **10-12 atleti attivi** (la società ha 34 tesserati). Un atleta entra nella lista quando fa il
+  primo accesso, e solo allora se ne scaricano i dati.
+- Accesso con **matricola + link personale** generato dall'amministratore (contiene anche un codice breve da
+  digitare se serve, es. su iPhone dopo "Aggiungi a Home"). Il telefono si ricorda la persona: niente password.
+  - Realizzazione: Supabase Auth è pensato per email/password, quindi per ogni atleta il server crea un utente
+    "tecnico" e il link personale ne contiene le credenziali. Per l'atleta resta "tocca il link e sei dentro".
+- Ruoli: amministratore (Mattia) e atleta.
+
+### Struttura dell'app: 4 tab + impostazioni
+1. **Gare**: calendario Umbria (tutte le tipologie) con stato delle iscrizioni. Scheda gara: invito completo,
+   risultati (classifica come schermata con gli Eugubini evidenziati + PDF originale), "Aggiungi al calendario".
+2. **Atleti**: elenco membri (l'utente in cima). Scheda atleta: record personali, andamento, storico gare.
+3. **Classifica**: posizione di ognuno nella ranking per l'ammissione ai Campionati Italiani, pulsante "Aggiorna"
+   con data dell'ultimo aggiornamento.
+4. **Allenamento** (privato, visibile solo all'atleta): settimana con il programma dettato dall'allenatore e
+   scritto dall'atleta, attività da segnare come fatte, "copia la settimana scorsa", diario, segnapunti.
+- **Impostazioni** (icona in alto): tema, interruttore "Promemoria iscrizioni", stato sincronizzazione.
+  **Area amministratore** (solo Mattia): membri e link di accesso, importazione calendario, primo caricamento storico.
+
+### Dati Fitarco: cosa, da dove, quando
+| Dato | Fonte | Quando |
+|---|---|---|
+| Membri e matricole | ricerca tesserati per società | al primo accesso di ognuno |
+| Storico gare | scheda atleta (dalla matricola) | una volta, poi in automatico |
+| Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
+| Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
+| Classifica Campionati Italiani | ranking | pulsante "Aggiorna" |
+| Calendario Umbria | calendario | importato una volta all'anno (con anteprima delle differenze) + controlli periodici |
+| Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
+
+- **Inviti**: niente estrazione automatica delle date. Quando esce un invito nuovo l'app avvisa Mattia e mostra il
+  testo completo; il promemoria lo crea lui (in app + calendario del telefono). Promemoria facoltativi (interruttore).
+- **Come funzionano i promemoria** (una web app **non** può programmare da sola notifiche future sul telefono):
+  - **notifiche push dal server** (Web Push, gratis): il server le invia il giorno giusto a chi ha attivato
+    l'interruttore. Android sì; iPhone da iOS 16.4 e solo con l'app aggiunta alla schermata Home;
+  - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
+    "Aggiungi a Google Calendar" (Android).
+  - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
+- **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
+  ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
+  Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.
+- **Classifica**: il server ricava dai membri le combinazioni necessarie (tipo × divisione × classe × genere) e fa
+  solo quelle chiamate, senza doppioni.
+
+### Regole di record e statistiche
+Le gare composte si dividono in **prove**; record, andamento e medie si calcolano per prova.
+Nello storico la gara resta una sola, con totale e posizione.
+- **Indoor** (stessa ranking): 18 m e 25 m con record separati. **25+18** → prova 25 m (record 25 m) + prova 18 m (record 18 m).
+- **Outdoor**: 70 m (60 m o 50 m secondo classe/divisione). **Doppio 70 m** → prova 1 + prova 2, ognuna come un 70 m singolo.
+- **Campagna** (su Fitarco si chiama Hunter & Field): **12+12** e **24+24** con record separati; il 24+24 **non** si divide.
+- **3D**: un record.
+- Record divisi anche per **divisione** (ricurvo, compound, nudo, istintivo, longbow).
+- Il numero di 10 / X / 9 nei PDF c'è solo sul totale della gara, non per prova.
+
+### Segnapunti (simulazioni di gara, nel tab Allenamento, privato)
+- Tutti i tipi: 18/25 m (bersaglio singolo e trispot), 70/60/50 m (122 cm e 80 cm ridotto), 12+12 e 24+24, 3D,
+  anche le gare composte divise in prove.
+- Inserimento con tocco sul bersaglio (posizione della freccia, lente d'ingrandimento) + tastierino veloce;
+  per il 3D solo tastierino.
+- Timer della volée con segnale acustico, note per volée, confronto media allenamento / gara.
+- Le regole di punteggio di 3D e Hunter & Field vanno **confermate con Mattia** prima di scriverle.
+
+### Rapporto con il sito Fitarco
+- Si leggono solo **dati pubblici**, poco e di rado, con cache. Niente area riservata Fitarco.
+- **Mai travestirsi da browser** né aggirare filtri anti-bot. Mattia ha deciso di **non scrivere a Fitarco**.
+- Test del 7/11/2026 dal PC: con curl standard le richieste passano; con un User-Agent personalizzato
+  ("AppArco…") il sito risponde subito "Service unavailable" (filtro sul nome). Non provare altri User-Agent per
+  trovare quello che passa.
+- Il server usa il suo client HTTP standard. Appena esiste, **test di lettura dal cloud** (Supabase). Se viene
+  bloccato, prova onesta anche da Cloudflare Workers (indirizzi diversi, stessa regola: niente travestimenti).
+  Se anche lì è bloccato, piano B: lettura dal browser vero di Mattia sul sito Fitarco (pulsante/bookmarklet)
+  che invia i dati al server.
+- Prima di scrivere il lettore: controllare le **condizioni d'uso** del sito (`robots.txt` già verificato: le pagine
+  di gare e risultati non sono vietate).
+- I risultati contengono nomi di atleti: **non pubblicarli** (repo privata, nessun dump pubblico).
+
+### Riferimento tecnico Fitarco (verificato il 7/11/2026)
+Tutte le richieste dati sono POST con campi form `call`, `render`, `params` (JSON), senza captcha né chiavi.
+La risposta è `{"status":"OK","content":"<html…>"}`.
+- **Elenchi** → `https://www.fitarco.it/index.php?option=com_tesseramentofiv&view=risultati&format=json`
+  - Ranking: `call=ranking_gare`, `render=lista_ranking_gare_results` (oppure `lista_ranking_gare_excel`: righe JSON
+    pronte). Params: `idRankingTipo` (I indoor, T targa, C campagna, 3 3D), `idDivisione` (OL, CO, AN, AI, LB),
+    `idClasse` (M, S, J, A, R), `idGenere` (M, F), `idTipoSquadra` (0, 1), `idComitato` (11 Umbria, 00 tutte).
+    La posizione restituita è quella nazionale anche filtrando per regione.
+  - Calendario: `call=calendario`, `render=lista_calendario_results`, params `idPeriodo` (anno), `idComitato`,
+    `mese`, `idClasseEvento`, `idsTipoGare`, `idMatchRound`. Esiste già il "Calendario provvisorio 2027".
+  - Tesserati: `call=tesserati`, `render=lista_tesserati_results`, params `tesserato_nome`, `tesserato_cognome`,
+    `tesserato_matricola`, `nome_societa`.
+- **Dettagli** → `…&view=dettaglio&format=json`
+  - Scheda atleta: `call=scheda_tesserato`, `render=scheda_tesserato_result`, `{"matricola": …}` → anagrafica,
+    classe di ranking, posizione, storico completo (codice, data, località, tipologia, divisione, posizione, totale).
+  - Scheda gara: `call=calendario`, `render=scheda_gara_result`, `{"codice": …}` → stato e link ai PDF.
+  - Invito: `call=invito`, `render=scheda_invito_result`, `{"codiceGara": …}` → testo libero (date iscrizioni lì dentro).
+  - Società: `call=societa`, `render=scheda_societa_result`, `{"codiceAffiliazione": …}`.
+- **Valori dei filtri** (letti dinamicamente, non scriverli a mano): GET
+  `…&view=filtri&format=json&call=filtri/<kind>&kind=<kind>&classe=<classe>` con `ranking_gare`/`ranking` oppure
+  `calendario`/`ricerca_gare`.
+- **PDF risultati**: prendere i link dalla scheda gara (le gare annullate non li hanno), di solito
+  `https://www.fitarco-italia.org/upload_<anno>/<codice>.pdf` e `_team.pdf`; con scontri diretti anche `_abs`, `_grid`, `_rank`.
+  - Sono PDF di testo (`pdftotext -raw`). Per categoria c'è una riga d'intestazione che dichiara le colonne
+    (`18m-1 18m-2 Totale 10 9`, `70m-1 70m-2 Totale 10+X X`, `H&F Totale 6 5`, `Hunter Field Totale 6 5`, `Perc. Totale 11 10`).
+  - Riga atleta: posizione, turno-piazzola, COGNOME Nome (a volte con una parola in più, es. "Junior"),
+    categoria (2 cifre), codice società (5 cifre), società, parziali `punti/ posizione`, totale, due conteggi.
+  - Gare doppie e 25+18: **più righe per atleta** (una riga per prova + riga finale con totale tipo `1.107`,
+    punto delle migliaia).
+  - Nei PDF vecchi il ricurvo si chiama "Arco Olimpico".
+
+## Ordine di lavoro (provvisorio, il piano dettagliato va approvato da Mattia)
+
+1. **Base**: monorepo, web app PWA vuota con i token del design system e i tre temi, Supabase, accesso con link,
+   pubblicazione su Cloudflare Pages.
+2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
+3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
+4. **Tab Atleti**: storico, record, andamento.
+5. **Tab Classifica**.
+6. **Tab Allenamento**: settimana, diario, poi segnapunti.
+7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system
 
-L'interfaccia segue il design system **UI Constitution** ("UI Top"), salvato come artefatto nell'account
-di Mattia: https://claude.ai/artifact/BEUsaG1jRRShkG7r6DdHXN
+L'interfaccia segue il design system **"UI Top"**, salvato come artefatto nell'account di Mattia:
+https://claude.ai/artifact/BEUsaG1jRRShkG7r6DdHXN (all'interno si chiama "UI Constitution": è la stessa cosa).
 
 Se non riesci ad aprirlo, chiedi a Mattia di esportarne token e linee guida (sezione *Files*) nella repo
 sotto `design-system/`. Punti chiave da rispettare:
 - Una schermata = un compito; mostrare solo l'informazione che serve ora, il resto nel dettaglio.
 - Ordine di priorità: comprensione, accessibilità, efficienza, gerarchia, continuità degli stati, identità, rifinitura, decorazione.
-- Temi: **chiaro, scuro e alto contrasto** (utile al sole sul campo). Usare i **ruoli dei token**, mai colori fissi.
-- Testo con contrasto 4.5:1 (3:1 testo grande, bordi e icone); target touch comodi (`control-touch`).
+- Temi: **chiaro, scuro e alto contrasto** (utile al sole sul campo), scelta manuale nelle impostazioni.
+  Usare i **ruoli dei token**, mai colori fissi. I colori del bersaglio diventano token del progetto (`target-*`).
+- Testo con contrasto 4.5:1 (3:1 testo grande, bordi e icone); target touch comodi (`control-touch`, 48 px).
 - Inserimento ripetitivo pensato per la velocità: vedi il componente `RapidEntry` (→ segnapunti).
 - Grafici: mai due assi di valori; serie `chart-1`…`chart-5` etichettate direttamente.
-- Esistono layout per smartwatch (`WatchLayouts`), da valutare più avanti.
 
 ## Come lavorare
 
-- Prima di modifiche grandi, proponi un piano breve e aspetta l'ok.
-- Commit piccoli, messaggi in italiano. Non pushare segreti o dati personali.
-- Ambiente di Mattia: Windows, app desktop Claude (scheda Code), telefono con Expo Go.
+- Prima di modifiche grandi, proponi un piano breve e aspetta l'ok. Niente codice senza il via di Mattia.
+- Commit piccoli, messaggi in italiano. Non pushare segreti o dati personali (niente matricole o risultati nella repo).
+- Ambiente di Mattia: Windows, app desktop Claude (scheda Code), Git e Node.js LTS installati; prova l'app sul
+  telefono aprendo un link (stessa rete Wi-Fi del PC durante lo sviluppo).
