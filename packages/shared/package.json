@@ -1,0 +1,10 @@
+{
+  "name": "@arco/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tipi e logica comune: tipologie di gara, prove, record",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
