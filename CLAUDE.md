@@ -128,12 +128,15 @@ Nello storico la gara resta una sola, con totale e posizione.
 - Test del 7/11/2026 dal PC: con curl standard le richieste passano; con un User-Agent personalizzato
   ("AppArco…") il sito risponde subito "Service unavailable" (filtro sul nome). Non provare altri User-Agent per
   trovare quello che passa.
-- Il server usa il suo client HTTP standard. Appena esiste, **test di lettura dal cloud** (Supabase). Se viene
-  bloccato, prova onesta anche da Cloudflare Workers (indirizzi diversi, stessa regola: niente travestimenti).
-  Se anche lì è bloccato, piano B: lettura dal browser vero di Mattia sul sito Fitarco (pulsante/bookmarklet)
-  che invia i dati al server.
-- Prima di scrivere il lettore: controllare le **condizioni d'uso** del sito (`robots.txt` già verificato: le pagine
-  di gare e risultati non sono vietate).
+- Il server usa il suo client HTTP standard (`fetch` di Deno, User-Agent non modificato).
+  **Test di lettura dal cloud dell'8/11/2026: superato.** Da una funzione Supabase (Francoforte) il calendario
+  Umbria risponde 200 in meno di un secondo (51 gare). Il codice della prova resta in
+  `supabase/functions/prova-fitarco/` per rifarla se un giorno il sito bloccasse (vedi `supabase/README.md`).
+  Se succede: prova onesta da Cloudflare Workers (stessa regola: niente travestimenti), poi piano B: lettura
+  dal browser vero di Mattia sul sito Fitarco (pulsante/bookmarklet) che invia i dati al server.
+- **Condizioni d'uso** (controllate l'8/11/2026): il sito non ha una pagina di condizioni d'uso, solo privacy e
+  cookie (che non parlano di letture automatiche). `robots.txt` di fitarco.it vieta solo cartelle tecniche;
+  quello di fitarco-italia.org (PDF) solo `/cartefederali/giustizia/`.
 - I risultati contengono nomi di atleti: **non pubblicarli** (repo privata, nessun dump pubblico).
 
 ### Riferimento tecnico Fitarco (verificato il 7/11/2026)
@@ -213,7 +216,15 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       Attenzione: in `config.toml` `[auth.email] enable_signup` deve restare `true` (con `false` nessuno entra);
       le iscrizioni libere le vieta `[auth] enable_signup = false`. Lo controlla `supabase/config.test.ts`.
       Eliminare un atleta per ora si fa a mano (Revoca accesso + SQL); in futuro un "Disattiva atleta".
-2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
+2. **Lettore Fitarco**, una PR per passo (piano approvato l'8/11/2026):
+   1. condizioni d'uso e prova di lettura dal cloud ✅;
+   2. lettori delle risposte Fitarco in `packages/shared` (calendario, scheda gara, invito, scheda atleta,
+      tesserati, classifica), richieste "educate" (una alla volta, pause, cache), esempi anonimizzati;
+   3. lettore dei PDF dei risultati (pdf.js sul server: verificare che il testo esca come con `pdftotext -raw`);
+   4. tabelle, funzioni che salvano solo le novità, test dei permessi, sentinella;
+   5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
+      (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
+      classifica solo con "Aggiorna").
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.

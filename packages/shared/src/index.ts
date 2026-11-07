@@ -1,2 +1,3 @@
 export * from './tipologie'
 export * from './accesso'
+export * from './fitarco'

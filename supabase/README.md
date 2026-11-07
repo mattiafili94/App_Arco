@@ -7,6 +7,7 @@ Il server dell'app. Qui ci sono:
 | `migrations/` | le tabelle e i permessi (in ordine di data) |
 | `tests/database/` | i test dei permessi (pgTAP): girano su GitHub a ogni PR, su un Supabase di prova |
 | `functions/crea-accesso/` | la funzione del server che crea e revoca i link personali |
+| `functions/prova-fitarco/` | prova (temporanea) che il sito Fitarco risponda dal cloud: non resta pubblicata |
 | `functions/_shared/` | regole comuni ad app e server (codice, link, email tecnica) |
 | `config.toml` | impostazioni: nessuna iscrizione libera, niente email di conferma, codici di 10+ caratteri |
 
@@ -56,6 +57,17 @@ L'app crea gli accessi solo per chi è già amministratore: il primo si crea a m
 Il tuo stesso accesso non si rigenera dall'app (per non chiuderti fuori per sbaglio): se serve, ripeti i passi 1–2
 su quel tuo utente (Authentication → Users → … → Reset password, oppure eliminalo e ricrealo, poi rifai il passo 3
 con `update public.atleti set utente_id = ...`).
+
+## Prova di lettura di Fitarco dal cloud
+
+`functions/prova-fitarco/` fa **una** richiesta al calendario Fitarco dal server e dice se il sito risponde
+(fatta l'8/11/2026: superata). Non resta pubblicata: si pubblica, si prova una volta e si elimina.
+
+1. Una chiave usa e getta (non serve conservarla): `npx supabase secrets set PROVA_FITARCO_CHIAVE=<lettere a caso>`
+2. `npx supabase functions deploy prova-fitarco --use-api --no-verify-jwt`
+3. Una sola chiamata: `curl -X POST https://<id del progetto>.supabase.co/functions/v1/prova-fitarco -H "x-prova: <chiave>"`
+   → `stato_http` 200 e `lettura` "ok" vuol dire che passa.
+4. Subito dopo: `npx supabase functions delete prova-fitarco` e `npx supabase secrets unset PROVA_FITARCO_CHIAVE`.
 
 ## Comandi utili
 
