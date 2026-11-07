@@ -63,13 +63,19 @@ $$;
 
 revoke all on function public.e_membro() from public, anon;
 revoke all on function public.e_amministratore() from public, anon;
-grant execute on function public.e_membro() to authenticated;
-grant execute on function public.e_amministratore() to authenticated;
+grant execute on function public.e_membro() to authenticated, service_role;
+grant execute on function public.e_amministratore() to authenticated, service_role;
+grant usage on type public.ruolo to authenticated, service_role;
 
 -- Regole di accesso alla tabella.
 alter table public.atleti enable row level security;
 
+-- Permessi espliciti: il progetto NON espone in automatico le tabelle nuove (scelta più sicura),
+-- quindi qui si dichiara chi può fare cosa. Le righe visibili le decidono poi le regole (policy).
 revoke all on table public.atleti from anon;
+grant select, delete on table public.atleti to authenticated;
+-- La funzione del server (chiave di servizio) collega gli accessi agli atleti.
+grant select, insert, update, delete on table public.atleti to service_role;
 
 create policy "I membri vedono gli atleti"
 on public.atleti for select

@@ -5,7 +5,20 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(24);
+
+-- Permessi espliciti (il progetto non espone in automatico le tabelle nuove) ------------------
+select ok(
+  has_table_privilege('authenticated', 'public.atleti', 'SELECT')
+  and has_column_privilege('authenticated', 'public.atleti', 'nome', 'UPDATE')
+  and not has_column_privilege('authenticated', 'public.atleti', 'utente_id', 'UPDATE'),
+  'chi ha fatto l''accesso ha i permessi previsti, ma non sul collegamento con l''accesso'
+);
+select ok(
+  not has_table_privilege('anon', 'public.atleti', 'SELECT')
+  and has_table_privilege('service_role', 'public.atleti', 'UPDATE'),
+  'nessun permesso senza accesso; la funzione del server può collegare gli accessi'
+);
 
 -- Utenti di prova (accessi tecnici) e atleti di prova.
 insert into auth.users (id, email) values
