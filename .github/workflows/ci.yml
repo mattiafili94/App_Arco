@@ -1,0 +1,32 @@
+# Controllo automatico: a ogni pull request (e a ogni modifica di main) GitHub esegue
+# formattazione, lint, tipi, test con copertura e build. Se qualcosa fallisce la PR
+# diventa rossa e non va unita.
+# Nota: questo workflow esegue solo i test; NON legge il sito Fitarco (vedi CLAUDE.md).
+name: Controlli
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Formattazione, lint, tipi, test e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build

@@ -153,6 +153,34 @@ La risposta è `{"status":"OK","content":"<html…>"}`.
     punto delle migliaia).
   - Nei PDF vecchi il ricurvo si chiama "Arco Olimpico".
 
+## Test (obbligatori, decisi il 7/11/2026)
+
+Obiettivo: nessuna regressione quando si modifica l'app, e accorgersi subito se Fitarco cambia formato.
+
+**Regole**
+1. Ogni funzione nuova arriva con i suoi test **nella stessa pull request**. Niente test, niente unione.
+2. Ogni bug corretto riceve **prima** un test che lo riproduce (deve fallire), poi la correzione.
+3. Su GitHub il workflow `.github/workflows/ci.yml` esegue `npm run check` e la build a ogni PR:
+   se è rosso, la PR non si unisce. (Le GitHub Actions servono solo ai test, **mai** a leggere Fitarco.)
+4. Prima di ogni commit eseguire in locale `npm run check`.
+
+**Livelli**
+| Livello | Cosa | Strumento | Soglia |
+|---|---|---|---|
+| Logica | regole in `packages/shared` (tipologie, prove, record, classifica, date, sincronizzazione) | Vitest | copertura **≥ 90%** (controllata in automatico) |
+| Lettori Fitarco | risposte JSON, schede, calendario, PDF dei risultati | Vitest + esempi salvati | almeno un esempio reale per ogni formato + casi strani noti |
+| Componenti | pezzi dell'interfaccia e loro stati | Vitest + Testing Library | ogni componente con i suoi stati |
+| Database | permessi (row-level security) | test di Supabase | un test per ogni regola (es. un atleta non legge l'allenamento di un altro) |
+| App completa | percorsi veri nel browser, schermo da telefono, offline e sincronizzazione | Playwright | un test per ogni percorso importante |
+| Accessibilità | contrasti e leggibilità nei 3 temi | axe dentro Playwright | zero errori |
+| Sentinella | in produzione: letture Fitarco con risultati anomali | controllo giornaliero | avvisa invece di salvare dati sbagliati |
+
+**Privacy degli esempi**: i PDF e le risposte Fitarco contengono nomi di atleti. Prima di salvarli nella repo
+come esempi di test vanno **anonimizzati** (nomi finti, formato e punteggi veri).
+
+**Quando arrivano**: logica e controllo su GitHub dal passo 1; componenti, Playwright, offline e accessibilità dal
+passo 3; permessi dal passo 4; esempi Fitarco e sentinella dalla fase del lettore Fitarco.
+
 ## Ordine di lavoro (provvisorio, il piano dettagliato va approvato da Mattia)
 
 1. **Base**: monorepo, web app PWA vuota con i token del design system e i tre temi, Supabase, accesso con link,
