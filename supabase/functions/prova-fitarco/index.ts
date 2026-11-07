@@ -4,7 +4,11 @@
 // Si pubblica, si prova una volta e si elimina (vedi supabase/README.md, "Prova di lettura").
 //
 // Protezione: risponde solo a chi conosce PROVA_FITARCO_CHIAVE (segreto usa e getta).
-import { contaGareCalendario, leggiRisposta, richiestaCalendario } from '../_shared/fitarco.ts'
+import {
+  contaGareCalendario,
+  leggiRisposta,
+  richiestaCalendario,
+} from '../_shared/fitarco/index.ts'
 
 Deno.serve(async (req) => {
   const chiave = Deno.env.get('PROVA_FITARCO_CHIAVE')

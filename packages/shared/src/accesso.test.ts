@@ -51,8 +51,8 @@ describe('codice personale', () => {
 
 describe('matricola', () => {
   it('tiene solo le cifre e accetta da 1 a 8 cifre', () => {
-    expect(normalizzaMatricola(' 164 234 ')).toBe('164234')
-    expect(matricolaValida('164234')).toBe(true)
+    expect(normalizzaMatricola(' 123 456 ')).toBe('123456')
+    expect(matricolaValida('123456')).toBe(true)
     expect(matricolaValida('')).toBe(false)
     expect(matricolaValida('123456789')).toBe(false)
   })

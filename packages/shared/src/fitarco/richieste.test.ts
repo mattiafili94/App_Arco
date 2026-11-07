@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
+  COMITATO_UMBRIA,
   contaGareCalendario,
+  richiestaInvito,
+  richiestaRanking,
+  richiestaSchedaAtleta,
+  richiestaSchedaGara,
+  richiestaTesserati,
   leggiRisposta,
   richiesta,
   richiestaCalendario,
   URL_DETTAGLI,
   URL_ELENCHI,
-} from './fitarco'
+} from '../fitarco'
 
 describe('richieste a Fitarco', () => {
   it('usa gli indirizzi giusti per elenchi e dettagli', () => {
@@ -36,6 +42,52 @@ describe('richieste a Fitarco', () => {
       idPeriodo: '2027',
       idComitato: '00',
     })
+  })
+})
+
+describe('richieste per ogni tipo di dato', () => {
+  const params = (r: { corpo: URLSearchParams }) => JSON.parse(r.corpo.get('params') ?? '')
+
+  it('scheda gara, invito e scheda atleta usano gli indirizzi dei dettagli', () => {
+    const gara = richiestaSchedaGara('R0000001')
+    expect([gara.url, gara.corpo.get('render'), params(gara)]).toEqual([
+      URL_DETTAGLI,
+      'scheda_gara_result',
+      { codice: 'R0000001' },
+    ])
+    expect(params(richiestaInvito('R0000001'))).toEqual({ codiceGara: 'R0000001' })
+    const atleta = richiestaSchedaAtleta('900001')
+    expect([atleta.corpo.get('call'), params(atleta)]).toEqual([
+      'scheda_tesserato',
+      { matricola: '900001' },
+    ])
+  })
+
+  it('i tesserati si cercano con i filtri dati, gli altri restano vuoti', () => {
+    expect(params(richiestaTesserati({ societa: 'EUGUBINI' }))).toEqual({
+      tesserato_nome: '',
+      tesserato_cognome: '',
+      tesserato_matricola: '',
+      nome_societa: 'EUGUBINI',
+    })
+    expect(params(richiestaTesserati({ nome: 'A', cognome: 'B', matricola: '1' }))).toMatchObject({
+      tesserato_nome: 'A',
+      tesserato_cognome: 'B',
+      tesserato_matricola: '1',
+    })
+  })
+
+  it("la ranking è individuale e filtrata sull'Umbria se non si indica il comitato", () => {
+    const filtro = { tipo: 'I', divisione: 'OL', classe: 'S', genere: 'M' } as const
+    expect(params(richiestaRanking(filtro))).toEqual({
+      idRankingTipo: 'I',
+      idDivisione: 'OL',
+      idClasse: 'S',
+      idGenere: 'M',
+      idTipoSquadra: '0',
+      idComitato: COMITATO_UMBRIA,
+    })
+    expect(params(richiestaRanking({ ...filtro, comitato: '00' })).idComitato).toBe('00')
   })
 })
 

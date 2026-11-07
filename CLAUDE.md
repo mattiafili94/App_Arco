@@ -218,8 +218,19 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       Eliminare un atleta per ora si fa a mano (Revoca accesso + SQL); in futuro un "Disattiva atleta".
 2. **Lettore Fitarco**, una PR per passo (piano approvato l'8/11/2026):
    1. condizioni d'uso e prova di lettura dal cloud ✅;
-   2. lettori delle risposte Fitarco in `packages/shared` (calendario, scheda gara, invito, scheda atleta,
-      tesserati, classifica), richieste "educate" (una alla volta, pause, cache), esempi anonimizzati;
+   2. lettori delle risposte Fitarco (calendario, scheda gara, invito, scheda atleta, tesserati, classifica),
+      client "educato" (una richiesta alla volta, 2 s di pausa, cache 10 min, nessun nuovo tentativo
+      automatico), esempi anonimizzati ✅. Note:
+      - il codice sta in `supabase/functions/_shared/fitarco/` (lo usano le funzioni Deno) e `packages/shared`
+        lo riesporta; esempi e test in `packages/shared/src/fitarco/` (esempi esclusi da Prettier: vanno
+        tenuti esattamente come li manda Fitarco, spazi "non separabili" compresi);
+      - HTML letto con `node-html-parser`: ogni funzione Deno che usa il lettore deve dichiararlo nel suo
+        `deno.json` (`"node-html-parser": "npm:node-html-parser@<stessa versione>"`);
+      - se il formato non è quello atteso i lettori lanciano `ErroreFormatoFitarco` (base della sentinella);
+        stati del calendario nuovi diventano `sconosciuto`;
+      - la versione "excel" della ranking non è JSON valido: si usa quella HTML;
+      - nello storico atleta la posizione 999 compare in alcuni Campionati Regionali (da capire con i PDF);
+      - dalla scheda atleta non si prendono data di nascita né tecnico (non servono);
    3. lettore dei PDF dei risultati (pdf.js sul server: verificare che il testo esca come con `pdftotext -raw`);
    4. tabelle, funzioni che salvano solo le novità, test dei permessi, sentinella;
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
