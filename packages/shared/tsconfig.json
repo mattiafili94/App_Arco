@@ -1,4 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // crypto, URL e URLSearchParams: esistono nel browser, in Node e nel server Deno di Supabase.
+    "lib": ["ES2022", "DOM"]
+  },
   "include": ["src"]
 }

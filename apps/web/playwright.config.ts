@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { URL_SUPABASE_FINTO } from './e2e/supabase-finto'
 
 const suGitHub = Boolean(process.env.CI)
 
@@ -32,5 +33,10 @@ export default defineConfig({
         url: indirizzoLocale,
         reuseExistingServer: !suGitHub,
         timeout: 120_000,
+        // L'app di prova parla con un Supabase simulato (e2e/supabase-finto.ts), mai con quello vero.
+        env: {
+          VITE_SUPABASE_URL: URL_SUPABASE_FINTO,
+          VITE_SUPABASE_PUBLISHABLE_KEY: 'chiave-di-prova',
+        },
       },
 })

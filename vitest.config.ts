@@ -8,7 +8,7 @@ export default defineConfig({
       {
         test: {
           name: 'logica',
-          include: ['packages/*/src/**/*.test.ts'],
+          include: ['packages/*/src/**/*.test.ts', 'supabase/*.test.ts'],
           environment: 'node',
         },
       },
@@ -16,7 +16,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      include: ['packages/*/src/**/*.ts'],
+      include: ['packages/*/src/**/*.ts', 'supabase/functions/_shared/**/*.ts'],
       exclude: ['**/*.test.ts', '**/index.ts'],
       reporter: ['text', 'html'],
       // Regola di CLAUDE.md: la logica condivisa deve essere coperta almeno al 90%.

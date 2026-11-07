@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p packages/shared && tsc -p packages/tokens && tsc -p apps/web",
+    "typecheck": "tsc -p packages/shared && tsc -p packages/tokens && tsc -p apps/web && tsc -p scripts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -25,7 +25,9 @@
     "tokens": "node packages/tokens/scripts/tokens.ts",
     "tokens:check": "node packages/tokens/scripts/tokens.ts --check",
     "check:design": "node packages/tokens/scripts/controlla-stili.ts",
-    "test:e2e": "npm run test:e2e -w @arco/web"
+    "test:e2e": "npm run test:e2e -w @arco/web",
+    "test:db": "supabase test db",
+    "genera-codice": "node scripts/genera-codice.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -38,6 +40,7 @@
     "eslint-plugin-react-refresh": "0.5.7",
     "globals": "17.13.0",
     "prettier": "3.9.10",
+    "supabase": "2.121.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.0",
     "vitest": "5.0.5"

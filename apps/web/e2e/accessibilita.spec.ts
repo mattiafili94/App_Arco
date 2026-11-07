@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { conTema, PAGINE, scorreInOrizzontale, TEMI } from './aiuti'
+import { simulaSupabase } from './supabase-finto'
+
+// Ogni test parte con un atleta che ha già fatto l'accesso (Supabase simulato).
+test.beforeEach(async ({ page }) => {
+  await simulaSupabase(page)
+})
 
 // Animazioni ridotte: axe controlla i colori finali, non quelli a metà dissolvenza.
 test.use({ reducedMotion: 'reduce' })
