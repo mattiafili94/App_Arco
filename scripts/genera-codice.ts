@@ -1,7 +1,7 @@
 /**
  * Genera un codice personale di accesso e lo mostra SOLO in questo Terminale.
  * Serve per il primo accesso dell'amministratore (vedi supabase/README.md).
- *   npm run genera-codice -- 164234
+ *   npm run genera-codice -- 123456
  * Non incollare il codice in chat né in file della repo.
  */
 import {
