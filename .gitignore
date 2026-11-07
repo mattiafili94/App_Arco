@@ -1,0 +1,21 @@
+# Dipendenze e file generati
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Segreti e configurazioni locali: mai nella repo
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase (cartelle locali della CLI)
+supabase/.branches/
+supabase/.temp/
+
+# Sistema ed editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json

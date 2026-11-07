@@ -1,0 +1,6 @@
+# Fine riga uniformi (LF) su Windows e altrove
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.ico binary
