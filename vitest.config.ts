@@ -8,7 +8,7 @@ export default defineConfig({
       {
         test: {
           name: 'logica',
-          include: ['packages/*/src/**/*.test.ts'],
+          include: ['packages/*/src/**/*.test.ts', 'supabase/*.test.ts'],
           environment: 'node',
         },
       },
