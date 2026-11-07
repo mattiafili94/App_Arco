@@ -1,0 +1,45 @@
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+}
+
+/* Allinea l'icona alla prima riga di testo (riga da 24px, icona da 20px). */
+.icon {
+  margin-top: calc((1.5rem - var(--icon-standard)) / 2);
+}
+
+.text {
+  min-width: 0;
+}
+
+.success {
+  background: var(--status-success-subtle);
+}
+.success .icon {
+  color: var(--status-success);
+}
+
+.warning {
+  background: var(--status-warning-subtle);
+}
+.warning .icon {
+  color: var(--status-warning);
+}
+
+.error {
+  background: var(--status-error-subtle);
+}
+.error .icon {
+  color: var(--status-error);
+}
+
+.info {
+  background: var(--status-info-subtle);
+}
+.info .icon {
+  color: var(--status-info);
+}

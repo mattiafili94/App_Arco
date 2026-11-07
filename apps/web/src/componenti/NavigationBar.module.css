@@ -1,0 +1,68 @@
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  background: var(--background-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.list {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--numero), minmax(0, 1fr));
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+/* L'indicatore è un solo elemento che scorre tra le destinazioni. */
+.indicatorTrack {
+  position: absolute;
+  top: var(--space-8);
+  left: 0;
+  width: calc(100% / var(--numero));
+  height: var(--space-32);
+  display: flex;
+  justify-content: center;
+  transform: translateX(calc(var(--indice) * 100%));
+  transition: transform var(--duration-spring-control) var(--ease-spring-control);
+  pointer-events: none;
+}
+
+.indicator {
+  width: var(--space-64);
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--state-selected);
+}
+
+.item {
+  position: relative;
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: calc(var(--control-touch) + var(--space-16));
+  padding: var(--space-12) var(--space-4) var(--space-8);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.label {
+  text-align: center;
+}
+
+.active {
+  color: var(--accent-default);
+}
+
+.active .label {
+  color: var(--text-primary);
+  font-weight: 600;
+}

@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="App della A.S.D. Compagnia Arcieri Eugubini" />
     <title>Arcieri Eugubini</title>
+    <script>
+      // Applica il tema scelto prima di disegnare la pagina, per evitare un lampo di colore.
+      // Stessa chiave e stessi valori di src/tema/tema.ts.
+      try {
+        var t = localStorage.getItem('arco.tema')
+        var a = { chiaro: 'light', scuro: 'dark', 'alto-contrasto': 'contrast' }[t]
+        if (a) document.documentElement.setAttribute('data-theme', a)
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

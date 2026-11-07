@@ -1,0 +1,10 @@
+{
+  "name": "@arco/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Genera il CSS dei token del design system UI Top e controlla contrasti e stili",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

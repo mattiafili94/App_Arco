@@ -4,10 +4,19 @@ import { defineConfig } from 'vitest/config'
 // (con la misura di quanto codice è coperto dai test, usata anche su GitHub).
 export default defineConfig({
   test: {
-    include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.{ts,tsx}'],
+    projects: [
+      {
+        test: {
+          name: 'logica',
+          include: ['packages/*/src/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      './apps/web/vitest.config.ts',
+    ],
     coverage: {
       provider: 'v8',
-      include: ['packages/shared/src/**/*.ts'],
+      include: ['packages/*/src/**/*.ts'],
       exclude: ['**/*.test.ts', '**/index.ts'],
       reporter: ['text', 'html'],
       // Regola di CLAUDE.md: la logica condivisa deve essere coperta almeno al 90%.

@@ -1,0 +1,19 @@
+.icon {
+  flex: none;
+  stroke-width: var(--icon-stroke);
+}
+
+.compact {
+  width: var(--icon-compact);
+  height: var(--icon-compact);
+}
+
+.standard {
+  width: var(--icon-standard);
+  height: var(--icon-standard);
+}
+
+.prominent {
+  width: var(--icon-prominent);
+  height: var(--icon-prominent);
+}
