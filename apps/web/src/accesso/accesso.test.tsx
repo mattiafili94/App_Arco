@@ -20,7 +20,8 @@ describe('senza accesso', () => {
     await renderApp('/classifica', { servizio: servizioFinto({ collegato: null }).servizio })
     expect(titolo('Accedi')).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
-    expect(document.title).toBe('Accedi · Arcieri Eugubini')
+    // Il titolo della finestra lo imposta un effetto: su un computer lento arriva un attimo dopo.
+    await waitFor(() => expect(document.title).toBe('Accedi · Arcieri Eugubini'))
   })
 
   it('con matricola e codice giusti si entra nelle Gare', async () => {

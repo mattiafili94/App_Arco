@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { destinazioneDi, titoloDocumento } from './navigazione'
@@ -31,7 +31,7 @@ describe('navigazione', () => {
       await userEvent.click(screen.getByRole('link', { name: nome }))
       expect(titolo(nome)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: nome })).toHaveAttribute('aria-current', 'page')
-      expect(document.title).toBe(`${nome} · Arcieri Eugubini`)
+      await waitFor(() => expect(document.title).toBe(`${nome} · Arcieri Eugubini`))
     }
   })
 
