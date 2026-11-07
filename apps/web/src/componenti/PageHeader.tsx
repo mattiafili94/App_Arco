@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { Link } from 'react-router'
 import { Icon } from './Icon'
 import styles from './PageHeader.module.css'
 
@@ -12,18 +13,24 @@ export interface PageHeaderProps {
   action?: ReactNode
 }
 
-/** L'intestazione unica di ogni pagina: dove sei, come tornare indietro, l'azione principale. */
+/**
+ * L'intestazione unica di ogni pagina: dove sei, come tornare indietro, l'azione principale.
+ * Il titolo può ricevere il focus (tabIndex -1) così, cambiando pagina, chi usa un lettore di
+ * schermo sente subito dove è arrivato.
+ */
 export function PageHeader({ title, back, description, action }: PageHeaderProps) {
   return (
     <header className={styles.header}>
       {back && (
-        <a className={styles.back} href={back.href}>
+        <Link className={styles.back} to={back.href}>
           <Icon icon={ArrowLeft} size="compact" />
           {back.label}
-        </a>
+        </Link>
       )}
       <div className={styles.row}>
-        <h1 className={`type-page-title ${styles.title}`}>{title}</h1>
+        <h1 className={`type-page-title ${styles.title}`} tabIndex={-1} data-titolo-pagina>
+          {title}
+        </h1>
         {action && <div className={styles.action}>{action}</div>}
       </div>
       {description && <p className={styles.description}>{description}</p>}

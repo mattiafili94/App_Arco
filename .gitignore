@@ -19,3 +19,7 @@ supabase/.temp/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Risultati dei test nel browser
+playwright-report/
+test-results/

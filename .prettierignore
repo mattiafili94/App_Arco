@@ -4,3 +4,5 @@ coverage
 package-lock.json
 *.md
 apps/web/src/styles/tokens.css
+playwright-report
+test-results

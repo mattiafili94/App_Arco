@@ -6,7 +6,16 @@ import tseslint from 'typescript-eslint'
 
 // Controllo del codice: `npm run lint`
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/coverage/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
+      '**/dev-dist/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

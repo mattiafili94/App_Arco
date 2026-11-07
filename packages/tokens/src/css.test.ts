@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { generaCss } from './css.ts'
+import { generaCss, inRem } from './css.ts'
 import type { TokensUiTop, ValoriProgetto } from './temi.ts'
 
 const leggi = <T>(percorso: string): T =>
@@ -50,5 +50,19 @@ describe('generaCss', () => {
       'utf8',
     ).replace(/\r\n/g, '\n')
     expect(salvato).toBe(css)
+  })
+})
+
+describe('inRem', () => {
+  it('converte i pixel in rem e lascia invariati gli altri valori', () => {
+    expect(inRem('16px')).toBe('1rem')
+    expect(inRem('13px')).toBe('0.8125rem')
+    expect(inRem('1.5')).toBe('1.5')
+    expect(inRem('2em')).toBe('2em')
+  })
+
+  it('i ruoli di testo usano rem, per seguire la dimensione del testo del telefono', () => {
+    expect(css).toMatch(/\.type-body \{[^}]*font-size: 1rem;[^}]*line-height: 1\.5rem;/)
+    expect(css).not.toMatch(/\.type-[a-z-]+ \{[^}]*font-size: \d+px/)
   })
 })

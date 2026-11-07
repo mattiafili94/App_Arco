@@ -1,0 +1,22 @@
+.iconLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-touch);
+  height: var(--control-touch);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  transition:
+    transform var(--duration-instant) var(--ease-standard),
+    opacity var(--duration-instant) var(--ease-standard);
+}
+
+.iconLink:hover {
+  background: var(--state-hover);
+}
+
+.iconLink:active {
+  background: var(--state-pressed);
+  transform: scale(var(--scale-press));
+  opacity: 0.85;
+}

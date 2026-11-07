@@ -278,60 +278,60 @@
 
 .type-display {
   font-family: var(--font-sans);
-  font-size: 44px;
-  line-height: 48px;
+  font-size: 2.75rem;
+  line-height: 3rem;
   font-weight: 600;
   letter-spacing: -0.025em;
 }
 
 .type-page-title {
   font-family: var(--font-sans);
-  font-size: 32px;
-  line-height: 38px;
+  font-size: 2rem;
+  line-height: 2.375rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .type-section-heading {
   font-family: var(--font-sans);
-  font-size: 20px;
-  line-height: 26px;
+  font-size: 1.25rem;
+  line-height: 1.625rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .type-body {
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 1rem;
+  line-height: 1.5rem;
   font-weight: 400;
 }
 
 .type-body-strong {
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 1rem;
+  line-height: 1.5rem;
   font-weight: 600;
 }
 
 .type-label {
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 500;
 }
 
 .type-caption {
   font-family: var(--font-sans);
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 0.75rem;
+  line-height: 1rem;
   font-weight: 400;
 }
 
 .type-numeric {
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 1rem;
+  line-height: 1.5rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }

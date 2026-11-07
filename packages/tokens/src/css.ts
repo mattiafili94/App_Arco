@@ -1,6 +1,15 @@
 import { risolviColori, type Tema, type TokensUiTop, type ValoriProgetto } from './temi.ts'
 
 /**
+ * Converte i pixel in rem (16px = 1rem), così i testi seguono la dimensione del testo
+ * scelta dall'atleta sul telefono (UI Top: "Respect the user's text size").
+ */
+export function inRem(valore: string): string {
+  const px = /^(\d+(?:\.\d+)?)px$/.exec(valore)
+  return px?.[1] ? `${Number(px[1]) / 16}rem` : valore
+}
+
+/**
  * Genera `tokens.css`: tutte le variabili CSS dei token e le classi dei ruoli di testo.
  *
  * Temi: senza attributo `data-theme` sulla radice si segue il sistema (chiaro o scuro);
@@ -45,8 +54,8 @@ export function generaCss(tokens: TokensUiTop, progetto: ValoriProgetto): string
     for (const s of gruppo.styles) {
       const proprieta = [
         `font-family: var(--font-${gruppo.family});`,
-        `font-size: ${s.fontSize};`,
-        `line-height: ${s.lineHeight};`,
+        `font-size: ${inRem(s.fontSize)};`,
+        `line-height: ${inRem(s.lineHeight)};`,
         `font-weight: ${s.fontWeight};`,
         s.letterSpacing ? `letter-spacing: ${s.letterSpacing};` : '',
         s.name === 'numeric' ? 'font-variant-numeric: tabular-nums;' : '',

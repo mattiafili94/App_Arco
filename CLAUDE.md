@@ -179,12 +179,19 @@ Obiettivo: nessuna regressione quando si modifica l'app, e accorgersi subito se 
 come esempi di test vanno **anonimizzati** (nomi finti, formato e punteggi veri).
 
 **Quando arrivano**: logica e controllo su GitHub dal passo 1; componenti, Playwright, offline e accessibilità dal
-passo 3; permessi dal passo 4; esempi Fitarco e sentinella dalla fase del lettore Fitarco.
+passo 3 della Base; permessi con Supabase; esempi Fitarco e sentinella dalla fase del lettore Fitarco.
+
+**Comandi**: `npm run check` (tutto tranne il browser) e `npm run test:e2e` (Playwright, schermo da telefono:
+percorsi, offline, accessibilità axe nei 3 temi, 320 px e testo al 200%). Su GitHub girano entrambi.
 
 ## Ordine di lavoro (provvisorio, il piano dettagliato va approvato da Mattia)
 
-1. **Base**: monorepo, web app PWA vuota con i token del design system e i tre temi, Supabase, accesso con link,
-   pubblicazione su Cloudflare Pages.
+1. **Base**, a passi, una PR per passo:
+   1. monorepo e test automatici ✅;
+   2. design system UI Top: token, temi, componenti ✅;
+   3. scheletro PWA: pagine, Impostazioni, installabile, offline, test nel browser ✅;
+   4. pubblicazione su **Cloudflare Pages** (anteprima per ogni PR; serve per installarla sul telefono);
+   5. **Supabase** e accesso con link personale (+ test dei permessi).
 2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.

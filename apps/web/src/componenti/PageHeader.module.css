@@ -28,6 +28,11 @@
   overflow-wrap: anywhere;
 }
 
+/* Il titolo riceve il focus solo da programma, al cambio pagina: nessun anello visibile. */
+.title:focus {
+  outline: none;
+}
+
 .action {
   flex: none;
 }
