@@ -6,5 +6,8 @@
   "description": "Tipi e logica comune: tipologie di gara, prove, record",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "node-html-parser": "9.0.5"
   }
 }
