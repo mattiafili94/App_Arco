@@ -245,7 +245,27 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         sconosciuta o una riga atleta che non torna fermano la lettura con `ErroreFormatoFitarco`;
       - esempi: le righe di testo di 7 PDF veri (18 m, 70 m, 12+12, 3D, doppio 70 m, 24+24 del 2022,
         25+18), con atleti e giudici rinominati; i PDF veri restano fuori dalla repo;
-   4. tabelle, funzioni che salvano solo le novità, test dei permessi, sentinella;
+   4. database e salvataggio, in due PR (piano approvato l'8/11/2026):
+      - **2.4a** ✅ migrazione `20261108120000_dati_fitarco.sql`: tabelle `gare`, `inviti`, `partecipazioni`
+        (storico), `classifiche` (complete, dai PDF, con `atleta_id` per gli Eugubini e `provvisoria`),
+        `ranking` (solo i nostri atleti), `letture` (diario/sentinella, solo admin), `coda_letture` (solo
+        server); colonne `classe`, `genere`, `classi_ranking`, `scheda_letta_il` in `atleti`. I membri
+        leggono, scrive solo il server (anche l'admin non può modificare). Salvataggi "tutto insieme":
+        `salva_classifica`, `salva_storico`, `salva_ranking` (solo service_role). Ogni riga ha
+        `aggiornato_il`; le classifiche si sostituiscono intere (i telefoni le riscaricano quando cambia
+        `gare.risultati_aggiornati_il`). I record non hanno tabella: si calcolano dalle prove (Fase 4).
+        Regole pure in `supabase/functions/_shared/aggiornamento/`: riconoscere gli Eugubini nei PDF
+        (cognome + nome + società 11003, senza accenti; omonimi → nessun collegamento), righe per il
+        database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, il
+        prossimo da ottobre, anni degli storici finché hanno gare non definitive; inviti delle gare future
+        dell'Umbria ogni 7 giorni; scheda gara ogni giorno per un mese dopo la gara, poi ogni settimana,
+        finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata; schede
+        atleta subito per i nuovi, poi ogni 7 giorni), sentinella (calendario vuoto/dimezzato, storico più
+        corto, Eugubini attesi non trovati nel PDF o con totale diverso). Le "ultime letture" vengono dal
+        diario `letture`. Posizione 999 dello storico → nessuna posizione;
+      - **2.4b** funzione `aggiorna-fitarco` con la lista di lavoro (un pezzo per chiamata: il piano gratuito
+        dà poco tempo di calcolo) e primo caricamento vero. Da verificare: il calendario nazionale
+        (comitato "00") per avere lo stato delle gare fuori regione;
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
       (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
       classifica solo con "Aggiorna").
