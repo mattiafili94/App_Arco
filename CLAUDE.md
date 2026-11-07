@@ -207,8 +207,12 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
    2. design system UI Top: token, temi, componenti ✅;
    3. scheletro PWA: pagine, Impostazioni, installabile, offline, test nel browser ✅;
    4. pubblicazione su **Cloudflare Pages** (anteprima per ogni PR; serve per installarla sul telefono) ✅;
-   5. **Supabase** e accesso con link personale (+ test dei permessi). Codice fatto; messa in funzione del
-      progetto Supabase vero con Mattia (`supabase/README.md`).
+   5. **Supabase** e accesso con link personale (+ test dei permessi) ✅. Progetto vero `flsdchsfdqurwjzpfmtr`
+      (Francoforte, piano gratuito), messo in funzione il 7/11/2026 (`supabase/README.md`); Mattia è amministratore.
+      Variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` su Cloudflare (Production e Preview).
+      Attenzione: in `config.toml` `[auth.email] enable_signup` deve restare `true` (con `false` nessuno entra);
+      le iscrizioni libere le vieta `[auth] enable_signup = false`. Lo controlla `supabase/config.test.ts`.
+      Eliminare un atleta per ora si fa a mano (Revoca accesso + SQL); in futuro un "Disattiva atleta".
 2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.
