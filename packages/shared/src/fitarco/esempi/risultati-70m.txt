@@ -1,0 +1,127 @@
+1	815	TORNEO DI PRIMAVERA - CITTA' DI ASSISI
+1	799	ASD ARCIERI DI ASSISI (R2611015)
+1	786	ASSISI, 25-04-2026
+1	777	Giudici di Gara: Rossi Mario
+1	769	Direttore dei Tiri: Rossi Mario
+1	760	Comitato Organizzatore: Rossi Mario
+1	742	Arco Ricurvo - Senior Maschile
+1	729	Pos. Atleta Cat. Società 70m-1 70m-2 Totale 10+X X
+1	717	1 1- 1A AZZURRI Pietro 03 10013 Arcieri Vega 294/ 1 298/ 1 592 9 2
+1	705	2 1- 1D ARANCI Ugo 02 12168 Asd Arcieri Lago Di Vico 275/ 2 292/ 2 567 9 4
+1	694	3 1- 1B BRUNI Ida 03 11003 Arcieri Eugubini 258/ 3 260/ 3 518 7 2
+1	683	4 1- 1C PROVA Mario 00 10013 Arcieri Vega 135/ 4 168/ 4 303 2 0
+1	652	Arco Ricurvo - Senior Femminile
+1	639	Pos. Atleta Cat. Società 70m-1 70m-2 Totale 10+X X
+1	627	1 1- 3B BIANCHI Anna MF 02 11016 A.S.D. Gruppo Arcieri Simba 283/ 1 277/ 1 560 10 2
+1	616	2 1- 3A VERDI Luca 03 11003 Arcieri Eugubini 226/ 2 223/ 2 449 1 0
+1	586	Arco Ricurvo - Master Maschile
+1	573	Pos. Atleta Cat. Società 60m-1 60m-2 Totale 10+X X
+1	560	1 1- 5A NERI Giulia 01 11004 ASD ARCIERI DI ASSISI 311/ 1 318/ 1 629 18 10
+1	549	2 1- 4C GIALLI Paolo 01 11004 ASD ARCIERI DI ASSISI 306/ 2 313/ 2 619 13 2
+1	538	3 1- 4A MARRONI Sara 02 11004 ASD ARCIERI DI ASSISI 295/ 4 308/ 3 603 12 4
+1	526	4 1- 8A VIOLA Elena 02 12173 Asd Arcieri Delle Due Torri 299/ 3 304/ 4 603 12 1
+1	515	5 1- 8B GRIGI Davide 02 11004 ASD ARCIERI DI ASSISI 292/ 5 283/ 6 575 8 0
+1	504	6 1- 4B ROSA Franca 02 12016 ASD Arcieri Torrevecchia 271/ 7 292/ 5 563 8 2
+1	492	7 1- 9C AZZURRI Pietro Luca 02 10031 Medio Chienti 271/ 6 253/ 8 524 7 3
+1	481	8 1- 9B ARANCI Ugo 04 11004 ASD ARCIERI DI ASSISI 263/ 8 256/ 7 519 4 1
+1	470	9 1- 9D BRUNI Ida 03 11004 ASD ARCIERI DI ASSISI 258/ 9 240/ 9 498 9 1
+1	458	10 1- 5B PROVA Mario Sara Ugo 00 10013 Arcieri Vega 238/ 10 230/ 11 468 3 0
+1	447	11 1- 9A BIANCHI Anna 04 11004 ASD ARCIERI DI ASSISI 210/ 11 231/ 10 441 4 1
+1	417	Arco Ricurvo - Master Femminile
+1	404	Pos. Atleta Cat. Società 60m-1 60m-2 Totale 10+X X
+1	392	1 1- 6A DE VERDI Luca 02 11004 ASD ARCIERI DI ASSISI 283/ 1 271/ 1 554 8 4
+1	380	2 1- 8C NERI Giulia 03 11004 ASD ARCIERI DI ASSISI 250/ 3 254/ 3 504 4 2
+1	369	3 1- 5C GIALLI Paolo 00 12136 Gruppo Arcieri Cosmos 241/ 4 257/ 2 498 2 0
+1	358	4 1- 8D MARRONI Sara 04 11004 ASD ARCIERI DI ASSISI 258/ 2 224/ 5 482 3 1
+1	346	5 1- 5D DE VIOLA Elena 03 11004 ASD ARCIERI DI ASSISI 230/ 5 252/ 4 482 3 0
+1	316	Arco Ricurvo - Junior Maschile
+1	303	Pos. Atleta Cat. Società 70m-1 70m-2 Totale 10+X X
+1	291	1 1- 2C GRIGI Davide 01 12001 Asd Arcieri Sagittario 334/ 1 330/ 1 664 30 4
+1	280	2 1- 3C ROSA Franca 01 12001 Asd Arcieri Sagittario 316/ 2 293/ 2 609 17 3
+1	249	Arco Ricurvo - Junior Femminile
+1	236	Pos. Atleta Cat. Società 70m-1 70m-2 Totale 10+X X
+1	224	1 1- 2A AZZURRI Pietro 04 10013 Arcieri Vega 216/ 1 213/ 1 429 3 1
+1	194	Arco Ricurvo - Allievi Maschile
+1	181	Pos. Atleta Cat. Società 60m-1 60m-2 Totale 10+X X
+1	169	1 1- 7B ARANCI Ugo 01 12169 Asd Arcieri Tiberini 325/ 1 335/ 1 660 33 4
+1	157	2 1- 7A BRUNI Ida 01 11027 Arcieri Citta' Di Terni 299/ 2 327/ 2 626 18 7
+1	146	3 1- 6B PROVA Mario 02 11027 Arcieri Citta' Di Terni 291/ 3 310/ 3 601 16 6
+1	135	4 1- 7D BIANCHI Anna 04 11027 Arcieri Citta' Di Terni 276/ 4 245/ 5 521 12 1
+1	123	5 1- 7C VERDI Luca 03 11002 A.S.D. INTERAMNA ARCHERY TEAM 252/ 5 261/ 4 513 1 1
+1	93	Arco Ricurvo - Allieve Femminile
+1	80	Pos. Atleta Cat. Società 60m-1 60m-2 Totale 10+X X
+1	68	1 1- 6D NERI Giulia 01 10031 Medio Chienti 277/ 1 246/ 1 523 5 0
+1	49	1/3 Classifica di Classe - Individuale - 20260425.174925+02:00
+2	815	TORNEO DI PRIMAVERA - CITTA' DI ASSISI
+2	799	ASD ARCIERI DI ASSISI (R2611015)
+2	786	ASSISI, 25-04-2026
+2	777	Giudici di Gara: Rossi Mario
+2	769	Direttore dei Tiri: Rossi Mario
+2	760	Comitato Organizzatore: Rossi Mario
+2	743	Arco Ricurvo - Allieve Femminile Continua
+2	729	Pos. Atleta Cat. Società 60m-1 60m-2 Totale 10+X X
+2	717	2 1- 6C GIALLI Paolo 04 10013 Arcieri Vega 222/ 2 204/ 2 426 2 1
+2	686	Arco Ricurvo - Ragazzi Femminile
+2	673	Pos. Atleta Cat. Società 40m-1 40m-2 Totale 10+X X
+2	661	1 1- 15B MARRONI Sara 03 11002 A.S.D. INTERAMNA ARCHERY TEAM 304/ 2 309/ 1 613 15 5
+2	650	2 1- 15A D'VIOLA Elena 01 12016 ASD Arcieri Torrevecchia 309/ 1 301/ 2 610 14 4
+2	620	Arco Ricurvo - Giovanissimi Femminile
+2	607	Pos. Atleta Cat. Società 25m-1 25m-2 Totale 10+X X
+2	594	1 1- 18A GRIGI Davide 04 11008 Arc.Citta'DellaPieve Barbacane 296/ 1 284/ 1 580 12 3
+2	564	Arco Compound - Senior Maschile
+2	551	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	539	1 1- 12B ROSA Franca 02 11003 Arcieri Eugubini 320/ 1 322/ 1 642 20 7
+2	509	Arco Compound - Senior Femminile
+2	496	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	484	1 1- 12C AZZURRI Pietro 01 11003 Arcieri Eugubini 333/ 1 331/ 1 664 29 14
+2	472	2 1- 11C ARANCI Ugo 02 11003 Arcieri Eugubini 312/ 2 314/ 2 626 22 4
+2	461	3 1- 12D BRUNI Ida 03 11027 Arcieri Citta' Di Terni 248/ 3 263/ 3 511 7 1
+2	431	Arco Compound - Master Maschile
+2	418	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	406	1 1- 10C PROVA Mario 01 11016 A.S.D. Gruppo Arcieri Simba 341/ 1 334/ 2 675 33 14
+2	394	2 1- 10D BIANCHI Anna 01 12011 A.S.D. Arco Sport Roma 314/ 4 340/ 1 654 31 9
+2	383	3 1- 10A VERDI Luca Davide 03 11004 ASD ARCIERI DI ASSISI 321/ 3 325/ 3 646 30 10
+2	372	4 1- 12A NERI Giulia 01 11016 A.S.D. Gruppo Arcieri Simba 322/ 2 321/ 4 643 20 5
+2	360	5 1- 10B GIALLI Paolo 03 10013 Arcieri Vega 310/ 5 300/ 5 610 12 3
+2	330	Arco Compound - Junior Maschile
+2	317	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	305	1 1- 11D MARRONI Sara 04 11003 Arcieri Eugubini 310/ 1 308/ 1 618 15 5
+2	275	Arco Compound - Junior Femminile
+2	262	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	249	1 1- 11B VIOLA Elena 01 13041 Asd Arcieri Abruzzesi 331/ 1 335/ 1 666 30 9
+2	238	2 1- 11A GRIGI Davide 04 10013 Arcieri Vega 236/ 2 248/ 2 484 3 0
+2	208	Arco Nudo - Senior Maschile
+2	195	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	183	1 1- 13A ROSA Franca 01 11004 ASD ARCIERI DI ASSISI 291/ 1 282/ 1 573 6 2
+2	171	2 1- 13B AZZURRI Pietro 02 11003 Arcieri Eugubini 269/ 2 255/ 2 524 5 2
+2	141	Arco Nudo - Senior Femminile
+2	128	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+2	116	1 1- 14C ARANCI Ugo 02 10013 Arcieri Vega 225/ 1 239/ 1 464 4 2
+2	49	2/3 Classifica di Classe - Individuale - 20260425.174925+02:00
+3	815	TORNEO DI PRIMAVERA - CITTA' DI ASSISI
+3	799	ASD ARCIERI DI ASSISI (R2611015)
+3	786	ASSISI, 25-04-2026
+3	777	Giudici di Gara: Rossi Mario
+3	769	Direttore dei Tiri: Rossi Mario
+3	760	Comitato Organizzatore: Rossi Mario
+3	742	Arco Nudo - Master Maschile
+3	729	Pos. Atleta Cat. Società 50m-1 50m-2 Totale 10+X X
+3	717	1 1- 14A BRUNI Ida 02 04114 ASD Arcieri San Bernardo 233/ 1 248/ 1 481 7 3
+3	705	2 1- 14B PROVA Mario 03 11001 Braccio Fortebraccio 225/ 2 194/ 2 419 2 1
+3	675	Arco Nudo - Ragazzi Maschile
+3	662	Pos. Atleta Cat. Società 25m-1 25m-2 Totale 10+X X
+3	650	1 1- 16C BIANCHI Anna 01 12173 Asd Arcieri Delle Due Torri 309/ 1 311/ 1 620 14 0
+3	638	2 1- 16D VERDI Luca 02 12173 Asd Arcieri Delle Due Torri 304/ 2 306/ 4 610 13 3
+3	627	3 1- 17A NERI Giulia 03 11011 ASD Arcieri Rocca Flea 300/ 3 307/ 3 607 14 3
+3	616	4 1- 17D GIALLI Paolo 04 11011 ASD Arcieri Rocca Flea 287/ 4 310/ 2 597 12 2
+3	604	5 1- 16B MARRONI Sara GM 04 12173 Asd Arcieri Delle Due Torri 263/ 5 278/ 5 541 7 5
+3	593	6 1- 16A VIOLA Elena GM 04 11011 ASD Arcieri Rocca Flea 260/ 6 277/ 6 537 11 4
+3	582	7 1- 17C GRIGI Davide Mario GM 04 12173 Asd Arcieri Delle Due Torri 254/ 7 243/ 7 497 6 2
+3	570	DNF 1- 17B ROSA Franca GM 04 12173 Asd Arcieri Delle Due Torri 181/ 8 18 199 1 0
+3	540	Arco Nudo - Ragazzi Femminile
+3	527	Pos. Atleta Cat. Società 25m-1 25m-2 Totale 10+X X
+3	515	1 1- 18C AZZURRI Pietro Luca 03 12173 Asd Arcieri Delle Due Torri 318/ 1 318/ 1 636 21 7
+3	504	2 1- 18B ARANCI Ugo GF 04 12173 Asd Arcieri Delle Due Torri 314/ 2 303/ 2 617 15 7
+3	492	3 1- 18D BRUNI Ida 04 12173 Asd Arcieri Delle Due Torri 292/ 3 275/ 3 567 12 3
+3	49	3/3 Classifica di Classe - Individuale - 20260425.174925+02:00
+3	1	Powered by TCPDF (www.tcpdf.org)
