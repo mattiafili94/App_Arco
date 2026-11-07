@@ -10,6 +10,8 @@ Decisioni, piano di lavoro e design system sono in [CLAUDE.md](CLAUDE.md).
 ```
 apps/web/          ← la web app (React + TypeScript + Vite)
 packages/shared/   ← tipi e logica comune (tipologie di gara, prove, record)
+packages/tokens/   ← genera i token del design system e ne controlla contrasti e uso
+design-system/     ← token di UI Top, valori del progetto, glossario
 supabase/          ← (in arrivo) database e funzioni del server
 ```
 
@@ -24,5 +26,6 @@ Serve Node.js 22.12 o più recente. Dalla cartella del progetto:
 | `npm test` | esegue i test automatici |
 | `npm run test:coverage` | test + quanta parte del codice è coperta (soglia 90% sulla logica condivisa) |
 | `npm run check` | tutti i controlli: formattazione, lint, tipi e test con copertura (gli stessi che GitHub esegue a ogni PR) |
+| `npm run tokens` | rigenera i colori e le misure dell'app dopo una modifica in `design-system/` |
 | `npm run format` | sistema la formattazione del codice |
 | `npm run build` | prepara la versione da pubblicare |

@@ -1,0 +1,19 @@
+{
+  "$descrizione": "Valori del progetto Arcieri Eugubini che sostituiscono o aggiungono token rispetto a tokens.json (copia del design system UI Top, da non modificare). Dopo ogni modifica: npm run tokens",
+  "color": {
+    "accent-default": { "light": "#1e4fa8", "dark": "#8cb2ff", "contrast": "#0f3070" },
+    "accent-hover": { "light": "#1a4592", "dark": "#a6c3ff", "contrast": "#0b255a" },
+    "accent-pressed": { "light": "#163b7d", "dark": "#769fef", "contrast": "#081b44" },
+    "on-accent": { "light": "#ffffff", "dark": "#0a1a3a" },
+    "focus-ring": { "light": "#1e4fa8", "dark": "#9cc0ff", "contrast": "#0f3070" },
+    "state-selected": { "light": "#e3eaf7", "dark": "#1a2944", "contrast": "#d3def3" },
+    "chart-1": { "light": "#1e4fa8", "dark": "#8cb2ff" },
+    "target-gold": "#ffe552",
+    "target-red": "#f65058",
+    "target-blue": "#00b4e4",
+    "target-black": "#000000",
+    "target-white": "#ffffff",
+    "target-line-dark": "#000000",
+    "target-line-light": "#ffffff"
+  }
+}

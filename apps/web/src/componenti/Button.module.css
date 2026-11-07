@@ -1,0 +1,106 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-touch);
+  padding: 0 var(--space-16);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform var(--duration-instant) var(--ease-standard),
+    opacity var(--duration-instant) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+/* Pressione: la stessa risposta per ogni controllo (UI Top, Motion). */
+.button:active:not(:disabled) {
+  transform: scale(var(--scale-press));
+  opacity: 0.85;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.primary {
+  background: var(--accent-default);
+  color: var(--on-accent);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.primary:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.secondary {
+  background: var(--background-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Passaggio del mouse: velo neutro `state-hover` sopra il pulsante. */
+.secondary::after,
+.text::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--state-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.secondary:hover:not(:disabled)::after,
+.text:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.text {
+  background: transparent;
+  color: var(--accent-default);
+  padding: 0 var(--space-8);
+}
+
+.destructive {
+  background: var(--background-surface);
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+
+/* In corso: l'etichetta resta (per mantenere la larghezza) ma è nascosta sotto l'avanzamento. */
+.loading .content {
+  visibility: hidden;
+}
+
+.progress {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  animation: gira 0.8s linear infinite;
+}
+
+@keyframes gira {
+  to {
+    transform: rotate(1turn);
+  }
+}

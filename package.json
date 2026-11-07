@@ -17,14 +17,19 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p packages/shared && tsc -p apps/web",
+    "typecheck": "tsc -p packages/shared && tsc -p packages/tokens && tsc -p apps/web",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run tokens:check && npm run check:design && npm run test:coverage",
+    "tokens": "node packages/tokens/scripts/tokens.ts",
+    "tokens:check": "node packages/tokens/scripts/tokens.ts --check",
+    "check:design": "node packages/tokens/scripts/controlla-stili.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",
     "eslint-plugin-react-hooks": "7.1.1",
