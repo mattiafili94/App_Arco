@@ -59,6 +59,13 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   digitare se serve, es. su iPhone dopo "Aggiungi a Home"). Il telefono si ricorda la persona: niente password.
   - Realizzazione: Supabase Auth è pensato per email/password, quindi per ogni atleta il server crea un utente
     "tecnico" e il link personale ne contiene le credenziali. Per l'atleta resta "tocca il link e sei dentro".
+  - Dettagli (passo 5 della Base): codice di 10 caratteri senza caratteri ambigui; email tecnica
+    `matricola-<n>@accesso.arcieri-eugubini.pages.dev`; link `/accesso#m=<matricola>&c=<codice>` (dopo il `#`,
+    mai inviato ai server). Tabella `atleti` con `utente_id` collegato all'utente tecnico (gestito solo dalla
+    funzione `crea-accesso`). Rigenerare il link elimina il vecchio utente tecnico (il vecchio telefono si
+    scollega); revocare lo elimina. Il primo amministratore si crea a mano: vedi `supabase/README.md`.
+  - Sul telefono restano la sessione (`arco.sessione`) e la scheda dell'atleta (`arco.profilo`): l'app si apre
+    anche offline. Senza accesso si vede solo la pagina Accedi.
 - Ruoli: amministratore (Mattia) e atleta.
 
 ### Struttura dell'app: 4 tab + impostazioni
@@ -189,7 +196,9 @@ come esempi di test vanno **anonimizzati** (nomi finti, formato e punteggi veri)
 passo 3 della Base; permessi con Supabase; esempi Fitarco e sentinella dalla fase del lettore Fitarco.
 
 **Comandi**: `npm run check` (tutto tranne il browser) e `npm run test:e2e` (Playwright, schermo da telefono:
-percorsi, offline, accessibilità axe nei 3 temi, 320 px e testo al 200%). Su GitHub girano entrambi.
+percorsi, offline, accessibilità axe nei 3 temi, 320 px e testo al 200%). Su GitHub girano entrambi, più
+`npm run test:db` (permessi pgTAP su un Supabase di prova; in locale serve Docker, che sul PC di Mattia non c'è).
+Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): mai il progetto vero.
 
 ## Ordine di lavoro (provvisorio, il piano dettagliato va approvato da Mattia)
 
@@ -198,7 +207,8 @@ percorsi, offline, accessibilità axe nei 3 temi, 320 px e testo al 200%). Su Gi
    2. design system UI Top: token, temi, componenti ✅;
    3. scheletro PWA: pagine, Impostazioni, installabile, offline, test nel browser ✅;
    4. pubblicazione su **Cloudflare Pages** (anteprima per ogni PR; serve per installarla sul telefono) ✅;
-   5. **Supabase** e accesso con link personale (+ test dei permessi).
+   5. **Supabase** e accesso con link personale (+ test dei permessi). Codice fatto; messa in funzione del
+      progetto Supabase vero con Mattia (`supabase/README.md`).
 2. **Lettore Fitarco**: condizioni d'uso, test di lettura dal cloud, lettura di calendario, schede e PDF.
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.

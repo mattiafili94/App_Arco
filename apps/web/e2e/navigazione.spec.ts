@@ -1,4 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { simulaSupabase } from './supabase-finto'
+
+// Ogni test parte con un atleta che ha già fatto l'accesso (Supabase simulato).
+test.beforeEach(async ({ page }) => {
+  await simulaSupabase(page)
+})
 
 test.describe('navigazione', () => {
   test('l indirizzo iniziale apre le Gare', async ({ page }) => {

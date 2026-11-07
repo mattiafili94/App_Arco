@@ -1,0 +1,45 @@
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+}
+
+.sezione {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.form,
+.azioni {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  max-width: var(--measure);
+}
+
+.errore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.attesa {
+  color: var(--text-secondary);
+}
+
+.pulsanti {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+}
+
+.link {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-control);
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}

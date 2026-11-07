@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { aspettaMotoreOffline } from './aiuti'
+import { simulaSupabase } from './supabase-finto'
+
+// Ogni test parte con un atleta che ha già fatto l'accesso (Supabase simulato).
+test.beforeEach(async ({ page }) => {
+  await simulaSupabase(page)
+})
 
 test.describe('app installabile e offline', () => {
   test('il manifest descrive l app con nome, icone e pagina iniziale', async ({ request }) => {

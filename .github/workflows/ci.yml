@@ -51,3 +51,24 @@ jobs:
           name: rapporto-playwright
           path: apps/web/playwright-report
           retention-days: 7
+
+  database:
+    name: Permessi del database (Supabase di prova)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # Supabase di prova, solo con database e accessi (mai il progetto vero).
+      - name: Avvia Supabase di prova
+        run: >-
+          npx supabase start
+          -x realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Test dei permessi (pgTAP)
+        run: npx supabase test db
+      - name: Controllo dello schema (avvisi di sicurezza e prestazioni)
+        run: npx supabase db lint --level warning --fail-on warning

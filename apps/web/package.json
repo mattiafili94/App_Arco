@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@arco/shared": "*",
+    "@supabase/supabase-js": "2.117.3",
     "lucide-react": "1.60.0",
     "react": "19.2.9",
     "react-dom": "19.2.9",

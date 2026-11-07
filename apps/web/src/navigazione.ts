@@ -20,6 +20,10 @@ export function destinazioneDi(percorso: string): Destination | undefined {
 export function titoloDocumento(percorso: string): string {
   const pagina =
     destinazioneDi(percorso)?.label ??
-    (percorso.startsWith(PERCORSO_IMPOSTAZIONI) ? 'Impostazioni' : undefined)
+    (percorso.startsWith(PERCORSO_IMPOSTAZIONI)
+      ? 'Impostazioni'
+      : percorso.startsWith('/amministrazione')
+        ? 'Amministrazione'
+        : undefined)
   return pagina ? `${pagina} · Arcieri Eugubini` : 'Arcieri Eugubini'
 }
