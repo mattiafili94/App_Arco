@@ -54,8 +54,12 @@
   transition: color var(--duration-fast) var(--ease-standard);
 }
 
+/* Con il testo ingrandito le etichette vanno a capo invece di uscire dalla barra. */
 .label {
+  max-width: 100%;
   text-align: center;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .active {

@@ -48,3 +48,5 @@ Famiglia Lucide, contorno, come da tabella "un concetto = un'icona" di UI Top. C
 | Classifica | `trophy` |
 | Allenamento | `target` |
 | Impostazioni | `settings` |
+| Offline (riga di stato) | `wifi-off` |
+| Nuova versione pronta | `refresh-cw` |

@@ -1,0 +1,16 @@
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--control-touch);
+  color: var(--text-secondary);
+}
+
+.icon {
+  color: var(--text-secondary);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}

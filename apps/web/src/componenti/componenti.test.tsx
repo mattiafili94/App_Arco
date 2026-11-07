@@ -9,6 +9,8 @@ import { ListGroup, ListRow } from './List'
 import { NavigationBar } from './NavigationBar'
 import { Notice } from './Notice'
 import { PageHeader } from './PageHeader'
+import { StatusLine } from './StatusLine'
+import { renderConRouter } from '../test/render'
 
 describe('Icon', () => {
   it('è decorativa (nascosta ai lettori di schermo) se non ha un nome', () => {
@@ -55,34 +57,34 @@ describe('Button', () => {
 
 describe('PageHeader', () => {
   it('mostra titolo, link per tornare indietro, descrizione e azione', () => {
-    render(
+    renderConRouter(
       <PageHeader
         title="Gubbio 18 m"
-        back={{ label: 'Gare', href: '#gare' }}
+        back={{ label: 'Gare', href: '/gare' }}
         description="24-25 ottobre 2026"
         action={<Button>Vedi invito</Button>}
       />,
     )
     expect(screen.getByRole('heading', { level: 1, name: 'Gubbio 18 m' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Gare' })).toHaveAttribute('href', '#gare')
+    expect(screen.getByRole('link', { name: 'Gare' })).toHaveAttribute('href', '/gare')
     expect(screen.getByText('24-25 ottobre 2026')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Vedi invito' })).toBeInTheDocument()
   })
 
   it('senza pagina genitore non mostra il link indietro', () => {
-    render(<PageHeader title="Gare" />)
+    renderConRouter(<PageHeader title="Gare" />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })
 
 describe('NavigationBar', () => {
   const destinazioni = [
-    { id: 'gare', label: 'Gare', icon: Calendar, href: '#gare' },
-    { id: 'atleti', label: 'Atleti', icon: Users, href: '#atleti' },
+    { id: 'gare', label: 'Gare', icon: Calendar, href: '/gare' },
+    { id: 'atleti', label: 'Atleti', icon: Users, href: '/atleti' },
   ]
 
   it('mostra una destinazione per voce e segna quella attuale', () => {
-    render(<NavigationBar destinations={destinazioni} current="atleti" />)
+    renderConRouter(<NavigationBar destinations={destinazioni} current="atleti" />)
     const nav = screen.getByRole('navigation', { name: 'Navigazione principale' })
     expect(nav).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Atleti' })).toHaveAttribute('aria-current', 'page')
@@ -90,27 +92,42 @@ describe('NavigationBar', () => {
   })
 
   it('posiziona l unico indicatore sulla destinazione attuale', () => {
-    const { container } = render(<NavigationBar destinations={destinazioni} current="atleti" />)
+    const { container } = renderConRouter(
+      <NavigationBar destinations={destinazioni} current="atleti" />,
+    )
     const lista = container.querySelector('ul')!
     expect(lista.style.getPropertyValue('--indice')).toBe('1')
     expect(lista.style.getPropertyValue('--numero')).toBe('2')
   })
 
-  it('con una destinazione sconosciuta mette l indicatore sulla prima', () => {
-    const { container } = render(<NavigationBar destinations={destinazioni} current="x" />)
-    expect(container.querySelector('ul')!.style.getPropertyValue('--indice')).toBe('0')
+  it('fuori dai tab (es. Impostazioni) non mostra l indicatore e nessun tab è attivo', () => {
+    const { container } = renderConRouter(<NavigationBar destinations={destinazioni} />)
+    expect(container.querySelector('[aria-hidden="true"] > span')).not.toBeInTheDocument()
+    expect(container.querySelector('[aria-current]')).not.toBeInTheDocument()
+  })
+})
+
+describe('StatusLine', () => {
+  it('è una riga di stato con icona, testo e azione facoltativa', () => {
+    render(
+      <StatusLine icon={Calendar} action={<Button variant="text">Ricarica</Button>}>
+        Nuova versione pronta.
+      </StatusLine>,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('Nuova versione pronta.')
+    expect(screen.getByRole('button', { name: 'Ricarica' })).toBeInTheDocument()
   })
 })
 
 describe('ListGroup e ListRow', () => {
   it('una riga destinazione è un link con la freccia', () => {
-    render(
+    renderConRouter(
       <ListGroup title="Compagnia">
-        <ListRow label="Atleti" href="#atleti" />
+        <ListRow label="Atleti" href="/atleti" />
       </ListGroup>,
     )
     expect(screen.getByRole('region', { name: 'Compagnia' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Atleti' })).toHaveAttribute('href', '#atleti')
+    expect(screen.getByRole('link', { name: 'Atleti' })).toHaveAttribute('href', '/atleti')
   })
 
   it('una riga nome-valore mostra il valore e non è interattiva', () => {

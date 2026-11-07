@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { Check, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router'
 import { Icon } from './Icon'
 import styles from './List.module.css'
 
@@ -54,9 +55,9 @@ export function ListRow({ label, value, href, selected, onSelect }: ListRowProps
 
   if (href) {
     return (
-      <a className={`${styles.row} ${styles.interactive}`} href={href}>
+      <Link className={`${styles.row} ${styles.interactive}`} to={href}>
         {contenuto}
-      </a>
+      </Link>
     )
   }
   if (onSelect) {
