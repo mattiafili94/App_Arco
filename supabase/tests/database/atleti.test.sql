@@ -5,7 +5,16 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(24);
+select plan(25);
+
+-- Rete di sicurezza: ogni tabella dell'app deve avere le regole di accesso attive ----------------
+select is(
+  (select array_agg(c.relname::text order by c.relname)
+   from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity),
+  null,
+  'nessuna tabella dell''app è senza regole di accesso (row-level security)'
+);
 
 -- Permessi espliciti (il progetto non espone in automatico le tabelle nuove) ------------------
 select ok(
