@@ -187,6 +187,10 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       ) as number
     },
 
+    async potaGare(primaDel) {
+      return controlla(await db.rpc('pota_gare', { p_prima_del: primaDel }), 'pota gare') as number
+    },
+
     async ultimoBlocco() {
       const righe = controlla(
         await db

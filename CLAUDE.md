@@ -87,7 +87,7 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
 | Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
 | Classifica Campionati Italiani | ranking | pulsante "Aggiorna" |
-| Calendario Umbria | calendario | importato una volta all'anno (con anteprima delle differenze) + controlli periodici |
+| Calendario Umbria | calendario | **solo l'anno in corso** (da ottobre anche il provvisorio del prossimo), ogni settimana; gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
 | Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
 
 - **Inviti**: niente estrazione automatica delle date. Quando esce un invito nuovo l'app avvisa Mattia e mostra il
@@ -270,9 +270,10 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         Regole pure in `supabase/functions/_shared/aggiornamento/`: riconoscere gli Eugubini nei PDF
         (cognome + nome + società 11003, senza accenti; omonimi → nessun collegamento), righe per il
         database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, il
-        prossimo da ottobre, anni degli storici finché hanno gare non definitive; inviti delle gare future
+        prossimo da ottobre, mai gli anni passati; inviti delle gare future
         dell'Umbria ogni 7 giorni; scheda gara ogni giorno per un mese dopo la gara, poi ogni settimana,
-        finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata; schede
+        finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata o compie
+        60 giorni; schede
         atleta subito per i nuovi, poi ogni 7 giorni), sentinella (calendario vuoto/dimezzato, storico più
         corto, Eugubini attesi non trovati nel PDF o con totale diverso). Le "ultime letture" vengono dal
         diario `letture`. Posizione 999 dello storico → nessuna posizione;
@@ -284,8 +285,11 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         accoda le classifiche dei nostri atleti. Stato dal database con `stato_aggiornamento()`.
         Scoperte dal primo caricamento (8/11/2026):
         - il calendario con comitato "00" NON è tutta Italia: sono solo le gare nazionali/internazionali
-          (46 nel 2026). Lo stato delle gare fuori Umbria non si conosce: risultati considerati definitivi
-          dopo 60 giorni, PDF cercato al massimo per 90 giorni dopo la gara (`risultatiProvvisori`);
+          (46 nel 2026). Lo stato delle gare fuori Umbria non si conosce, e quello delle gare di fine anno si
+          perde a gennaio (si legge solo il calendario dell'anno in corso): **ogni** gara si considera
+          definitiva quando è omologata o 60 giorni dopo la fine; PDF cercato al massimo per 90 giorni
+          dopo la gara (`risultatiProvvisori`). A ogni giro `pota_gare` toglie le gare degli anni passati
+          che nessun nostro atleta ha fatto (con classifiche e inviti);
         - il calendario provvisorio del prossimo anno ha quasi tutte le gare con codice temporaneo
           (`tmp11564`): si salvano solo i codici definitivi, le altre arrivano quando hanno il codice vero;
         - un aggiornamento parziale di una gara va fatto con `update` (`aggiornaGara`), non con "inserisci o

@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(18);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b2', 'atleta2@test.invalid');
 insert into public.atleti (id, matricola, nome, cognome, attivo, utente_id) values
@@ -36,7 +36,7 @@ select is(
     {"tipo": "invito", "chiave": "R0000101", "letto_il": "2026-11-01"}]'::jsonb,
   'ultime letture riuscite, con il giorno italiano (23:30 UTC del 7 = 8 novembre); gli errori non contano'
 );
-select is((select s -> 'anniStorico' from stato), '[2025]'::jsonb, 'anni degli storici');
+select ok(not (select s ? 'anniStorico' from stato), 'gli anni degli storici non servono più');
 select is(
   (select g from stato, jsonb_array_elements(s -> 'gare') g where g ->> 'codice' = 'R0000101'),
   '{"codice": "R0000101", "dal": "2026-01-10", "al": "2026-01-10", "stato": "da-omologare",
@@ -103,6 +103,23 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
 select throws_ok(
   $$ select public.pota_classifiche('2030-01-01') $$, '42501', null, 'un atleta non può potare le classifiche'
+);
+reset role;
+
+-- Gare passate senza nostri atleti: si tolgono (calendari solo dell'anno in corso) ----------------------
+set local role service_role;
+select is(public.pota_gare('2026-01-01'), 0, 'la gara del 2025 resta: un nostro atleta l''ha fatta');
+select is(public.pota_gare('2027-01-01'), 1, 'a inizio 2027 la gara del 2026 senza nostri atleti si toglie');
+select is(
+  (select array_agg(codice) from public.gare), array['R0000102'],
+  'resta solo la gara con un nostro atleta (con la sua classifica)'
+);
+reset role;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
+select throws_ok(
+  $$ select public.pota_gare('2030-01-01') $$, '42501', null, 'un atleta non può togliere gare'
 );
 reset role;
 

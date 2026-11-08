@@ -26,7 +26,6 @@ const stato = (dati: Partial<StatoPianificazione>): StatoPianificazione => ({
   oggi: '2027-03-01',
   // Calendario dell'anno appena letto: non va riletto (salvo i test che lo cambiano).
   ultimeLetture: new Map([['calendario|2027', '2027-02-28']]),
-  anniStorico: [],
   gare: [],
   atleti: [],
   ...dati,
@@ -51,25 +50,16 @@ describe('cosa leggere e quando', () => {
     ).toEqual(['calendario 2028'])
   })
 
-  it('calendari degli anni passati: una volta, poi solo se hanno gare non definitive', () => {
-    const base = { anniStorico: [2025], oggi: '2027-03-01' }
-    expect(letture(stato(base))).toEqual(['calendario 2025'])
-    const letto = new Map([
-      ['calendario|2027', '2027-02-28'],
-      ['calendario|2025', '2027-01-01'],
-    ])
-    expect(letture(stato({ ...base, ultimeLetture: letto }))).toEqual([])
-    const inSospeso = gara({
-      codice: 'R2511001',
-      dal: '2025-05-01',
-      al: '2025-05-01',
-      stato: 'sconosciuto',
+  it('calendari degli anni passati: mai (le loro gare arrivano dallo storico degli atleti)', () => {
+    const passata = gara({
+      codice: 'R2611001',
+      dal: '2026-05-01',
+      al: '2026-05-01',
+      stato: 'da-omologare',
       urlRisultati: 'x',
       risultati: { provvisoria: false },
     })
-    expect(letture(stato({ ...base, ultimeLetture: letto, gare: [inSospeso] }))).toEqual([
-      'calendario 2025',
-    ])
+    expect(letture(stato({ gare: [passata] }))).toEqual([])
   })
 
   it("inviti delle gare future dell'Umbria: subito, poi ogni settimana", () => {
@@ -169,13 +159,17 @@ describe('cosa leggere e quando', () => {
   })
 })
 
-describe('gare fuori Umbria (stato sconosciuto)', () => {
+describe('risultati definitivi e gare fuori Umbria', () => {
   const fuori = { stato: 'sconosciuto' as const, inCalendarioUmbria: false }
 
-  it('i risultati sono provvisori per 60 giorni, poi definitivi', () => {
+  it('i risultati sono provvisori finché la gara non è omologata, al massimo per 60 giorni', () => {
     expect(risultatiProvvisori({ stato: 'omologata', al: '2027-02-01' }, '2027-02-02')).toBe(false)
-    expect(risultatiProvvisori({ stato: 'da-omologare', al: '2026-01-01' }, '2027-02-02')).toBe(
+    expect(risultatiProvvisori({ stato: 'da-omologare', al: '2027-01-01' }, '2027-02-02')).toBe(
       true,
+    )
+    // Una gara di dicembre: l'anno dopo il suo calendario non si legge più, l'omologazione non arriva.
+    expect(risultatiProvvisori({ stato: 'da-omologare', al: '2026-12-01' }, '2027-02-02')).toBe(
+      false,
     )
     expect(risultatiProvvisori({ stato: 'sconosciuto', al: '2027-01-01' }, '2027-03-01')).toBe(true)
     expect(risultatiProvvisori({ stato: 'sconosciuto', al: '2027-01-01' }, '2027-03-03')).toBe(
@@ -193,42 +187,17 @@ describe('gare fuori Umbria (stato sconosciuto)', () => {
     })
     const letta = new Map([
       ['calendario|2027', '2027-02-28'],
-      ['calendario|2026', '2027-01-01'],
       ['risultati|R2711001', '2027-02-28'],
     ])
-    expect(letture(stato({ gare: [g], ultimeLetture: letta, anniStorico: [2026] }))).toEqual([
-      'risultati R2711001',
-    ])
-  })
-
-  it('non fanno rileggere il calendario del loro anno', () => {
-    const g = gara({
-      ...fuori,
-      dal: '2025-05-01',
-      al: '2025-05-01',
-      urlRisultati: 'x',
-      risultati: { provvisoria: false },
-    })
-    const letto = new Map([
-      ['calendario|2027', '2027-02-28'],
-      ['calendario|2025', '2026-01-01'],
-    ])
-    expect(letture(stato({ gare: [g], ultimeLetture: letto, anniStorico: [2025] }))).toEqual([])
+    expect(letture(stato({ gare: [g], ultimeLetture: letta }))).toEqual(['risultati R2711001'])
   })
 
   it('una gara vecchia senza PDF si controlla una volta, poi basta', () => {
     const g = gara({ ...fuori, dal: '2025-05-01', al: '2025-05-01' })
-    const base = new Map([
-      ['calendario|2027', '2027-02-28'],
-      ['calendario|2025', '2026-01-01'],
-    ])
-    expect(letture(stato({ gare: [g], ultimeLetture: base, anniStorico: [2025] }))).toEqual([
-      'scheda-gara R2711001',
-    ])
+    const base = new Map([['calendario|2027', '2027-02-28']])
+    expect(letture(stato({ gare: [g], ultimeLetture: base }))).toEqual(['scheda-gara R2711001'])
     const controllata = new Map([...base, ['scheda-gara|R2711001', '2027-01-01']])
-    expect(letture(stato({ gare: [g], ultimeLetture: controllata, anniStorico: [2025] }))).toEqual(
-      [],
-    )
+    expect(letture(stato({ gare: [g], ultimeLetture: controllata }))).toEqual([])
   })
 })
 
@@ -255,12 +224,5 @@ describe('classifiche complete e gare vecchie', () => {
       urlRisultati: 'x',
     })
     expect(letture(stato({ gare: [senzaPdf, conPdf], ultimeLetture: base }))).toEqual([])
-  })
-
-  it('calendari degli anni vecchi: mai (le loro gare arrivano dallo storico)', () => {
-    const base = new Map([['calendario|2027', '2027-02-28']])
-    expect(letture(stato({ anniStorico: [2009, 2015, 2024, 2025], ultimeLetture: base }))).toEqual([
-      'calendario 2025',
-    ])
   })
 })

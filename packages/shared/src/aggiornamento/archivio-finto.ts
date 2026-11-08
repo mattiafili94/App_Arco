@@ -60,13 +60,6 @@ export class ArchivioFinto implements Archivio {
     const partecipate = new Set([...this.storici.values()].flat().map((r) => r.gara_codice))
     return {
       ultimeLetture: [...ultime.values()],
-      anniStorico: [
-        ...new Set(
-          [...partecipate]
-            .map((c) => Number(this.gareSalvate.get(c)?.dal.slice(0, 4)))
-            .filter(Boolean),
-        ),
-      ],
       gare: [...this.gareSalvate.values()].map((g) => ({
         codice: g.codice,
         dal: g.dal,
@@ -219,6 +212,20 @@ export class ArchivioFinto implements Archivio {
       const nostre = c.righe.filter((r) => r.atleta_id !== null)
       tolte += c.righe.length - nostre.length
       c.righe = nostre
+    }
+    return tolte
+  }
+
+  async potaGare(primaDel: string) {
+    const partecipate = new Set([...this.storici.values()].flat().map((r) => r.gara_codice))
+    let tolte = 0
+    for (const [codice, g] of this.gareSalvate) {
+      if (g.dal < primaDel && !partecipate.has(codice)) {
+        this.gareSalvate.delete(codice)
+        this.classifiche.delete(codice)
+        this.inviti.delete(codice)
+        tolte++
+      }
     }
     return tolte
   }

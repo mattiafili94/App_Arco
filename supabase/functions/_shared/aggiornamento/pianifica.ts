@@ -20,8 +20,6 @@ export interface StatoPianificazione {
   oggi: string
   /** Quando è stata letta l'ultima volta (con successo) una cosa: "tipo|chiave" → "AAAA-MM-GG". */
   ultimeLetture: ReadonlyMap<string, string>
-  /** Anni che compaiono negli storici degli atleti. */
-  anniStorico: readonly number[]
   gare: readonly {
     codice: string
     dal: string
@@ -60,19 +58,14 @@ export const PRIORITA = {
   schedaAtleta: 5,
 } as const
 
-/** Giorni dopo i quali i risultati di una gara fuori Umbria si considerano definitivi. */
-export const GIORNI_DEFINITIVI_FUORI_UMBRIA = 60
+/** Giorni dopo la gara oltre i quali i risultati si considerano definitivi anche senza omologazione. */
+export const GIORNI_RISULTATI_DEFINITIVI = 60
 /** Giorni dopo la gara oltre i quali non si cerca più un PDF dei risultati mai uscito. */
 export const GIORNI_MASSIMI_ATTESA_PDF = 90
 
 export const giorni = (da: string, a: string) =>
   Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
 
-/**
- * I risultati di una gara sono ancora provvisori? Per le gare dell'Umbria lo dice il calendario
- * (omologata o no). Per quelle fuori regione lo stato non si conosce (il calendario "00" ha solo le
- * gare nazionali): si considerano definitivi dopo GIORNI_DEFINITIVI_FUORI_UMBRIA giorni.
- */
 /** Anni interi, prima di quello in corso, con le classifiche complete (scelta di Mattia, 8/11/2026). */
 export const ANNI_CLASSIFICHE_COMPLETE = 2
 
@@ -85,10 +78,14 @@ export function inizioClassificheComplete(oggi: string): string {
   return `${Number(oggi.slice(0, 4)) - ANNI_CLASSIFICHE_COMPLETE}-01-01`
 }
 
+/**
+ * I risultati di una gara sono ancora provvisori? Sì finché la gara non è omologata, ma al massimo per
+ * GIORNI_RISULTATI_DEFINITIVI giorni: lo stato arriva solo dal calendario dell'Umbria dell'anno in corso,
+ * quindi per le gare fuori regione (stato sconosciuto) e per quelle di fine anno (a gennaio il loro
+ * calendario non si legge più) l'omologazione non si vedrebbe mai.
+ */
 export function risultatiProvvisori(g: { stato: StatoGara; al: string }, oggi: string): boolean {
-  if (g.stato === 'omologata') return false
-  if (g.stato === 'sconosciuto') return giorni(g.al, oggi) <= GIORNI_DEFINITIVI_FUORI_UMBRIA
-  return true
+  return g.stato !== 'omologata' && giorni(g.al, oggi) <= GIORNI_RISULTATI_DEFINITIVI
 }
 
 export function pianificaLetture(s: StatoPianificazione): Lettura[] {
@@ -105,23 +102,13 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   // Le gare più vecchie della finestra delle classifiche complete si conoscono solo dallo storico
   // degli atleti (una richiesta per atleta): niente calendari, schede gara né PDF per loro.
   const inizio = inizioClassificheComplete(s.oggi)
-  const annoInizio = Number(inizio.slice(0, 4))
 
-  // Calendari: l'anno in corso, il prossimo da ottobre (calendario provvisorio), e gli anni degli
-  // storici (dentro la finestra) finché hanno gare dell'Umbria non ancora definitive.
+  // Calendari: solo l'anno in corso e, da ottobre, il prossimo (provvisorio). Quelli degli anni
+  // passati non interessano (Mattia, 8/11/2026): le gare passate arrivano dagli storici degli atleti.
   const anno = Number(s.oggi.slice(0, 4))
-  const anni = new Set([anno, ...s.anniStorico.filter((a) => a >= annoInizio)])
-  if (Number(s.oggi.slice(5, 7)) >= 10) anni.add(anno + 1)
-  for (const a of [...anni].sort()) {
-    const inSospeso = s.gare.some(
-      (g) =>
-        g.rilevante &&
-        g.inCalendarioUmbria &&
-        g.dal.startsWith(String(a)) &&
-        !['omologata', 'annullata'].includes(g.stato),
-    )
-    const daLeggere = a >= anno || inSospeso || ultima('calendario', String(a)) === undefined
-    if (daLeggere && scaduta('calendario', String(a), OGNI.calendario)) {
+  const anni = Number(s.oggi.slice(5, 7)) >= 10 ? [anno, anno + 1] : [anno]
+  for (const a of anni) {
+    if (scaduta('calendario', String(a), OGNI.calendario)) {
       aggiungi('calendario', String(a), PRIORITA.calendario)
     }
   }

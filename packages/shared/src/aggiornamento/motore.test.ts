@@ -122,7 +122,6 @@ describe('strumenti del motore', () => {
     const s = statoPianificazione(
       {
         ultimeLetture: [{ tipo: 'calendario', chiave: '2026', letto_il: '2026-11-01' }],
-        anniStorico: [2025],
         gare: [
           gara('R1', '2026-03-01', true, false),
           gara('R2', '2025-03-01', true, false),
@@ -149,12 +148,12 @@ describe('un giro di lavoro', () => {
     expect(archivio.storici.get('a1')).toHaveLength(43)
     expect(archivio.gareSalvate.get('R2611040')).toMatchObject({ stato: 'invito', ha_invito: true })
     expect(archivio.diario.every((d) => d.richieste >= 1)).toBe(true)
-    // Le letture fatte escono dalla lista; il secondo giro non ripete scheda e calendario 2026, ma
-    // legge i calendari degli anni dello storico (2024, 2025). Il 2027 (è novembre) era già nel primo.
+    // Le letture fatte escono dalla lista; il secondo giro non ripete scheda e calendario 2026, e non
+    // legge i calendari degli anni passati dello storico (2024, 2025): solo quello dell'anno in corso.
     const secondo = (await giro(ctx, OPZIONI)).eseguite.map((e) => `${e.tipo} ${e.chiave}`)
     expect(secondo).not.toContain('calendario 2026')
     expect(secondo).not.toContain('scheda-atleta a1')
-    expect(secondo).toEqual(expect.arrayContaining(['calendario 2024', 'calendario 2025']))
+    expect(secondo.filter((l) => l.startsWith('calendario'))).toEqual([])
   })
 
   it('con tante letture pesanti in lista, fa comunque quelle leggere', async () => {
@@ -673,5 +672,37 @@ describe('più archi e gare vecchie', () => {
     expect(archivio.coda.filter((c) => c.tipo === 'ranking').map((c) => c.chiave)).toEqual([
       'I|OL|S|M',
     ])
+  })
+})
+
+describe('gare degli anni passati', () => {
+  it('restano solo quelle fatte dai nostri atleti', async () => {
+    archivio.diario = [
+      {
+        tipo: 'scheda-atleta',
+        chiave: 'a1',
+        esito: 'ok',
+        messaggio: '',
+        richieste: 1,
+        giorno: OGGI,
+      },
+    ]
+    await esegui('calendario', '2026')
+    await esegui('scheda-atleta', 'a1')
+    // Una gara dell'Umbria del 2025 senza nostri atleti (dal vecchio calendario).
+    archivio.gareSalvate.set('R2511999', {
+      ...archivio.gareSalvate.get('R2611001')!,
+      codice: 'R2511999',
+      dal: '2025-03-01',
+      al: '2025-03-01',
+    })
+    await giro(ctx, { ...OPZIONI, massimo: 0 })
+    expect(archivio.gareSalvate.has('R2511999')).toBe(false)
+    // Le gare del 2025 dello storico restano.
+    expect(archivio.gareSalvate.has('R2511017')).toBe(true)
+    expect(archivio.diario.at(-1)).toMatchObject({
+      chiave: 'gare passate 2026-01-01',
+      messaggio: 'Tolte 1 gare degli anni passati senza nostri atleti',
+    })
   })
 })

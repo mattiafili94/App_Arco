@@ -68,7 +68,6 @@ export type Esito = 'ok' | 'invariato' | 'errore' | 'anomalia'
 export interface StatoArchivio {
   /** Ultime letture riuscite: data italiana "AAAA-MM-GG". */
   ultimeLetture: { tipo: string; chiave: string; letto_il: string }[]
-  anniStorico: number[]
   gare: {
     codice: string
     dal: string
@@ -130,6 +129,8 @@ export interface Archivio {
    * (restano i nostri). Restituisce quante righe ha tolto.
    */
   potaClassifiche(primaDel: string): Promise<number>
+  /** Toglie le gare iniziate prima di `primaDel` che nessun nostro atleta ha fatto. Quante ne ha tolte. */
+  potaGare(primaDel: string): Promise<number>
   /** Istante (ms) dell'ultima lettura fallita perché Fitarco non rispondeva, o null. */
   ultimoBlocco(): Promise<number | null>
   /** La classifica salvata è provvisoria? null se non c'è. */
@@ -186,7 +187,6 @@ export function statoPianificazione(a: StatoArchivio, oggi: string): StatoPianif
   return {
     oggi,
     ultimeLetture: new Map(a.ultimeLetture.map((l) => [`${l.tipo}|${l.chiave}`, l.letto_il])),
-    anniStorico: a.anniStorico,
     gare: a.gare.map((g) => ({
       codice: g.codice,
       dal: g.dal,
@@ -504,6 +504,19 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
       chiave: `potatura ${inizioClassificheComplete(ctx.oggi)}`,
       esito: 'ok',
       messaggio: `Tolte ${potate} righe di altri atleti dalle classifiche delle gare vecchie`,
+      richieste: 0,
+    })
+  }
+
+  // Calendari solo dell'anno in corso: delle gare passate restano quelle fatte dai nostri atleti.
+  const inizioAnno = `${ctx.oggi.slice(0, 4)}-01-01`
+  const gareTolte = await ctx.archivio.potaGare(inizioAnno)
+  if (gareTolte > 0) {
+    await ctx.archivio.registra({
+      tipo: 'calendario',
+      chiave: `gare passate ${inizioAnno}`,
+      esito: 'ok',
+      messaggio: `Tolte ${gareTolte} gare degli anni passati senza nostri atleti`,
       richieste: 0,
     })
   }
