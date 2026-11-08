@@ -1,0 +1,55 @@
+.fermo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.aiuto {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border: 4px solid var(--border-strong);
+  border-radius: var(--radius-surface);
+  background: var(--background-surface);
+  color: var(--text-primary);
+}
+
+/* Le fasi hanno un colore (bordo e fondo) ma anche la scritta grande: il colore non è l'unico segnale. */
+.timer[data-fase='preparazione'] {
+  border-color: var(--status-error);
+  background: var(--status-error-subtle);
+}
+.timer[data-fase='tiro'] {
+  border-color: var(--status-success);
+  background: var(--status-success-subtle);
+}
+.timer[data-fase='ultimi30'] {
+  border-color: var(--status-warning);
+  background: var(--status-warning-subtle);
+}
+.timer[data-fase='finito'] {
+  border-color: var(--status-error);
+  background: var(--status-error-subtle);
+}
+
+.fase {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.tempo {
+  margin: 0;
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

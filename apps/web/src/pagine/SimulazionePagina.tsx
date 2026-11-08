@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Target } from 'lucide-react'
 import {
   ETICHETTE_BERSAGLIO,
+  durataTiroMs,
   etichetteConteggi,
+  NOTA_VOLEE_MASSIMA,
+  notaVolee,
   etichettaGiorno,
   nomeSimulazione,
   puntiFreccia,
@@ -19,6 +22,7 @@ import {
   annullaUltimaFreccia,
   correggiValore,
   eliminaSimulazione,
+  salvaNotaVolee,
   segnaFreccia,
 } from '../allenamento/simulazioni'
 import { Button } from '../componenti/Button'
@@ -26,6 +30,8 @@ import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
+import { Textarea } from '../componenti/Textarea'
+import { TimerVolee } from '../componenti/TimerVolee'
 import { oggi as oggiIn } from '../gare/dati'
 import { useSincronizzazione } from '../sync/contesto'
 import styles from './SimulazionePagina.module.css'
@@ -48,6 +54,33 @@ const ZONA: Record<ValoreFreccia, string> = {
 
 /** La zona di un valore: oro, rosso, blu, nero, bianco o mancata. */
 const classeZona = (v: ValoreFreccia) => styles[ZONA[v]!]!
+
+/** La nota di una volée: si scrive e si salva subito sul telefono. */
+function NotaVolee({
+  indice,
+  testo,
+  etichetta,
+  onSalva,
+}: {
+  indice: number
+  testo: string
+  etichetta: string
+  onSalva(indice: number, testo: string): void
+}) {
+  const [valore, setValore] = useState(testo)
+  return (
+    <Textarea
+      label={etichetta}
+      rows={2}
+      maxLength={NOTA_VOLEE_MASSIMA}
+      value={valore}
+      onChange={(e) => {
+        setValore(e.target.value)
+        onSalva(indice, e.target.value)
+      }}
+    />
+  )
+}
 
 /** Un valore segnato (nella volée o nell'elenco): è un pulsante, per poterlo correggere. */
 function Casella({
@@ -89,6 +122,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const programmaInvio = useInvioDifferito()
   const [selezionata, setSelezionata] = useState<number | null>(null)
   const [conferma, setConferma] = useState(false)
+  const [notaAperta, setNotaAperta] = useState<number | null>(null)
   const annoCorrente = Number(oggiIn().slice(0, 4))
 
   const r = riepilogoSimulazione(s)
@@ -110,6 +144,9 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
     setSelezionata(null)
     programmaInvio()
   }
+  const salvaNota = (indice: number, testo: string) => {
+    void salvaNotaVolee(db, s.id, indice, testo).then(programmaInvio)
+  }
   const elimina = async () => {
     await eliminaSimulazione(db, s.id)
     programmaInvio()
@@ -123,6 +160,11 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
     .slice(0, stato.prova)
     .reduce((t, p) => t + p.prova.frecceTotali, 0)
   const primaDellaVolee = primaDellaProva + (stato.volee - 1) * provaInCorso.prova.frecceVolee
+  // Numero della volée in corso contato da zero su tutta la simulazione (le note si legano a questo).
+  const voleePrimaDellaProva = r.prove
+    .slice(0, stato.prova)
+    .reduce((t, p) => t + p.prova.frecceTotali / p.prova.frecceVolee, 0)
+  const indiceVoleeInCorso = voleePrimaDellaProva + stato.volee - 1
   const totaleVolee = voleeInCorso.reduce((t, v) => t + puntiFreccia(v), 0)
   // A volée finita si passa alla successiva: il totale di quella appena tirata resta in vista.
   const precedente =
@@ -160,6 +202,24 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
             {`Volée: ${totaleVolee}${precedente === undefined ? '' : ` · Volée precedente: ${precedente}`} · Totale: ${r.totale} · ${r.frecceSegnate} frecce su ${r.frecceTotali}`}
           </p>
         </section>
+
+        {!stato.finita && <TimerVolee durataTiro={durataTiroMs(s.formato)} />}
+
+        <details className={styles.dettagli}>
+          <summary>
+            {notaVolee(s, indiceVoleeInCorso) === ''
+              ? `Nota della volée ${stato.volee} (facoltativa)`
+              : `Nota della volée ${stato.volee}: ${notaVolee(s, indiceVoleeInCorso)}`}
+          </summary>
+          {/* `key`: cambiando volée si riparte dalla nota di quella volée. */}
+          <NotaVolee
+            key={indiceVoleeInCorso}
+            indice={indiceVoleeInCorso}
+            testo={notaVolee(s, indiceVoleeInCorso)}
+            etichetta={`Nota della volée ${stato.volee}`}
+            onSalva={salvaNota}
+          />
+        </details>
 
         {selezionata !== null && (
           <Notice status="warning">
@@ -224,6 +284,9 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
             <section className={styles.elenco} aria-label="Tutte le volée">
               {r.prove.map((p, i) => {
                 const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
+                const voleePrima = r.prove
+                  .slice(0, i)
+                  .reduce((t, x) => t + x.prova.frecceTotali / x.prova.frecceVolee, 0)
                 let progressivo = 0
                 return (
                   <div key={i}>
@@ -240,34 +303,73 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                           <th scope="col">Frecce</th>
                           <th scope="col">Volée</th>
                           <th scope="col">Totale</th>
+                          <th scope="col">Nota</th>
                         </tr>
                       </thead>
                       <tbody>
                         {p.volee.map((v, j) => {
                           progressivo += v.totale
+                          const indiceVolee = voleePrima + j
+                          const nota = notaVolee(s, indiceVolee)
                           return (
-                            <tr key={j}>
-                              <th scope="row">{j + 1}</th>
-                              <td>
-                                <div className={styles.frecce}>
-                                  {v.frecce.map((valore, k) => {
-                                    const indice = prima + j * p.prova.frecceVolee + k
-                                    return (
-                                      <Casella
-                                        key={k}
-                                        valore={valore}
-                                        indice={indice}
-                                        selezionata={selezionata === indice}
-                                        onScegli={setSelezionata}
-                                        etichetta={`Freccia ${k + 1} della volée ${j + 1}`}
+                            <Fragment key={j}>
+                              <tr>
+                                <th scope="row">{j + 1}</th>
+                                <td>
+                                  <div className={styles.frecce}>
+                                    {v.frecce.map((valore, k) => {
+                                      const indice = prima + j * p.prova.frecceVolee + k
+                                      return (
+                                        <Casella
+                                          key={k}
+                                          valore={valore}
+                                          indice={indice}
+                                          selezionata={selezionata === indice}
+                                          onScegli={setSelezionata}
+                                          etichetta={`Freccia ${k + 1} della volée ${j + 1}`}
+                                        />
+                                      )
+                                    })}
+                                  </div>
+                                </td>
+                                <td>{v.totale}</td>
+                                <td>{progressivo}</td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className={styles.testo}
+                                    aria-expanded={notaAperta === indiceVolee}
+                                    onClick={() =>
+                                      setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
+                                    }
+                                  >
+                                    <span className="visually-hidden">
+                                      {`Nota della volée ${j + 1}: `}
+                                    </span>{' '}
+                                    {nota === '' ? 'Aggiungi' : 'Modifica'}
+                                  </button>
+                                </td>
+                              </tr>
+                              {(nota !== '' || notaAperta === indiceVolee) && (
+                                <tr>
+                                  <td colSpan={5} className={styles.rigaNota}>
+                                    {notaAperta === indiceVolee ? (
+                                      <NotaVolee
+                                        indice={indiceVolee}
+                                        testo={nota}
+                                        etichetta={`Nota della volée ${j + 1}`}
+                                        onSalva={salvaNota}
                                       />
-                                    )
-                                  })}
-                                </div>
-                              </td>
-                              <td>{v.totale}</td>
-                              <td>{progressivo}</td>
-                            </tr>
+                                    ) : (
+                                      <p className={styles.testoNota}>
+                                        <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>
+                                        {nota}
+                                      </p>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           )
                         })}
                       </tbody>

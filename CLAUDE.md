@@ -488,10 +488,23 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         progressivo, cancellazione con conferma. Le frecce delle simulazioni si **sommano da sole** al giorno e
         alla settimana (libere + in gara, senza doppi conteggi). L'area sopra il tastierino ha sempre due righe:
         il tastierino non si sposta mentre si tocca;
-      - **6.3a-2** tocco sul bersaglio con lente (e posizione della freccia), note per volée e **timer facoltativo**
-        della volée: 1 fischio all'inizio → 10 secondi per andare in linea (rosso) → 1 fischio e parte il tempo
-        (indoor 2 minuti, outdoor 4, verde) → a 30 secondi dalla fine giallo con un breve avviso sonoro (diverso dal
-        fischio) → a tempo scaduto 2 fischi. Sempre facoltativo, si può fermare prima, funziona offline;
+      - **6.3a-2a ✅** **timer facoltativo** della volée e **note per volée**:
+        - timer (`componenti/TimerVolee.tsx`, suoni in `allenamento/suoni.ts`, logica pura in
+          `packages/shared/src/timer.ts`): "Avvia timer" → 1 fischio → 10 secondi per andare in linea (rosso,
+          "Preparazione") → 1 fischio e parte il tempo di tiro (indoor 2 minuti, outdoor 4 minuti, verde, "Tiro") →
+          a 30 secondi dalla fine giallo ("Ultimi 30 secondi") con un breve avviso sonoro (due bip più bassi,
+          diversi dal fischio) → a tempo scaduto 2 fischi ("Tempo scaduto"). **Sempre facoltativo** (volée per
+          volée), si può fermare prima, i tasti restano utilizzabili, funziona offline (suoni generati dal telefono
+          con Web Audio, più vibrazione); il tempo si legge dall'orologio (non "deriva") e, se il telefono resta
+          fermo, i suoni saltati arrivano tutti in ordine; chiede il blocco dello schermo dove possibile. Le fasi si
+          distinguono anche dalla scritta grande, non solo dal colore (verificato con axe nei 3 temi);
+        - note: colonna `simulazioni.note` (oggetto `{ "indice volée da 0": "testo" }`, migrazione
+          `20261113120000`), la chiave conta le volée su tutta la simulazione (nel 25+18 la prima dei 18 m è la 20).
+          `salva_simulazione` ha il parametro `p_note` (se manca o è null le note restano: le versioni vecchie
+          dell'app non le cancellano). Nella pagina: "Nota della volée N" per quella in corso e, nell'elenco,
+          "Aggiungi/Modifica" per ogni volée;
+      - **6.3a-2b** tocco sul bersaglio con lente (e posizione della freccia, anche per il compound all'indoor dove
+        il 10 è solo l'anello interno);
       - **6.3b** campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24) e 3D (3 frecce a piazzola, punteggi
         11/10/8/5/0), con confronto media allenamento/gara.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).

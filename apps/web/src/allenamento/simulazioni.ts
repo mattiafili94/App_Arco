@@ -1,6 +1,7 @@
 import {
   aggiungiFreccia,
   correggiFreccia,
+  impostaNotaVolee,
   riepilogoSimulazione,
   togliUltimaFreccia,
   type Bersaglio,
@@ -59,6 +60,7 @@ export async function creaSimulazione(
     giorno,
     ...scelta,
     frecce: [],
+    note: {},
     conclusa: false,
     eliminata: false,
     creata_il: adesso.toISOString(),
@@ -111,5 +113,21 @@ export async function eliminaSimulazione(db: ArcoDb, id: string, adesso = new Da
     const attuale = await leggiSimulazione(db, id)
     if (!attuale || attuale.eliminata) return null
     return scrivi(db, { ...attuale, eliminata: true }, attuale, adesso)
+  })
+}
+
+/** Scrive (o toglie, con il testo vuoto) la nota di una volée. */
+export async function salvaNotaVolee(
+  db: ArcoDb,
+  id: string,
+  indiceVolee: number,
+  testo: string,
+  adesso = new Date(),
+) {
+  return db.transaction('rw', db.simulazioni, async () => {
+    const attuale = await leggiSimulazione(db, id)
+    if (!attuale || attuale.eliminata) return null
+    const note = impostaNotaVolee(attuale.note, indiceVolee, testo)
+    return scrivi(db, { ...attuale, note }, attuale, adesso)
   })
 }

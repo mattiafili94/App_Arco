@@ -113,6 +113,78 @@ test.describe('segnapunti', () => {
     await expect(riepilogo).toContainText('30')
   })
 
+  test('il timer facoltativo segue la sequenza di gara: preparazione, tiro, ultimi 30 secondi, tempo scaduto', async ({
+    page,
+  }) => {
+    await page.clock.install()
+    await simulaSupabase(page)
+    await iniziaSimulazione(page)
+    const timer = page.getByRole('region', { name: 'Timer della volée' })
+    await expect(timer).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Avvia timer' }).click()
+    await expect(timer).toHaveAttribute('data-fase', 'preparazione')
+    await expect(page.getByRole('timer')).toHaveText('0:10')
+    // I tasti restano utilizzabili mentre il timer corre.
+    await tasto(page, '10').click()
+    await expect(page.getByText(/Totale: 10 · 1 frecce su 60/)).toBeVisible()
+
+    await page.clock.runFor(10_000)
+    await expect(timer).toHaveAttribute('data-fase', 'tiro')
+    await expect(page.getByRole('timer')).toHaveText('2:00')
+
+    await page.clock.runFor(90_000)
+    await expect(timer).toHaveAttribute('data-fase', 'ultimi30')
+    await expect(timer).toContainText('Ultimi 30 secondi')
+
+    await page.clock.runFor(30_000)
+    await expect(timer).toHaveAttribute('data-fase', 'finito')
+    await expect(timer).toContainText('Tempo scaduto')
+    await page.getByRole('button', { name: 'Chiudi' }).click()
+    await expect(page.getByRole('button', { name: 'Avvia timer' })).toBeVisible()
+  })
+
+  test('la nota di una volée arriva al server', async ({ page }) => {
+    const { simulazioni } = await simulaSupabase(page)
+    await iniziaSimulazione(page)
+    await tasto(page, '10').click()
+    await page.getByText('Nota della volée 1 (facoltativa)').click()
+    await page.getByLabel('Nota della volée 1', { exact: true }).fill('vento da destra')
+    await expect
+      .poll(() => (simulazioni[0] as { note?: Record<string, string> } | undefined)?.note?.['0'], {
+        timeout: 15_000,
+      })
+      .toBe('vento da destra')
+  })
+
+  test.describe('accessibilità', () => {
+    test.use({ reducedMotion: 'reduce' })
+
+    for (const { scelta, attributo } of TEMI) {
+      test(`accessibilità del timer in ogni fase, tema ${scelta}`, async ({ page }) => {
+        await page.clock.install()
+        await simulaSupabase(page)
+        await conTema(page, scelta)
+        await iniziaSimulazione(page)
+        await expect(page.locator('html')).toHaveAttribute('data-theme', attributo)
+        await page.setViewportSize({ width: 390, height: 1500 })
+        await page.getByRole('button', { name: 'Avvia timer' }).click()
+        const timer = page.getByRole('region', { name: 'Timer della volée' })
+        // Rosso (preparazione), verde (tiro), giallo (ultimi 30 secondi), rosso (tempo scaduto).
+        for (const [attesa, fase] of [
+          [0, 'preparazione'],
+          [10_000, 'tiro'],
+          [90_000, 'ultimi30'],
+          [30_000, 'finito'],
+        ] as const) {
+          if (attesa > 0) await page.clock.runFor(attesa)
+          await expect(timer).toHaveAttribute('data-fase', fase)
+          await controllaAccessibilita(page)
+        }
+      })
+    }
+  })
+
   test.describe('accessibilità', () => {
     test.use({ reducedMotion: 'reduce' })
 

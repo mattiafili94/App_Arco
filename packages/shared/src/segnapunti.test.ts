@@ -6,7 +6,10 @@ import {
   etichetteConteggi,
   frecceDelleSimulazioni,
   frecceTotaliSimulazione,
+  impostaNotaVolee,
+  NOTA_VOLEE_MASSIMA,
   nomeSimulazione,
+  notaVolee,
   proveDelFormato,
   puntiFreccia,
   riepilogoSimulazione,
@@ -366,5 +369,29 @@ describe('frecce nel giorno e nella settimana', () => {
       s('2026-11-09', [], { id: 'c', creata_il: '2026-11-09T11:00:00Z', eliminata: true }),
     ]
     expect(simulazioniVisibili(elenco).map((x) => x.id)).toEqual(['b', 'a'])
+  })
+})
+
+describe('note per volée', () => {
+  it('senza note: testo vuoto', () => {
+    expect(notaVolee(sim('18m', 'singolo'), 0)).toBe('')
+    expect(notaVolee({ note: { '3': 'vento forte' } }, 3)).toBe('vento forte')
+    expect(notaVolee({ note: { '3': 'vento forte' } }, 4)).toBe('')
+  })
+
+  it('impostare, cambiare e togliere una nota, senza toccare l’originale', () => {
+    const originale = { '1': 'prima' }
+    const a = impostaNotaVolee(originale, 2, 'vento')
+    expect(a).toEqual({ '1': 'prima', '2': 'vento' })
+    expect(originale).toEqual({ '1': 'prima' })
+    expect(impostaNotaVolee(a, 2, 'molto vento')).toEqual({ '1': 'prima', '2': 'molto vento' })
+    expect(impostaNotaVolee(a, 2, '')).toEqual({ '1': 'prima' })
+    expect(impostaNotaVolee(a, 2, '   ')).toEqual({ '1': 'prima' })
+    expect(impostaNotaVolee(undefined, 0, 'x')).toEqual({ '0': 'x' })
+  })
+
+  it('la nota non supera la lunghezza massima', () => {
+    const lunga = impostaNotaVolee({}, 0, 'a'.repeat(NOTA_VOLEE_MASSIMA + 50))
+    expect(lunga['0']).toHaveLength(NOTA_VOLEE_MASSIMA)
   })
 })

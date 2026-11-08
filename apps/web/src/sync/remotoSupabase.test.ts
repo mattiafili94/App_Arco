@@ -162,6 +162,7 @@ describe('sincronizzazione con Supabase', () => {
           p_distanza: 60,
           p_bersaglio: '122',
           p_frecce: ['X', '10'],
+          p_note: null,
           p_conclusa: false,
           p_eliminata: false,
           p_creata_il: '2026-11-12T08:00:00.000Z',

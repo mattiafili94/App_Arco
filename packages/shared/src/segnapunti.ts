@@ -32,6 +32,8 @@ export interface Simulazione {
   bersaglio: Bersaglio
   /** Tutte le frecce segnate, nell'ordine in cui sono state tirate. */
   frecce: ValoreFreccia[]
+  /** Note facoltative per volée (vedi `notaVolee`). Le simulazioni vecchie non le hanno. */
+  note?: Record<string, string>
   conclusa: boolean
   /** "Cancellata": sparisce dalle liste ma la riga resta (serve alla sincronizzazione). */
   eliminata: boolean
@@ -293,3 +295,26 @@ export const simulazioniVisibili = <T extends Pick<Simulazione, 'eliminata' | 'c
   simulazioni: readonly T[],
 ): T[] =>
   simulazioni.filter((s) => !s.eliminata).sort((a, b) => b.creata_il.localeCompare(a.creata_il))
+
+/** Quanto può essere lunga la nota di una volée. */
+export const NOTA_VOLEE_MASSIMA = 500
+
+/**
+ * La nota di una volée (facoltativa). Le note stanno in un oggetto `{ "3": "vento forte" }`: la chiave è il
+ * numero della volée contato da zero su tutta la simulazione (nel 25+18 la prima volée dei 18 m è la 20).
+ */
+export const notaVolee = (s: Pick<Simulazione, 'note'>, indice: number): string =>
+  s.note?.[String(indice)] ?? ''
+
+/** Le note con la nota di una volée cambiata; il testo vuoto la toglie. Non modifica l'originale. */
+export function impostaNotaVolee(
+  note: Record<string, string> | undefined,
+  indice: number,
+  testo: string,
+): Record<string, string> {
+  const nuove = { ...note }
+  const pulita = testo.slice(0, NOTA_VOLEE_MASSIMA)
+  if (pulita.trim() === '') delete nuove[String(indice)]
+  else nuove[String(indice)] = pulita
+  return nuove
+}
