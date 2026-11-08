@@ -7,6 +7,7 @@ Il server dell'app. Qui ci sono:
 | `migrations/` | le tabelle e i permessi (in ordine di data) |
 | `tests/database/` | i test dei permessi (pgTAP): girano su GitHub a ogni PR, su un Supabase di prova |
 | `functions/crea-accesso/` | la funzione del server che crea e revoca i link personali |
+| `functions/aggiorna-fitarco/` | la funzione del server che legge e salva i dati Fitarco (lista di lavoro) |
 | `functions/prova-fitarco/` | prova (temporanea) che il sito Fitarco risponda dal cloud: non resta pubblicata |
 | `functions/_shared/` | regole comuni ad app e server (codice, link, email tecnica) |
 | `config.toml` | impostazioni: nessuna iscrizione libera, niente email di conferma, codici di 10+ caratteri |
@@ -57,6 +58,21 @@ L'app crea gli accessi solo per chi è già amministratore: il primo si crea a m
 Il tuo stesso accesso non si rigenera dall'app (per non chiuderti fuori per sbaglio): se serve, ripeti i passi 1–2
 su quel tuo utente (Authentication → Users → … → Reset password, oppure eliminalo e ricrealo, poi rifai il passo 3
 con `update public.atleti set utente_id = ...`).
+
+## Aggiornamento dei dati Fitarco (`aggiorna-fitarco`)
+
+La funzione legge da Fitarco calendario, schede, inviti, PDF dei risultati e ranking, un pezzo alla volta,
+e scrive com'è andata nella tabella `letture` (il "diario", lo vede l'amministratore).
+
+- Messa in funzione: `npx supabase secrets set AGGIORNA_CHIAVE=<lettere a caso>` e
+  `npx supabase functions deploy aggiorna-fitarco --use-api --no-verify-jwt`. La chiave serve anche al
+  controllo giornaliero (Fase 2.5): non metterla in chat né nella repo.
+- Un giro a mano (al massimo 6 letture):
+  `curl -X POST https://<id del progetto>.supabase.co/functions/v1/aggiorna-fitarco -H "x-aggiorna-chiave: <chiave>"`
+- Mettere in lista le classifiche (ranking): stesso comando con `-d '{"azione":"ranking"}'`.
+- Diario delle ultime letture (SQL Editor):
+  `select creato_il, tipo, chiave, esito, messaggio from letture order by creato_il desc limit 50;`
+- Lista di lavoro: `select * from coda_letture order by priorita desc, da_fare_dal;`
 
 ## Prova di lettura di Fitarco dal cloud
 

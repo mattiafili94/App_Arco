@@ -23,9 +23,14 @@ export interface OpzioniClient {
 
 export interface ClientFitarco {
   leggi(richiesta: RichiestaFitarco): Promise<RispostaFitarco>
+  /** Scarica un file (PDF dei risultati) con le stesse regole: niente cache, sono file grandi. */
+  scarica(url: string): Promise<FileScaricato>
   /** Quante richieste sono davvero partite verso Fitarco (per i controlli e i test). */
   readonly richiesteFatte: number
 }
+
+export type FileScaricato =
+  { ok: true; dati: Uint8Array } | { ok: false; motivo: 'rete' | 'http'; dettaglio: string }
 
 export const PAUSA_PREDEFINITA_MS = 2000
 export const CACHE_PREDEFINITA_MS = 10 * 60 * 1000
@@ -48,39 +53,68 @@ export function creaClientFitarco(opzioni: OpzioniClient = {}): ClientFitarco {
   let ultimaFine: number | null = null
   let richiesteFatte = 0
 
-  async function esegui({ url, corpo }: RichiestaFitarco): Promise<RispostaFitarco> {
-    const chiave = `${url}\n${corpo.toString()}`
-    const salvata = cache.get(chiave)
-    if (salvata && salvata.scade > adesso()) return salvata.risposta
-
+  /** Una richiesta alla volta, con la pausa dopo la precedente e un tempo massimo. */
+  async function educata<T>(
+    fai: (segnale: AbortSignal) => Promise<T>,
+    seErrore: (errore: unknown) => T,
+  ): Promise<T> {
     if (ultimaFine !== null) {
       const mancano = ultimaFine + pausaMs - adesso()
       if (mancano > 0) await attendi(mancano)
     }
-
     const stop = new AbortController()
     const timer = setTimeout(() => stop.abort(), timeoutMs)
     richiesteFatte++
     try {
-      const risposta = await f(url, { method: 'POST', body: corpo, signal: stop.signal })
-      const testo = await risposta.text()
-      if (!risposta.ok) return { ok: false, motivo: 'http', dettaglio: String(risposta.status) }
-      const letta = leggiRisposta(testo)
-      if (letta.ok) cache.set(chiave, { scade: adesso() + cacheMs, risposta: letta })
-      return letta
+      return await fai(stop.signal)
     } catch (errore) {
-      return { ok: false, motivo: 'rete', dettaglio: String(errore) }
+      return seErrore(errore)
     } finally {
       clearTimeout(timer)
       ultimaFine = adesso()
     }
   }
 
+  function inCoda<T>(lavoro: () => Promise<T>): Promise<T> {
+    const risultato = coda.then(lavoro)
+    coda = risultato.catch(() => undefined)
+    return risultato
+  }
+
+  async function esegui({ url, corpo }: RichiestaFitarco): Promise<RispostaFitarco> {
+    const chiave = `${url}\n${corpo.toString()}`
+    const salvata = cache.get(chiave)
+    if (salvata && salvata.scade > adesso()) return salvata.risposta
+    return educata<RispostaFitarco>(
+      async (signal) => {
+        const risposta = await f(url, { method: 'POST', body: corpo, signal })
+        const testo = await risposta.text()
+        if (!risposta.ok) return { ok: false, motivo: 'http', dettaglio: String(risposta.status) }
+        const letta = leggiRisposta(testo)
+        if (letta.ok) cache.set(chiave, { scade: adesso() + cacheMs, risposta: letta })
+        return letta
+      },
+      (errore) => ({ ok: false, motivo: 'rete', dettaglio: String(errore) }),
+    )
+  }
+
   return {
     leggi(richiesta) {
-      const risultato = coda.then(() => esegui(richiesta))
-      coda = risultato.catch(() => undefined)
-      return risultato
+      return inCoda(() => esegui(richiesta))
+    },
+    scarica(url) {
+      return inCoda(() =>
+        educata<FileScaricato>(
+          async (signal) => {
+            const risposta = await f(url, { signal })
+            const dati = new Uint8Array(await risposta.arrayBuffer())
+            if (!risposta.ok)
+              return { ok: false, motivo: 'http', dettaglio: String(risposta.status) }
+            return { ok: true, dati }
+          },
+          (errore) => ({ ok: false, motivo: 'rete', dettaglio: String(errore) }),
+        ),
+      )
     },
     get richiesteFatte() {
       return richiesteFatte

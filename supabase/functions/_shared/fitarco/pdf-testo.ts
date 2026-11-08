@@ -49,7 +49,8 @@ export async function estraiRighe(dati: Uint8Array): Promise<RigaTesto[]> {
   const intestazione = new TextDecoder().decode(dati.subarray(0, 5))
   if (intestazione !== '%PDF-') throw new ErroreFormatoFitarco('Il file dei risultati non è un PDF')
 
-  const pdf = await getDocumentProxy(dati)
+  // pdf.js "stacca" (consuma) i dati che riceve: gli si passa una copia, così il file resta usabile.
+  const pdf = await getDocumentProxy(dati.slice())
   const righe: RigaTesto[] = []
   for (let n = 1; n <= pdf.numPages; n++) {
     const contenuto = await (await pdf.getPage(n)).getTextContent()

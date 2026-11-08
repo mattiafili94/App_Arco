@@ -204,6 +204,22 @@ describe('lettore dei PDF dei risultati: formati inattesi', () => {
     expect(senzaCodice).toMatchObject({ codiceGara: null, organizzatore: 'Società', categorie: [] })
   })
 
+  it('riconosce le categorie del tiro paralimpico (W1, Visually Impaired)', () => {
+    const risultato = leggiRisultati([
+      ...testata,
+      r(700, 'Compound W1 - Maschile'),
+      r(690, 'Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9'),
+      r(680, ATLETA),
+      r(660, 'Visually Impaired 1 - Unica'),
+      r(650, 'Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9'),
+      r(640, ATLETA),
+    ])
+    expect(risultato.categorie.map((c) => [c.nome, c.divisione, c.classe])).toEqual([
+      ['Compound W1 - Maschile', 'W1', 'Maschile'],
+      ['Visually Impaired 1 - Unica', 'V1', 'Unica'],
+    ])
+  })
+
   it('si ferma se manca l’intestazione o le colonne non tornano', () => {
     expect(() => leggiRisultati(testata.slice(0, 2))).toThrow('senza intestazione')
     expect(() =>

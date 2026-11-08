@@ -4,7 +4,9 @@
  */
 import type { StatoGara } from '../fitarco/calendario.ts'
 
-export type TipoLettura = 'calendario' | 'scheda-gara' | 'invito' | 'scheda-atleta' | 'risultati'
+/** `ranking` non lo pianifica il calendario: si chiede con il pulsante "Aggiorna". */
+export type TipoLettura =
+  'calendario' | 'scheda-gara' | 'invito' | 'scheda-atleta' | 'risultati' | 'ranking'
 
 export interface Lettura {
   tipo: TipoLettura
@@ -18,8 +20,6 @@ export interface StatoPianificazione {
   oggi: string
   /** Quando è stata letta l'ultima volta (con successo) una cosa: "tipo|chiave" → "AAAA-MM-GG". */
   ultimeLetture: ReadonlyMap<string, string>
-  /** Anni che compaiono negli storici degli atleti. */
-  anniStorico: readonly number[]
   gare: readonly {
     codice: string
     dal: string
@@ -58,7 +58,35 @@ export const PRIORITA = {
   schedaAtleta: 5,
 } as const
 
-const giorni = (da: string, a: string) => Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
+/** Giorni dopo la gara oltre i quali i risultati si considerano definitivi anche senza omologazione. */
+export const GIORNI_RISULTATI_DEFINITIVI = 60
+/** Giorni dopo la gara oltre i quali non si cerca più un PDF dei risultati mai uscito. */
+export const GIORNI_MASSIMI_ATTESA_PDF = 90
+
+export const giorni = (da: string, a: string) =>
+  Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
+
+/** Anni interi, prima di quello in corso, con le classifiche complete (scelta di Mattia, 8/11/2026). */
+export const ANNI_CLASSIFICHE_COMPLETE = 2
+
+/**
+ * Dal giorno restituito ("AAAA-01-01") le classifiche si tengono complete (tutti gli atleti); per le
+ * gare più vecchie solo le righe dei nostri atleti (con parziali e prove, per record e statistiche).
+ * Novembre 2026 → "2024-01-01": 2026, 2025 e 2024 complete.
+ */
+export function inizioClassificheComplete(oggi: string): string {
+  return `${Number(oggi.slice(0, 4)) - ANNI_CLASSIFICHE_COMPLETE}-01-01`
+}
+
+/**
+ * I risultati di una gara sono ancora provvisori? Sì finché la gara non è omologata, ma al massimo per
+ * GIORNI_RISULTATI_DEFINITIVI giorni: lo stato arriva solo dal calendario dell'Umbria dell'anno in corso,
+ * quindi per le gare fuori regione (stato sconosciuto) e per quelle di fine anno (a gennaio il loro
+ * calendario non si legge più) l'omologazione non si vedrebbe mai.
+ */
+export function risultatiProvvisori(g: { stato: StatoGara; al: string }, oggi: string): boolean {
+  return g.stato !== 'omologata' && giorni(g.al, oggi) <= GIORNI_RISULTATI_DEFINITIVI
+}
 
 export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   const lista: Lettura[] = []
@@ -71,24 +99,22 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   const aggiungi = (tipo: TipoLettura, chiave: string, priorita: number) =>
     lista.push({ tipo, chiave, priorita })
 
-  // Calendari: l'anno in corso, il prossimo da ottobre (calendario provvisorio), e gli anni degli
-  // storici finché hanno gare non ancora definitive.
+  // Le gare più vecchie della finestra delle classifiche complete si conoscono solo dallo storico
+  // degli atleti (una richiesta per atleta): niente calendari, schede gara né PDF per loro.
+  const inizio = inizioClassificheComplete(s.oggi)
+
+  // Calendari: solo l'anno in corso e, da ottobre, il prossimo (provvisorio). Quelli degli anni
+  // passati non interessano (Mattia, 8/11/2026): le gare passate arrivano dagli storici degli atleti.
   const anno = Number(s.oggi.slice(0, 4))
-  const anni = new Set([anno, ...s.anniStorico])
-  if (Number(s.oggi.slice(5, 7)) >= 10) anni.add(anno + 1)
-  for (const a of [...anni].sort()) {
-    const inSospeso = s.gare.some(
-      (g) =>
-        g.rilevante && g.dal.startsWith(String(a)) && !['omologata', 'annullata'].includes(g.stato),
-    )
-    const daLeggere = a >= anno || inSospeso || ultima('calendario', String(a)) === undefined
-    if (daLeggere && scaduta('calendario', String(a), OGNI.calendario)) {
+  const anni = Number(s.oggi.slice(5, 7)) >= 10 ? [anno, anno + 1] : [anno]
+  for (const a of anni) {
+    if (scaduta('calendario', String(a), OGNI.calendario)) {
       aggiungi('calendario', String(a), PRIORITA.calendario)
     }
   }
 
   for (const g of s.gare) {
-    if (!g.rilevante || g.stato === 'annullata') continue
+    if (!g.rilevante || g.stato === 'annullata' || g.dal < inizio) continue
     const futura = g.dal >= s.oggi
     const finita = g.al < s.oggi
 
@@ -97,19 +123,33 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
       if (scaduta('invito', g.codice, OGNI.invito)) aggiungi('invito', g.codice, PRIORITA.invito)
     }
 
-    // Dopo la gara: la scheda dà il link al PDF dei risultati.
+    // Dopo la gara: la scheda dà il link al PDF dei risultati (le gare vecchie si controllano una
+    // volta sola, poi si smette se il PDF non è mai uscito).
     if (finita && !g.urlRisultati) {
-      const ogni = giorni(g.al, s.oggi) <= 30 ? OGNI.schedaGaraPrimoMese : OGNI.schedaGaraDopo
-      if (scaduta('scheda-gara', g.codice, ogni))
+      const dopo = giorni(g.al, s.oggi)
+      const ogni = dopo <= 30 ? OGNI.schedaGaraPrimoMese : OGNI.schedaGaraDopo
+      const maiLetta = ultima('scheda-gara', g.codice) === undefined
+      if (
+        (dopo <= GIORNI_MASSIMI_ATTESA_PDF || maiLetta) &&
+        scaduta('scheda-gara', g.codice, ogni)
+      ) {
         aggiungi('scheda-gara', g.codice, PRIORITA.schedaGara)
+      }
     }
 
-    // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando la gara è omologata).
+    // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando diventano definitivi).
+    // Un PDF letto ma non salvato (anomalia della sentinella) si riprova ogni 3 giorni.
     if (g.urlRisultati) {
+      // Senza classifica salvata (anomalia, o gara vecchia senza nostri atleti riconosciuti): si
+      // riprova ogni 3 giorni, ma per le gare finite da più di 90 giorni basta la prima lettura.
+      const recente = giorni(g.al, s.oggi) <= GIORNI_MASSIMI_ATTESA_PDF
       const daLeggere =
-        g.risultati === null ||
-        (g.risultati.provvisoria &&
-          (g.stato === 'omologata' || scaduta('risultati', g.codice, OGNI.risultatiProvvisori)))
+        g.risultati === null
+          ? ultima('risultati', g.codice) === undefined ||
+            (recente && scaduta('risultati', g.codice, OGNI.risultatiProvvisori))
+          : g.risultati.provvisoria &&
+            (!risultatiProvvisori(g, s.oggi) ||
+              scaduta('risultati', g.codice, OGNI.risultatiProvvisori))
       if (daLeggere) aggiungi('risultati', g.codice, PRIORITA.risultati)
     }
   }

@@ -87,7 +87,7 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
 | Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
 | Classifica Campionati Italiani | ranking | pulsante "Aggiorna" |
-| Calendario Umbria | calendario | importato una volta all'anno (con anteprima delle differenze) + controlli periodici |
+| Calendario Umbria | calendario | **solo l'anno in corso** (da ottobre anche il provvisorio del prossimo), ogni settimana; gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
 | Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
 
 - **Inviti**: niente estrazione automatica delle date. Quando esce un invito nuovo l'app avvisa Mattia e mostra il
@@ -98,6 +98,15 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
     "Aggiungi a Google Calendar" (Android).
   - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
+- **Quanti dati tenere** (deciso l'8/11/2026): classifiche **complete** (tutti gli atleti) solo per le gare
+  dell'anno in corso e dei **due anni interi precedenti** (oggi 2024–2026); per le gare più vecchie si tengono
+  solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
+  da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
+  **Per risparmiare richieste** (Mattia, 8/11/2026): le gare più vecchie della finestra si conoscono SOLO dallo
+  storico della scheda atleta (una richiesta per atleta): niente calendari, schede gara né PDF per loro (un
+  arciere che tira dal 2009 non costa ~500 richieste). Compromesso: per quelle gare ci sono totale e posizione
+  ma non parziali, prove e conteggi 10/X, quindi i 25+18 e i doppi 70 m vecchi non si dividono in prove per i
+  record. Le gare lette mentre erano nella finestra tengono invece i dettagli dei nostri atleti per sempre.
 - **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
   ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
   Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.
@@ -112,6 +121,10 @@ Nello storico la gara resta una sola, con totale e posizione.
 - **Campagna** (su Fitarco si chiama Hunter & Field): **12+12** e **24+24** con record separati; il 24+24 **non** si divide.
 - **3D**: un record.
 - Record divisi anche per **divisione** (ricurvo, compound, nudo, istintivo, longbow).
+- **Un arciere può cambiare arco** nella carriera (detto da Mattia l'8/11/2026): può avere record e ranking su più
+  divisioni e perfino tirare **nella stessa gara due sessioni con due archi diversi**. In quel caso ha due righe
+  nello storico (una per divisione) e due nella classifica del PDF; la sentinella confronta atleta + divisione.
+  Le ranking da chiedere usano solo gli archi delle ultime stagioni.
 - Il numero di 10 / X / 9 nei PDF c'è solo sul totale della gara, non per prova.
 
 ### Segnapunti (simulazioni di gara, nel tab Allenamento, privato)
@@ -257,15 +270,41 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         Regole pure in `supabase/functions/_shared/aggiornamento/`: riconoscere gli Eugubini nei PDF
         (cognome + nome + società 11003, senza accenti; omonimi → nessun collegamento), righe per il
         database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, il
-        prossimo da ottobre, anni degli storici finché hanno gare non definitive; inviti delle gare future
+        prossimo da ottobre, mai gli anni passati; inviti delle gare future
         dell'Umbria ogni 7 giorni; scheda gara ogni giorno per un mese dopo la gara, poi ogni settimana,
-        finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata; schede
+        finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata o compie
+        60 giorni; schede
         atleta subito per i nuovi, poi ogni 7 giorni), sentinella (calendario vuoto/dimezzato, storico più
         corto, Eugubini attesi non trovati nel PDF o con totale diverso). Le "ultime letture" vengono dal
         diario `letture`. Posizione 999 dello storico → nessuna posizione;
-      - **2.4b** funzione `aggiorna-fitarco` con la lista di lavoro (un pezzo per chiamata: il piano gratuito
-        dà poco tempo di calcolo) e primo caricamento vero. Da verificare: il calendario nazionale
-        (comitato "00") per avere lo stato delle gare fuori regione;
+      - **2.4b** ✅ funzione `aggiorna-fitarco` (motore in `_shared/aggiornamento/motore.ts`, provato con
+        database e Fitarco finti in `packages/shared/src/aggiornamento/`). Ogni chiamata (header
+        `x-aggiorna-chiave` = segreto `AGGIORNA_CHIAVE`): pianifica, accoda, fa al massimo 6 letture di cui
+        1 "pesante" (PDF o calendario) in 40 s, salva solo le novità, scrive il diario; si ferma se Fitarco
+        non risponde; letture fallite riprovate dopo 2, 4, 8… ore (max 1 giorno). `{"azione":"ranking"}`
+        accoda le classifiche dei nostri atleti. Stato dal database con `stato_aggiornamento()`.
+        Scoperte dal primo caricamento (8/11/2026):
+        - il calendario con comitato "00" NON è tutta Italia: sono solo le gare nazionali/internazionali
+          (46 nel 2026). Lo stato delle gare fuori Umbria non si conosce, e quello delle gare di fine anno si
+          perde a gennaio (si legge solo il calendario dell'anno in corso): **ogni** gara si considera
+          definitiva quando è omologata o 60 giorni dopo la fine; PDF cercato al massimo per 90 giorni
+          dopo la gara (`risultatiProvvisori`). A ogni giro `pota_gare` toglie le gare degli anni passati
+          che nessun nostro atleta ha fatto (con classifiche e inviti);
+        - il calendario provvisorio del prossimo anno ha quasi tutte le gare con codice temporaneo
+          (`tmp11564`): si salvano solo i codici definitivi, le altre arrivano quando hanno il codice vero;
+        - un aggiornamento parziale di una gara va fatto con `update` (`aggiornaGara`), non con "inserisci o
+          aggiorna" (Postgres vuole comunque i campi obbligatori);
+        - pdf.js consuma il file che riceve: `estraiRighe` gli passa una copia;
+        - il database finto dei test (`archivio-finto.ts`) imita i vincoli di quello vero (colonne del
+          diario, campi obbligatori delle gare): se si aggiunge un vincolo, aggiungerlo anche lì;
+        - nei PDF ci sono categorie paralimpiche: "Compound W1" → divisione `W1`, "Visually Impaired 1" →
+          `V1` (codice divisione `^[A-Z][A-Z0-9]$`). Altre categorie nuove fermano la lettura: aggiungerle
+          a `DIVISIONI_PDF` dopo aver visto il PDF;
+        - un PDF senza atleti è un'anomalia (non si salva, si riprova ogni 3 giorni);
+        - **dopo circa 100 richieste in mezz'ora (giri lanciati uno dopo l'altro) Fitarco ha risposto 503.**
+          Da allora: se Fitarco non risponde, TUTTE le letture si fermano per 6 ore (`PAUSA_DOPO_BLOCCO_MS`,
+          diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
+          distanzia (Fase 2.5);
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
       (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
       classifica solo con "Aggiorna").

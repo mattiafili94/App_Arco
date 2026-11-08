@@ -24,6 +24,9 @@ export const DIVISIONI_PDF: Record<string, string> = {
   'Arco Istintivo': 'AI',
   'Long Bow': 'LB',
   Longbow: 'LB',
+  // Tiro paralimpico (visti nei PDF veri, novembre 2026). Altre categorie nuove fermano la lettura.
+  'Compound W1': 'W1',
+  'Visually Impaired 1': 'V1',
 }
 
 export interface Parziale {
@@ -68,7 +71,7 @@ export interface AtletaRisultato {
 export interface CategoriaRisultati {
   /** "Arco Ricurvo - Senior Maschile". */
   nome: string
-  /** Codice della divisione (OL, CO, AN, AI, LB). */
+  /** Codice della divisione (OL, CO, AN, AI, LB; paralimpiche W1, V1). */
   divisione: string
   /** "Senior Maschile", "Over 20 Femminile", "Femminile"… */
   classe: string
