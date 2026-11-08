@@ -29,7 +29,8 @@ create table public.simulazioni (
     (formato in ('18m', '25m', '25+18m') and bersaglio in ('singolo', 'trispot') and distanza is null)
     or (formato in ('70m', 'doppio70m') and bersaglio in ('122', '80') and distanza is not null)
   ),
-  -- Un elenco di valori ammessi, mai più delle frecce previste dal formato.
+  -- Mai più frecce di quelle previste dal formato, e solo i valori che esistono su QUEL bersaglio:
+  -- singolo 10…1 e M; trispot 10…6 e M; 122 cm X, 10…1 e M; 80 cm X, 10…5 e M (niente X all'indoor).
   constraint simulazioni_frecce check (
     jsonb_typeof(frecce) = 'array'
     and jsonb_array_length(frecce) <= case formato
@@ -40,7 +41,12 @@ create table public.simulazioni (
     end
     and not jsonb_path_exists(
       frecce,
-      'strict $[*] ? (!(@ == "X" || @ == "10" || @ == "9" || @ == "8" || @ == "7" || @ == "6" || @ == "5" || @ == "4" || @ == "3" || @ == "2" || @ == "1" || @ == "M"))'
+      case bersaglio
+        when 'singolo' then 'strict $[*] ? (!(@ == "10" || @ == "9" || @ == "8" || @ == "7" || @ == "6" || @ == "5" || @ == "4" || @ == "3" || @ == "2" || @ == "1" || @ == "M"))'::jsonpath
+        when 'trispot' then 'strict $[*] ? (!(@ == "10" || @ == "9" || @ == "8" || @ == "7" || @ == "6" || @ == "M"))'::jsonpath
+        when '122' then 'strict $[*] ? (!(@ == "X" || @ == "10" || @ == "9" || @ == "8" || @ == "7" || @ == "6" || @ == "5" || @ == "4" || @ == "3" || @ == "2" || @ == "1" || @ == "M"))'::jsonpath
+        else 'strict $[*] ? (!(@ == "X" || @ == "10" || @ == "9" || @ == "8" || @ == "7" || @ == "6" || @ == "5" || @ == "M"))'::jsonpath
+      end
     )
   )
 );

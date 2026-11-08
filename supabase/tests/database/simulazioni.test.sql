@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(21);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a9', 'amministratore9@test.invalid'),
@@ -64,7 +64,17 @@ select throws_ok(
   '23514', null, 'indoor: la X non esiste'
 );
 select throws_ok(
-  $$ select public.salva_simulazione('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+       '18m', null, 'trispot', '["5"]', false, false, now(), now()) $,
+  '23514', null, 'il trispot ha solo da 10 a 6'
+);
+select throws_ok(
+  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+       '70m', 50, '80', '["4"]', false, false, now(), now()) $,
+  '23514', null, 'il bersaglio da 80 cm ha solo da 10 a 5'
+);
+select throws_ok(
+  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
        '18m', null, '122', '[]', false, false, now(), now()) $$,
   '23514', null, 'indoor con un bersaglio da outdoor: no'
 );
@@ -80,7 +90,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.salva_simulazione('20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
-       '18m', null, 'singolo', (select jsonb_agg('9') from generate_series(1, 61)), false, false, now(), now()) $$,
+       '18m', null, 'singolo', (select jsonb_agg('9'::text) from generate_series(1, 61)), false, false, now(), now()) $$,
   '23514', null, 'mai più frecce di quelle del formato'
 );
 

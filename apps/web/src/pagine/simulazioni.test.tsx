@@ -176,7 +176,7 @@ describe('il tastierino', () => {
     expect(screen.getByText('18 m · Volée 1 di 20')).toBeInTheDocument()
     await premi('10')
     await premi('9')
-    expect(screen.getByText('Volée: 19 · Totale: 19 · 2 frecce su 60')).toBeInTheDocument()
+    expect(await screen.findByText('Volée: 19 · Totale: 19 · 2 frecce su 60')).toBeInTheDocument()
     await premi('M')
     expect((await leggiSimulazione(dbPredefinito(), s.id))?.frecce).toEqual(['10', '9', 'M'])
     // Finita la volée si passa alla successiva, ricordando il totale di quella appena tirata.
