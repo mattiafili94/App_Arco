@@ -220,6 +220,15 @@ async function leggiHtml(fonte: Fonte, richiesta: RichiestaFitarco): Promise<str
   throw new FitarcoNonRisponde(`risposta ${r.motivo} ${r.dettaglio}`)
 }
 
+/**
+ * Una lettura rimasta in lista per una gara che nel frattempo è stata tolta (es. gara passata senza
+ * nostri atleti): esce dalla lista senza chiedere niente a Fitarco.
+ */
+const GARA_TOLTA: Esecuzione = {
+  esito: 'invariato',
+  messaggio: 'Gara non più nel database: lettura tolta dalla lista',
+}
+
 /** Codice gara definitivo Fitarco: una lettera e 7 cifre (R2611039). */
 const CODICE_DEFINITIVO = /^[A-Z]\d{7}$/
 
@@ -271,7 +280,7 @@ const PDF_INDIVIDUALE = /\/[a-z]\d{7}\.pdf$/i
 
 async function schedaGara(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [salvata] = await ctx.archivio.gare([codice])
-  if (!salvata) throw new Error(`Gara ${codice} non presente nel database`)
+  if (!salvata) return GARA_TOLTA
   const scheda = leggiSchedaGara(await leggiHtml(ctx.fonte, richiestaSchedaGara(codice)))
   const pdf = scheda.risultati.find((d) => PDF_INDIVIDUALE.test(d.url))?.url ?? null
 
@@ -294,6 +303,7 @@ async function schedaGara(ctx: Contesto, codice: string): Promise<Esecuzione> {
 }
 
 async function invito(ctx: Contesto, codice: string): Promise<Esecuzione> {
+  if ((await ctx.archivio.gare([codice])).length === 0) return GARA_TOLTA
   const riga = rigaInvito(codice, leggiInvito(await leggiHtml(ctx.fonte, richiestaInvito(codice))))
   const salvato = await ctx.archivio.invito(codice)
   if (salvato && (Object.keys(riga) as (keyof RigaInvito)[]).every((k) => salvato[k] === riga[k])) {
@@ -355,7 +365,8 @@ async function schedaAtleta(ctx: Contesto, id: string): Promise<Esecuzione> {
 
 async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [gara] = await ctx.archivio.gare([codice])
-  if (!gara?.url_risultati) throw new Error(`Manca il link al PDF della gara ${codice}`)
+  if (!gara) return GARA_TOLTA
+  if (!gara.url_risultati) throw new Error(`Manca il link al PDF della gara ${codice}`)
   const file = await ctx.fonte.scarica(gara.url_risultati)
   if (!file.ok) {
     if (file.motivo === 'http' && file.dettaglio === '404')

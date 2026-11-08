@@ -371,7 +371,10 @@ describe('le singole letture', () => {
       esito: 'ok',
       messaggio: 'Scheda aggiornata',
     })
-    expect(await esegui('scheda-gara', 'R9999999')).toMatchObject({ esito: 'errore' })
+    expect(await esegui('scheda-gara', 'R9999999')).toMatchObject({
+      esito: 'invariato',
+      messaggio: 'Gara non più nel database: lettura tolta dalla lista',
+    })
   })
 
   it('invito: nuovo, invariato, cambiato', async () => {
@@ -704,5 +707,18 @@ describe('gare degli anni passati', () => {
       chiave: 'gare passate 2026-01-01',
       messaggio: 'Tolte 1 gare degli anni passati senza nostri atleti',
     })
+  })
+})
+
+describe('letture di gare tolte dal database', () => {
+  it('escono dalla lista senza errori e senza chiedere niente a Fitarco', async () => {
+    for (const tipo of ['scheda-gara', 'invito', 'risultati'] as const) {
+      expect(await esegui(tipo, 'R1999999')).toMatchObject({
+        esito: 'invariato',
+        messaggio: 'Gara non più nel database: lettura tolta dalla lista',
+      })
+    }
+    expect(fonte.richiesteFatte).toBe(0)
+    expect(archivio.coda.filter((c) => c.chiave === 'R1999999')).toEqual([])
   })
 })
