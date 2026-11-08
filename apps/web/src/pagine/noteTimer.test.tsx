@@ -99,7 +99,7 @@ describe('note per volée', () => {
   it('nell’elenco delle volée: "Aggiungi" apre la nota, "Modifica" quella già scritta', async () => {
     const s = await preparaSimulazione({ frecce: ['10', '9', '8', '7', '6', 'M'] })
     await apri(s)
-    const tabella = screen.getByRole('table')
+    const tabella = screen.getByRole('list', { name: 'Volée' })
     // Volée 1: nessuna nota.
     await userEvent.click(
       within(tabella).getByRole('button', { name: /Nota della volée 1:\s*Aggiungi/ }),

@@ -1,9 +1,11 @@
 import {
-  aggiungiFreccia,
-  correggiFreccia,
+  aggiungiFrecciaConPosizione,
+  correggiFrecciaConPosizione,
   impostaNotaVolee,
   riepilogoSimulazione,
-  togliUltimaFreccia,
+  togliUltimaConPosizione,
+  type FrecceEPosizioni,
+  type Posizione,
   type Bersaglio,
   type DistanzaOutdoor,
   type FormatoSimulazione,
@@ -51,7 +53,13 @@ export async function creaSimulazione(
   db: ArcoDb,
   atletaId: string,
   giorno: string,
-  scelta: { formato: FormatoSimulazione; distanza: DistanzaOutdoor | null; bersaglio: Bersaglio },
+  scelta: {
+    formato: FormatoSimulazione
+    distanza: DistanzaOutdoor | null
+    bersaglio: Bersaglio
+    /** Solo indoor: il 10 vale solo l'anello piccolo al centro (conta quando si tocca il bersaglio). */
+    compound?: boolean
+  },
   adesso: Date = new Date(),
 ): Promise<Simulazione> {
   const base: Simulazione = {
@@ -60,6 +68,7 @@ export async function creaSimulazione(
     giorno,
     ...scelta,
     frecce: [],
+    posizioni: [],
     note: {},
     conclusa: false,
     eliminata: false,
@@ -71,41 +80,50 @@ export async function creaSimulazione(
 
 /**
  * Cambia le frecce di una simulazione (dentro una transazione, sui dati più recenti). `cambia` restituisce le
- * nuove frecce, o `null` se la modifica non è valida (allora non si scrive niente). `conclusa` segue le frecce:
- * è vera quando sono state tirate tutte.
+ * nuove frecce con le loro posizioni, o `null` se la modifica non è valida (allora non si scrive niente).
+ * `conclusa` segue le frecce: è vera quando sono state tirate tutte.
  */
 async function cambiaFrecce(
   db: ArcoDb,
   id: string,
-  cambia: (s: Simulazione) => ValoreFreccia[] | null,
+  cambia: (s: Simulazione) => FrecceEPosizioni | null,
   adesso: Date,
 ): Promise<Simulazione | null> {
   return db.transaction('rw', db.simulazioni, async () => {
     const attuale = await leggiSimulazione(db, id)
     if (!attuale || attuale.eliminata) return null
-    const frecce = cambia(attuale)
-    if (frecce === null) return null
-    const conclusa = riepilogoSimulazione({ ...attuale, frecce }).completa
-    return scrivi(db, { ...attuale, frecce, conclusa }, attuale, adesso)
+    const nuove = cambia(attuale)
+    if (nuove === null) return null
+    const conclusa = riepilogoSimulazione({ ...attuale, frecce: nuove.frecce }).completa
+    return scrivi(db, { ...attuale, ...nuove, conclusa }, attuale, adesso)
   })
 }
 
-/** Segna la prossima freccia. `null` se non si può (valore non ammesso o gara finita). */
-export const segnaFreccia = (db: ArcoDb, id: string, valore: ValoreFreccia, adesso = new Date()) =>
-  cambiaFrecce(db, id, (s) => aggiungiFreccia(s, valore), adesso)
+/**
+ * Segna la prossima freccia, con la posizione toccata sul bersaglio (`null` se si usa il tastierino).
+ * `null` se non si può (valore non ammesso o gara finita).
+ */
+export const segnaFreccia = (
+  db: ArcoDb,
+  id: string,
+  valore: ValoreFreccia,
+  posizione: Posizione | null = null,
+  adesso = new Date(),
+) => cambiaFrecce(db, id, (s) => aggiungiFrecciaConPosizione(s, valore, posizione), adesso)
 
-/** Cambia una freccia già segnata. */
+/** Cambia una freccia già segnata (e la sua posizione: `null` col tastierino). */
 export const correggiValore = (
   db: ArcoDb,
   id: string,
   indice: number,
   valore: ValoreFreccia,
+  posizione: Posizione | null = null,
   adesso = new Date(),
-) => cambiaFrecce(db, id, (s) => correggiFreccia(s, indice, valore), adesso)
+) => cambiaFrecce(db, id, (s) => correggiFrecciaConPosizione(s, indice, valore, posizione), adesso)
 
-/** Toglie l'ultima freccia segnata. */
+/** Toglie l'ultima freccia segnata, con la sua posizione. */
 export const annullaUltimaFreccia = (db: ArcoDb, id: string, adesso = new Date()) =>
-  cambiaFrecce(db, id, (s) => (s.frecce.length === 0 ? null : togliUltimaFreccia(s)), adesso)
+  cambiaFrecce(db, id, (s) => (s.frecce.length === 0 ? null : togliUltimaConPosizione(s)), adesso)
 
 /** Cancella la simulazione (resta la riga, segnata `eliminata`, così lo sanno anche gli altri telefoni). */
 export async function eliminaSimulazione(db: ArcoDb, id: string, adesso = new Date()) {

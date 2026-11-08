@@ -1,0 +1,109 @@
+.contenitore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+/* Sempre alta uguale: la lente compare e scompare senza spostare il bersaglio sotto il dito. */
+.lente {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-8);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.lenteSvg {
+  width: 124px;
+  height: 124px;
+  border: 3px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--background-canvas);
+}
+
+.valore {
+  margin: 0;
+  min-width: 2ch;
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.aiuto {
+  margin: 0;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.bersaglio {
+  width: min(100%, 420px);
+  height: auto;
+  aspect-ratio: 1;
+  background: var(--background-canvas);
+  border-radius: var(--radius-surface);
+  /* Il dito trascina il punto: la pagina non deve scorrere. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.attivo {
+  cursor: crosshair;
+}
+
+/* Gli anelli, con i colori del bersaglio (token del progetto, uguali in tutti i temi). */
+.anello {
+  stroke: var(--target-line-dark);
+  stroke-width: 0.006;
+}
+.oro {
+  fill: var(--target-gold);
+}
+.rosso {
+  fill: var(--target-red);
+}
+.blu {
+  fill: var(--target-blue);
+}
+.nero {
+  fill: var(--target-black);
+  stroke: var(--target-line-light);
+}
+.bianco {
+  fill: var(--target-white);
+}
+
+/* Le frecce: un punto con un anello chiaro e uno scuro, leggibile su qualsiasi colore. */
+.freccia {
+  stroke: var(--target-line-dark);
+  stroke-width: 0.012;
+  paint-order: stroke;
+}
+.volee {
+  fill: var(--target-line-dark);
+  stroke: var(--target-line-light);
+  stroke-width: 0.018;
+}
+.prima {
+  fill: var(--target-line-light);
+  stroke: var(--target-line-dark);
+  stroke-width: 0.012;
+}
+.scelta {
+  fill: none;
+  stroke: var(--accent-default);
+  stroke-width: 0.03;
+}
+
+.mirino {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 0.01;
+}

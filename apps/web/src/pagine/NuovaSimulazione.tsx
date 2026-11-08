@@ -18,6 +18,7 @@ import { useAtletaCorrente } from '../accesso/contesto'
 import { useInvioDifferito } from '../allenamento/invioDifferito'
 import { creaSimulazione } from '../allenamento/simulazioni'
 import { Button } from '../componenti/Button'
+import { Checkbox } from '../componenti/Checkbox'
 import { PageHeader } from '../componenti/PageHeader'
 import { Scelte } from '../componenti/Scelte'
 import { Select } from '../componenti/Select'
@@ -49,6 +50,7 @@ function Modulo({ giorno }: { giorno: string }) {
   const [formato, setFormato] = useState<FormatoSimulazione>('18m')
   const [distanza, setDistanza] = useState<DistanzaOutdoor>(70)
   const [scelto, setScelto] = useState<Bersaglio | null>(null)
+  const [compound, setCompound] = useState(false)
   const [inCorso, setInCorso] = useState(false)
   const annoCorrente = Number(oggiIn().slice(0, 4))
 
@@ -62,6 +64,7 @@ function Modulo({ giorno }: { giorno: string }) {
       formato,
       distanza: eIndoor(formato) ? null : distanza,
       bersaglio,
+      compound: eIndoor(formato) && compound,
     })
     programmaInvio()
     vai(`/allenamento/${giorno}/simulazione/${s.id}`, { replace: true })
@@ -98,6 +101,13 @@ function Modulo({ giorno }: { giorno: string }) {
           valore={bersaglio}
           onChange={(v) => setScelto(v as Bersaglio)}
         />
+        {eIndoor(formato) && (
+          <Checkbox
+            label="Arco compound: il 10 vale solo l'anello piccolo al centro"
+            checked={compound}
+            onChange={(e) => setCompound(e.target.checked)}
+          />
+        )}
         <p className={`type-caption ${styles.stato}`}>{descriviStruttura(formato, distanza)}</p>
         <Button variant="primary" loading={inCorso} onClick={() => void inizia()}>
           Inizia

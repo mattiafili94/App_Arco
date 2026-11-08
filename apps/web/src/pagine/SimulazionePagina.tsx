@@ -1,8 +1,9 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Target } from 'lucide-react'
 import {
   ETICHETTE_BERSAGLIO,
+  allineaPosizioni,
   durataTiroMs,
   etichetteConteggi,
   NOTA_VOLEE_MASSIMA,
@@ -13,6 +14,7 @@ import {
   riepilogoSimulazione,
   statoTiro,
   valoriAmmessi,
+  type Posizione,
   type Simulazione,
   type ValoreFreccia,
 } from '@arco/shared'
@@ -25,11 +27,13 @@ import {
   salvaNotaVolee,
   segnaFreccia,
 } from '../allenamento/simulazioni'
+import { BersaglioTocco, type PuntoSuBersaglio } from '../componenti/BersaglioTocco'
 import { Button } from '../componenti/Button'
 import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
+import { Scelte } from '../componenti/Scelte'
 import { Textarea } from '../componenti/Textarea'
 import { TimerVolee } from '../componenti/TimerVolee'
 import { oggi as oggiIn } from '../gare/dati'
@@ -116,6 +120,29 @@ function Casella({
   )
 }
 
+type Modo = 'tastierino' | 'bersaglio'
+const CHIAVE_MODO = 'arco.segnapunti.modo'
+
+/** Come si segnano le frecce: tastierino o bersaglio. Il telefono si ricorda l'ultima scelta. */
+function useModoSegnapunti(): [Modo, (m: Modo) => void] {
+  const [modo, setModo] = useState<Modo>(() => {
+    try {
+      return localStorage.getItem(CHIAVE_MODO) === 'bersaglio' ? 'bersaglio' : 'tastierino'
+    } catch {
+      return 'tastierino'
+    }
+  })
+  const imposta = (m: Modo) => {
+    setModo(m)
+    try {
+      localStorage.setItem(CHIAVE_MODO, m)
+    } catch {
+      // Senza memoria del browser (finestra privata) la scelta vale solo per questa pagina.
+    }
+  }
+  return [modo, imposta]
+}
+
 function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const { db } = useSincronizzazione()
   const vai = useNavigate()
@@ -123,6 +150,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const [selezionata, setSelezionata] = useState<number | null>(null)
   const [conferma, setConferma] = useState(false)
   const [notaAperta, setNotaAperta] = useState<number | null>(null)
+  const [modo, impostaModo] = useModoSegnapunti()
   const annoCorrente = Number(oggiIn().slice(0, 4))
 
   const r = riepilogoSimulazione(s)
@@ -130,12 +158,12 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const valori = valoriAmmessi(s.bersaglio)
   const [nome1, nome2] = etichetteConteggi(s.formato)
 
-  const premi = async (v: ValoreFreccia) => {
+  const premi = async (v: ValoreFreccia, posizione: Posizione | null = null) => {
     if (selezionata !== null) {
-      await correggiValore(db, s.id, selezionata, v)
+      await correggiValore(db, s.id, selezionata, v, posizione)
       setSelezionata(null)
     } else {
-      await segnaFreccia(db, s.id, v)
+      await segnaFreccia(db, s.id, v, posizione)
     }
     programmaInvio()
   }
@@ -165,6 +193,24 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
     .slice(0, stato.prova)
     .reduce((t, p) => t + p.prova.frecceTotali / p.prova.frecceVolee, 0)
   const indiceVoleeInCorso = voleePrimaDellaProva + stato.volee - 1
+  // Le frecce della prova in corso con la loro posizione (se segnate toccando il bersaglio).
+  const posizioni = allineaPosizioni(s.posizioni, s.frecce.length)
+  const puntiProva: PuntoSuBersaglio[] = s.frecce.flatMap((v, i) => {
+    const pos = posizioni[i]
+    const dentro = i >= primaDellaProva && i < primaDellaProva + provaInCorso.prova.frecceTotali
+    if (!pos || !dentro) return []
+    const inVolee = i >= primaDellaVolee && i < primaDellaVolee + provaInCorso.prova.frecceVolee
+    return [
+      { posizione: pos, etichetta: `Freccia ${i + 1}: ${v}`, stato: inVolee ? 'volee' : 'prima' },
+    ]
+  })
+  if (selezionata !== null && posizioni[selezionata]) {
+    puntiProva.push({
+      posizione: posizioni[selezionata]!,
+      etichetta: `Freccia ${selezionata + 1} da correggere`,
+      stato: 'scelta',
+    })
+  }
   const totaleVolee = voleeInCorso.reduce((t, v) => t + puntiFreccia(v), 0)
   // A volée finita si passa alla successiva: il totale di quella appena tirata resta in vista.
   const precedente =
@@ -230,24 +276,44 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
           </Notice>
         )}
 
-        <div
-          className={styles.tastierino}
-          role="group"
-          aria-label="Valore della freccia"
-          data-colonne={valori.length > 8 ? 4 : 3}
-        >
-          {valori.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className={`${styles.tasto} ${classeZona(v)}`}
-              disabled={stato.finita && selezionata === null}
-              onClick={() => void premi(v)}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
+        <Scelte
+          label="Come segni le frecce"
+          opzioni={[
+            { valore: 'tastierino', etichetta: 'Tastierino' },
+            { valore: 'bersaglio', etichetta: 'Bersaglio' },
+          ]}
+          valore={modo}
+          onChange={(v) => impostaModo(v === 'bersaglio' ? 'bersaglio' : 'tastierino')}
+        />
+        {modo === 'bersaglio' ? (
+          <BersaglioTocco
+            bersaglio={s.bersaglio}
+            compound={s.compound ?? false}
+            punti={puntiProva}
+            onSegna={(posizione, valore) => void premi(valore, posizione)}
+            disabilitato={stato.finita && selezionata === null}
+            etichetta="Bersaglio: tocca dove è arrivata la freccia. In alternativa usa il tastierino."
+          />
+        ) : (
+          <div
+            className={styles.tastierino}
+            role="group"
+            aria-label="Valore della freccia"
+            data-colonne={valori.length > 8 ? 4 : 3}
+          >
+            {valori.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`${styles.tasto} ${classeZona(v)}`}
+                disabled={stato.finita && selezionata === null}
+                onClick={() => void premi(v)}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        )}
         <div className={styles.azioni}>
           <Button
             variant="secondary"
@@ -281,6 +347,42 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
               )}
             </ListGroup>
 
+            {r.prove.map((p, i) => {
+              const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
+              const punti: PuntoSuBersaglio[] = s.frecce.flatMap((v, k) => {
+                const pos = posizioni[k]
+                return pos && k >= prima && k < prima + p.prova.frecceTotali
+                  ? [
+                      {
+                        posizione: pos,
+                        etichetta: `Freccia ${k - prima + 1}: ${v}`,
+                        stato: 'prima' as const,
+                      },
+                    ]
+                  : []
+              })
+              if (punti.length === 0) return null
+              return (
+                <section
+                  key={i}
+                  className={styles.mappa}
+                  aria-label={`Dove sono arrivate le frecce${r.prove.length > 1 ? ` · prova ${i + 1}` : ''}`}
+                >
+                  <h2 className={`type-label ${styles.titolo}`}>
+                    {r.prove.length > 1
+                      ? `Dove sono arrivate · prova ${i + 1}`
+                      : 'Dove sono arrivate le frecce'}
+                  </h2>
+                  <BersaglioTocco
+                    bersaglio={s.bersaglio}
+                    compound={s.compound ?? false}
+                    punti={punti}
+                    etichetta={`Bersaglio con ${punti.length} frecce`}
+                  />
+                </section>
+              )
+            })}
+
             <section className={styles.elenco} aria-label="Tutte le volée">
               {r.prove.map((p, i) => {
                 const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
@@ -293,87 +395,67 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                     <h2 className={`type-label ${styles.titolo}`}>
                       {r.prove.length > 1 ? `Prova ${i + 1} · ${p.prova.distanza} m` : 'Volée'}
                     </h2>
-                    <table className={styles.tabella}>
-                      <caption className="visually-hidden">
-                        Volée {r.prove.length > 1 ? `della prova ${i + 1}` : ''}
-                      </caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">N.</th>
-                          <th scope="col">Frecce</th>
-                          <th scope="col">Volée</th>
-                          <th scope="col">Totale</th>
-                          <th scope="col">Nota</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {p.volee.map((v, j) => {
-                          progressivo += v.totale
-                          const indiceVolee = voleePrima + j
-                          const nota = notaVolee(s, indiceVolee)
-                          return (
-                            <Fragment key={j}>
-                              <tr>
-                                <th scope="row">{j + 1}</th>
-                                <td>
-                                  <div className={styles.frecce}>
-                                    {v.frecce.map((valore, k) => {
-                                      const indice = prima + j * p.prova.frecceVolee + k
-                                      return (
-                                        <Casella
-                                          key={k}
-                                          valore={valore}
-                                          indice={indice}
-                                          selezionata={selezionata === indice}
-                                          onScegli={setSelezionata}
-                                          etichetta={`Freccia ${k + 1} della volée ${j + 1}`}
-                                        />
-                                      )
-                                    })}
-                                  </div>
-                                </td>
-                                <td>{v.totale}</td>
-                                <td>{progressivo}</td>
-                                <td>
-                                  <button
-                                    type="button"
-                                    className={styles.testo}
-                                    aria-expanded={notaAperta === indiceVolee}
-                                    onClick={() =>
-                                      setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
-                                    }
-                                  >
-                                    <span className="visually-hidden">
-                                      {`Nota della volée ${j + 1}: `}
-                                    </span>{' '}
-                                    {nota === '' ? 'Aggiungi' : 'Modifica'}
-                                  </button>
-                                </td>
-                              </tr>
-                              {(nota !== '' || notaAperta === indiceVolee) && (
-                                <tr>
-                                  <td colSpan={5} className={styles.rigaNota}>
-                                    {notaAperta === indiceVolee ? (
-                                      <NotaVolee
-                                        indice={indiceVolee}
-                                        testo={nota}
-                                        etichetta={`Nota della volée ${j + 1}`}
-                                        onSalva={salvaNota}
-                                      />
-                                    ) : (
-                                      <p className={styles.testoNota}>
-                                        <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>
-                                        {nota}
-                                      </p>
-                                    )}
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                    <ol
+                      className={styles.listaVolee}
+                      aria-label={`Volée${r.prove.length > 1 ? ` della prova ${i + 1}` : ''}`}
+                    >
+                      {p.volee.map((v, j) => {
+                        progressivo += v.totale
+                        const indiceVolee = voleePrima + j
+                        const nota = notaVolee(s, indiceVolee)
+                        return (
+                          <li key={j} className={styles.voleeRiga}>
+                            <div className={styles.testata}>
+                              <span className={styles.numero}>Volée {j + 1}</span>
+                              <span className={styles.totali}>
+                                {`Volée ${v.totale} · Totale ${progressivo}`}
+                              </span>
+                              <button
+                                type="button"
+                                className={styles.pulsanteNota}
+                                aria-expanded={notaAperta === indiceVolee}
+                                onClick={() =>
+                                  setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
+                                }
+                              >
+                                <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>{' '}
+                                {nota === '' ? 'Aggiungi' : 'Modifica'}
+                              </button>
+                            </div>
+                            <div className={styles.frecce}>
+                              {v.frecce.map((valore, k) => {
+                                const indice = prima + j * p.prova.frecceVolee + k
+                                return (
+                                  <Casella
+                                    key={k}
+                                    valore={valore}
+                                    indice={indice}
+                                    selezionata={selezionata === indice}
+                                    onScegli={setSelezionata}
+                                    etichetta={`Freccia ${k + 1} della volée ${j + 1}`}
+                                  />
+                                )
+                              })}
+                            </div>
+                            {notaAperta === indiceVolee ? (
+                              <NotaVolee
+                                indice={indiceVolee}
+                                testo={nota}
+                                etichetta={`Nota della volée ${j + 1}`}
+                                onSalva={salvaNota}
+                              />
+                            ) : (
+                              nota !== '' && (
+                                <p className={styles.testoNota}>
+                                  <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>
+                                  {nota}
+                                </p>
+                              )
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ol>
                   </div>
                 )
               })}
