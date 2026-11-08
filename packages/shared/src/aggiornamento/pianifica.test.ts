@@ -193,7 +193,7 @@ describe('risultati definitivi e gare fuori Umbria', () => {
   })
 
   it('una gara vecchia senza PDF si controlla una volta, poi basta', () => {
-    const g = gara({ ...fuori, dal: '2025-05-01', al: '2025-05-01' })
+    const g = gara({ ...fuori, dal: '2026-05-01', al: '2026-05-01' })
     const base = new Map([['calendario|2027', '2027-02-28']])
     expect(letture(stato({ gare: [g], ultimeLetture: base }))).toEqual(['scheda-gara R2711001'])
     const controllata = new Map([...base, ['scheda-gara|R2711001', '2027-01-01']])
@@ -202,12 +202,12 @@ describe('risultati definitivi e gare fuori Umbria', () => {
 })
 
 describe('classifiche complete e gare vecchie', () => {
-  it('complete per l’anno in corso e i due precedenti', () => {
-    expect(inizioClassificheComplete('2026-11-08')).toBe('2024-01-01')
-    expect(inizioClassificheComplete('2027-01-01')).toBe('2025-01-01')
+  it('complete per l’anno in corso e quello prima', () => {
+    expect(inizioClassificheComplete('2026-11-08')).toBe('2025-01-01')
+    expect(inizioClassificheComplete('2027-01-01')).toBe('2026-01-01')
   })
 
-  it('gare di più di due stagioni fa: niente scheda gara né PDF (basta lo storico dell’atleta)', () => {
+  it('gare prima dell’anno scorso: niente scheda gara né PDF (basta lo storico dell’atleta)', () => {
     const base = new Map([['calendario|2027', '2027-02-28']])
     const senzaPdf = gara({
       codice: 'R1511001',

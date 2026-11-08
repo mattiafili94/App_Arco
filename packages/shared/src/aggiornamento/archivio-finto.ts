@@ -24,6 +24,17 @@ export interface LavoroInCoda {
   daFareDal: number
   ultimoErrore: string | null
 }
+/** Le righe di classifica salvate hanno le colonne prodotte da `righeClassifica`. */
+/** Le righe di classifica salvate hanno le colonne di . */
+interface RigaSalvata {
+  atleta_id: string | null
+  categoria: string
+  ordine: number
+  cognome: string
+  nome: string
+  societa_codice: string
+}
+const riga = (r: { atleta_id: string | null }) => r as RigaSalvata
 
 export class ArchivioFinto implements Archivio {
   gareSalvate = new Map<string, GaraSalvata>()
@@ -209,11 +220,40 @@ export class ArchivioFinto implements Archivio {
     let tolte = 0
     for (const [codice, c] of this.classifiche) {
       if ((this.gareSalvate.get(codice)?.dal ?? '') >= primaDel) continue
-      const nostre = c.righe.filter((r) => r.atleta_id !== null)
-      tolte += c.righe.length - nostre.length
-      c.righe = nostre
+      // Restano le righe collegate e quelle della società 11003 (Eugubini non ancora nell'app).
+      const eugubini = c.righe.filter(
+        (r) => r.atleta_id !== null || riga(r).societa_codice === '11003',
+      )
+      tolte += c.righe.length - eugubini.length
+      c.righe = eugubini
     }
     return tolte
+  }
+
+  async righeNonCollegate(codiciGare: string[]) {
+    return codiciGare.flatMap((codice) =>
+      (this.classifiche.get(codice)?.righe ?? [])
+        .map(riga)
+        .filter((r) => r.atleta_id === null && r.societa_codice === '11003')
+        .map(({ categoria, ordine, cognome, nome }) => ({
+          gara_codice: codice,
+          categoria,
+          ordine,
+          cognome,
+          nome,
+        })),
+    )
+  }
+
+  async collegaRighe(
+    righe: { gara_codice: string; categoria: string; ordine: number; atleta_id: string }[],
+  ) {
+    for (const r of righe) {
+      const trovata = (this.classifiche.get(r.gara_codice)?.righe ?? [])
+        .map(riga)
+        .find((x) => x.categoria === r.categoria && x.ordine === r.ordine)
+      if (trovata) trovata.atleta_id = r.atleta_id
+    }
   }
 
   async potaGare(primaDel: string) {

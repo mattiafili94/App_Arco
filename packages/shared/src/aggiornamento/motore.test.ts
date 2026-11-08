@@ -107,7 +107,7 @@ describe('strumenti del motore', () => {
     expect(ritardoNuovoTentativo(10)).toBe(24 * 3_600_000)
   })
 
-  it('gare rilevanti: Umbria dall’anno in corso e tutte quelle dei nostri atleti', () => {
+  it('gare rilevanti: Umbria dal 7/11/2026 (primo accesso) e tutte quelle dei nostri atleti', () => {
     const gara = (codice: string, dal: string, umbria: boolean, conPartecipanti: boolean) => ({
       codice,
       dal,
@@ -126,12 +126,16 @@ describe('strumenti del motore', () => {
           gara('R1', '2026-03-01', true, false),
           gara('R2', '2025-03-01', true, false),
           gara('R3', '2024-03-01', false, true),
+          gara('R4', '2026-11-07', true, false),
+          gara('R5', '2026-12-12', true, false),
+          gara('R6', '2026-12-12', false, false),
         ],
         atleti: [{ id: 'a1' }],
       },
       OGGI,
     )
-    expect(s.gare.map((g) => g.rilevante)).toEqual([true, false, true])
+    // Prima del primo accesso: solo le gare dei nostri atleti; dopo: tutte quelle dell'Umbria.
+    expect(s.gare.map((g) => g.rilevante)).toEqual([false, false, true, true, true, false])
     expect(s.gare[0]!.risultati).toEqual({ provvisoria: true })
     expect(s.ultimeLetture.get('calendario|2026')).toBe('2026-11-01')
   })
@@ -620,34 +624,49 @@ describe('più archi e gare vecchie', () => {
     expect(r.messaggio).toContain('Mario Rossi (AN): non trovato nel PDF')
   })
 
-  it('gara di più di due stagioni fa: si salvano solo le righe dei nostri', async () => {
-    archivio.gareSalvate.get('R2611039')!.dal = '2023-10-24'
-    archivio.gareSalvate.get('R2611039')!.al = '2023-10-25'
-    expect(await esegui('risultati', 'R2611039')).toMatchObject({
-      esito: 'ok',
-      messaggio: '2 atleti, salvati solo i 1 dei nostri (gara vecchia)',
-    })
-    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
+  it('gara prima dell’anno scorso rimasta in lista: esce senza richieste (basta lo storico)', async () => {
+    archivio.gareSalvate.get('R2611039')!.dal = '2024-10-24'
+    archivio.gareSalvate.get('R2611039')!.al = '2024-10-25'
+    const prima = fonte.richiesteFatte
+    for (const tipo of ['scheda-gara', 'risultati'] as const) {
+      expect(await esegui(tipo, 'R2611039')).toMatchObject({
+        esito: 'invariato',
+        messaggio: 'Gara prima dell’anno scorso: basta lo storico degli atleti',
+      })
+    }
+    expect(fonte.richiesteFatte).toBe(prima)
+    expect(archivio.classifiche.has('R2611039')).toBe(false)
   })
 
-  it('a inizio anno la stagione più vecchia si riduce ai nostri atleti', async () => {
+  it('a inizio anno la stagione più vecchia si riduce agli Eugubini (anche quelli non ancora nell’app)', async () => {
+    // Anna Bianchi è degli Arcieri Eugubini ma non è (ancora) nell'app.
+    fonte.pdf = {
+      ok: true,
+      dati: pdfConRighe([
+        ...righePdf(),
+        '3 2- 1A BIANCHI Anna 02 11003 Arcieri Eugubini 200/ 3 200/ 3 400 1 2',
+      ]),
+    }
     await esegui('risultati', 'R2611039')
-    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
+    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(3)
 
-    // Nel 2028 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
+    // Nel 2027 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
+    archivio.oggi = '2027-01-02'
+    ctx.oggi = '2027-01-02'
+    await giro(ctx, { ...OPZIONI, massimo: 0 })
+    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(3)
+
+    // Nel 2028 partono dal 2027: della gara del 2026 restano gli Eugubini, e il diario lo dice.
     archivio.oggi = '2028-01-02'
     ctx.oggi = '2028-01-02'
     await giro(ctx, { ...OPZIONI, massimo: 0 })
-    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
-
-    // Nel 2029 partono dal 2027: della gara del 2026 restano solo i nostri, e il diario lo dice.
-    archivio.oggi = '2029-01-02'
-    ctx.oggi = '2029-01-02'
-    await giro(ctx, { ...OPZIONI, massimo: 0 })
-    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
-    expect(archivio.diario.at(-1)).toMatchObject({
+    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual([
+      'a1',
+      null,
+    ])
+    expect(archivio.diario.find((d) => d.chiave.startsWith('potatura'))).toMatchObject({
       chiave: 'potatura 2027-01-01',
-      messaggio: 'Tolte 1 righe di altri atleti dalle classifiche delle gare vecchie',
+      messaggio: 'Tolte 1 righe di altre società dalle classifiche delle gare vecchie',
     })
   })
 
@@ -678,8 +697,8 @@ describe('più archi e gare vecchie', () => {
   })
 })
 
-describe('gare degli anni passati', () => {
-  it('restano solo quelle fatte dai nostri atleti', async () => {
+describe('gare passate, gare non previste e atleti nuovi', () => {
+  beforeEach(async () => {
     archivio.diario = [
       {
         tipo: 'scheda-atleta',
@@ -692,33 +711,77 @@ describe('gare degli anni passati', () => {
     ]
     await esegui('calendario', '2026')
     await esegui('scheda-atleta', 'a1')
-    // Una gara dell'Umbria del 2025 senza nostri atleti (dal vecchio calendario).
-    archivio.gareSalvate.set('R2511999', {
+  })
+
+  /** Copia di una gara salvata, con un altro codice e altre date. */
+  const copia = (codice: string, dal: string) => {
+    archivio.gareSalvate.set(codice, {
       ...archivio.gareSalvate.get('R2611001')!,
-      codice: 'R2511999',
-      dal: '2025-03-01',
-      al: '2025-03-01',
+      codice,
+      dal,
+      al: dal,
+      url_risultati: PDF_URL,
     })
+  }
+
+  it('le gare senza nostri atleti restano finché sono nella finestra (anno in corso + scorso)', async () => {
+    copia('R2411999', '2024-03-01')
+    copia('R2511999', '2025-03-01')
     await giro(ctx, { ...OPZIONI, massimo: 0 })
-    expect(archivio.gareSalvate.has('R2511999')).toBe(false)
-    // Le gare del 2025 dello storico restano.
-    expect(archivio.gareSalvate.has('R2511017')).toBe(true)
+    expect(archivio.gareSalvate.has('R2411999')).toBe(false)
+    expect(archivio.gareSalvate.has('R2511999')).toBe(true)
+    // Le gare del 2024 dello storico restano.
+    expect(archivio.gareSalvate.has('R2411016')).toBe(true)
     expect(archivio.diario.at(-1)).toMatchObject({
-      chiave: 'gare passate 2026-01-01',
+      chiave: 'gare passate 2025-01-01',
       messaggio: 'Tolte 1 gare degli anni passati senza nostri atleti',
     })
   })
-})
 
-describe('letture di gare tolte dal database', () => {
-  it('escono dalla lista senza errori e senza chiedere niente a Fitarco', async () => {
-    for (const tipo of ['scheda-gara', 'invito', 'risultati'] as const) {
-      expect(await esegui(tipo, 'R1999999')).toMatchObject({
+  it('letture già in lista per gare finite prima del 7/11/2026 senza nostri atleti: escono senza richieste', async () => {
+    copia('R2611998', '2026-10-04')
+    const prima = fonte.richiesteFatte
+    for (const tipo of ['scheda-gara', 'risultati'] as const) {
+      expect(await esegui(tipo, 'R2611998')).toMatchObject({
         esito: 'invariato',
-        messaggio: 'Gara non più nel database: lettura tolta dalla lista',
+        messaggio: 'Gara finita prima dell’avvio dell’app senza nostri atleti: non serve',
       })
     }
-    expect(fonte.richiesteFatte).toBe(0)
-    expect(archivio.coda.filter((c) => c.chiave === 'R1999999')).toEqual([])
+    expect(fonte.richiesteFatte).toBe(prima)
+    // Dopo l'avvio si leggono tutte.
+    copia('R2611997', '2026-11-08')
+    fonte.pdf = { ok: true, dati: pdfConRighe(righePdf(534, 'R2611997')) }
+    expect(await esegui('risultati', 'R2611997')).toMatchObject({ esito: 'ok' })
+  })
+
+  it('un atleta che entra dopo: le sue righe nelle classifiche già salvate vengono collegate', async () => {
+    // Classifica letta quando c'era solo Mario Rossi: Luca Verdi (11004 nel PDF) non è dei nostri.
+    await esegui('scheda-gara', 'R2611039')
+    fonte.pdf = {
+      ok: true,
+      dati: pdfConRighe([
+        ...righePdf(),
+        '3 2- 1A BIANCHI Anna MF 02 11003 Arcieri Eugubini 200/ 3 200/ 3 400 1 2',
+      ]),
+    }
+    await esegui('risultati', 'R2611039')
+    const anna = () =>
+      archivio.classifiche
+        .get('R2611039')!
+        .righe.find((r) => (r as unknown as { cognome: string }).cognome === 'BIANCHI')!
+    expect(anna().atleta_id).toBeNull()
+
+    // Entra Anna Bianchi: la sua scheda (stessa gara nello storico) collega la sua riga.
+    archivio.atletiSalvati.push({
+      id: 'a2',
+      matricola: '900001',
+      nome: 'Anna',
+      cognome: 'Bianchi',
+      classi_ranking: {},
+      attivo: true,
+    })
+    const r = await esegui('scheda-atleta', 'a2')
+    expect(r.messaggio).toContain('1 righe di classifica collegate')
+    expect(anna().atleta_id).toBe('a2')
   })
 })

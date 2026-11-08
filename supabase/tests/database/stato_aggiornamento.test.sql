@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(18);
+select plan(21);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b2', 'atleta2@test.invalid');
 insert into public.atleti (id, matricola, nome, cognome, attivo, utente_id) values
@@ -72,7 +72,7 @@ select throws_ok(
 );
 reset role;
 
--- Potatura: le gare prima della data tengono solo le righe dei nostri atleti -------------------------
+-- Potatura: le gare prima della data tengono solo le righe degli Eugubini -------------------------
 set local role service_role;
 select public.salva_classifica('R0000102', '[
   {"categoria": "C", "ordine": 1, "divisione": "OL", "classe": "S", "esito": "1", "nome_completo": "ALTRO Tizio",
@@ -80,14 +80,18 @@ select public.salva_classifica('R0000102', '[
    "conteggi": [0, 0], "colonne_conteggi": ["10", "9"]},
   {"categoria": "C", "ordine": 2, "divisione": "OL", "classe": "S", "esito": "2", "nome_completo": "PROVA Bruno",
    "cognome": "PROVA", "nome": "Bruno", "societa_codice": "11003", "societa_nome": "S", "totale": 540,
-   "conteggi": [0, 0], "colonne_conteggi": ["10", "9"], "atleta_id": "10000000-0000-0000-0000-0000000000b2"}
+   "conteggi": [0, 0], "colonne_conteggi": ["10", "9"], "atleta_id": "10000000-0000-0000-0000-0000000000b2"},
+  {"categoria": "C", "ordine": 3, "divisione": "OL", "classe": "S", "esito": "3", "nome_completo": "EUGUBINO Nuovo",
+   "cognome": "EUGUBINO", "nome": "Nuovo", "societa_codice": "11003", "societa_nome": "S", "totale": 500,
+   "conteggi": [0, 0], "colonne_conteggi": ["10", "9"]}
 ]'::jsonb, 'i2', false);
 update public.gare set risultati_aggiornati_il = '2020-01-01' where codice = 'R0000102';
 
-select is(public.pota_classifiche('2026-01-01'), 1, 'toglie solo le righe degli altri atleti delle gare vecchie');
+select is(public.pota_classifiche('2026-01-01'), 1, 'toglie solo le righe delle altre società delle gare vecchie');
 select is(
-  (select array_agg(nome_completo) from public.classifiche where gara_codice = 'R0000102'),
-  array['PROVA Bruno'], 'della gara del 2025 resta solo il nostro atleta'
+  (select array_agg(nome_completo order by ordine) from public.classifiche where gara_codice = 'R0000102'),
+  array['PROVA Bruno', 'EUGUBINO Nuovo'],
+  'della gara del 2025 restano gli Eugubini, anche chi non è ancora nell''app'
 );
 select is(
   (select count(*)::int from public.classifiche where gara_codice = 'R0000101'), 1,
@@ -103,6 +107,26 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
 select throws_ok(
   $$ select public.pota_classifiche('2030-01-01') $$, '42501', null, 'un atleta non può potare le classifiche'
+);
+reset role;
+
+-- Collegare le righe di un atleta entrato dopo --------------------------------------------------------
+set local role service_role;
+select is(
+  public.collega_righe('[{"gara_codice": "R0000102", "categoria": "C", "ordine": 3,
+    "atleta_id": "10000000-0000-0000-0000-0000000000b2"}]'::jsonb),
+  1, 'il server collega una riga a un atleta'
+);
+select is(
+  (select atleta_id from public.classifiche where gara_codice = 'R0000102' and ordine = 3),
+  '10000000-0000-0000-0000-0000000000b2'::uuid, 'la riga ora è dell''atleta'
+);
+reset role;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
+select throws_ok(
+  $$ select public.collega_righe('[]'::jsonb) $$, '42501', null, 'un atleta non può collegare righe'
 );
 reset role;
 

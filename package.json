@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p packages/shared && tsc -p packages/tokens && tsc -p apps/web && tsc -p scripts",
+    "typecheck": "tsc -p packages/shared && tsc -p packages/tokens && tsc -p apps/web && tsc -p scripts && tsc -p workers/controllo",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

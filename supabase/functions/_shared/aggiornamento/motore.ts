@@ -25,7 +25,7 @@ import {
   type StatoGara,
   type TipoRanking,
 } from '../fitarco/index.ts'
-import type { AtletaNoto } from './atleti.ts'
+import { CODICE_SOCIETA, trovaAtleta, type AtletaNoto } from './atleti.ts'
 import {
   pianificaLetture,
   inizioClassificheComplete,
@@ -131,6 +131,16 @@ export interface Archivio {
   potaClassifiche(primaDel: string): Promise<number>
   /** Toglie le gare iniziate prima di `primaDel` che nessun nostro atleta ha fatto. Quante ne ha tolte. */
   potaGare(primaDel: string): Promise<number>
+  /** Righe della società 11003 senza collegamento a un atleta, nelle classifiche di queste gare. */
+  righeNonCollegate(
+    codiciGare: string[],
+  ): Promise<
+    { gara_codice: string; categoria: string; ordine: number; cognome: string; nome: string }[]
+  >
+  /** Collega delle righe di classifica a un atleta. */
+  collegaRighe(
+    righe: { gara_codice: string; categoria: string; ordine: number; atleta_id: string }[],
+  ): Promise<void>
   /** Istante (ms) dell'ultima lettura fallita perché Fitarco non rispondeva, o null. */
   ultimoBlocco(): Promise<number | null>
   /** La classifica salvata è provvisoria? null se non c'è. */
@@ -181,9 +191,25 @@ export function giornoItaliano(istante: Date): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Rome' }).format(istante)
 }
 
+/**
+ * Giorno del primo accesso dell'amministratore: l'app "parte" qui (Mattia, 9/11/2026).
+ * - Gare finite prima: si leggono (scheda gara e PDF) solo quelle fatte dai nostri atleti (storico).
+ * - Gare dell'Umbria da questo giorno in poi: tutte, chiunque abbia partecipato (poi le toglie la
+ *   finestra delle classifiche complete).
+ */
+export const DATA_AVVIO = '2026-11-07'
+
+/** Si leggono scheda gara e PDF di questa gara? */
+export function garaRilevante(g: {
+  al: string
+  in_calendario_umbria: boolean
+  con_partecipanti: boolean
+}) {
+  return g.con_partecipanti || (g.in_calendario_umbria && g.al >= DATA_AVVIO)
+}
+
 /** Dallo stato del database a quello che serve a `pianificaLetture`. */
 export function statoPianificazione(a: StatoArchivio, oggi: string): StatoPianificazione {
-  const inizioAnno = `${oggi.slice(0, 4)}-01-01`
   return {
     oggi,
     ultimeLetture: new Map(a.ultimeLetture.map((l) => [`${l.tipo}|${l.chiave}`, l.letto_il])),
@@ -192,8 +218,7 @@ export function statoPianificazione(a: StatoArchivio, oggi: string): StatoPianif
       dal: g.dal,
       al: g.al,
       stato: g.stato,
-      // Tutte le gare dell'Umbria dall'anno in corso, e tutte quelle dei nostri atleti.
-      rilevante: (g.in_calendario_umbria && g.dal >= inizioAnno) || g.con_partecipanti,
+      rilevante: garaRilevante(g),
       inCalendarioUmbria: g.in_calendario_umbria,
       haInvito: g.ha_invito,
       urlRisultati: g.url_risultati,
@@ -227,6 +252,27 @@ async function leggiHtml(fonte: Fonte, richiesta: RichiestaFitarco): Promise<str
 const GARA_TOLTA: Esecuzione = {
   esito: 'invariato',
   messaggio: 'Gara non più nel database: lettura tolta dalla lista',
+}
+
+/**
+ * Una lettura rimasta in lista per una gara uscita dalla finestra delle classifiche complete (es. a
+ * gennaio, o dopo un cambio della finestra): per quelle basta lo storico degli atleti, niente richieste.
+ */
+const GARA_FUORI_FINESTRA: Esecuzione = {
+  esito: 'invariato',
+  messaggio: 'Gara prima dell’anno scorso: basta lo storico degli atleti',
+}
+
+/** Una lettura rimasta in lista per una gara che con le regole attuali non si legge più. */
+const GARA_NON_PREVISTA: Esecuzione = {
+  esito: 'invariato',
+  messaggio: 'Gara finita prima dell’avvio dell’app senza nostri atleti: non serve',
+}
+
+/** La gara è da leggere secondo `garaRilevante` (serve sapere se ci sono nostri atleti)? */
+async function prevista(ctx: Contesto, g: GaraSalvata): Promise<boolean> {
+  const conPartecipanti = (await ctx.archivio.partecipanti(g.codice)).length > 0
+  return garaRilevante({ ...g, con_partecipanti: conPartecipanti })
 }
 
 /** Codice gara definitivo Fitarco: una lettera e 7 cifre (R2611039). */
@@ -281,6 +327,8 @@ const PDF_INDIVIDUALE = /\/[a-z]\d{7}\.pdf$/i
 async function schedaGara(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [salvata] = await ctx.archivio.gare([codice])
   if (!salvata) return GARA_TOLTA
+  if (salvata.dal < inizioClassificheComplete(ctx.oggi)) return GARA_FUORI_FINESTRA
+  if (!(await prevista(ctx, salvata))) return GARA_NON_PREVISTA
   const scheda = leggiSchedaGara(await leggiHtml(ctx.fonte, richiestaSchedaGara(codice)))
   const pdf = scheda.risultati.find((d) => PDF_INDIVIDUALE.test(d.url))?.url ?? null
 
@@ -350,22 +398,53 @@ async function schedaAtleta(ctx: Contesto, id: string): Promise<Esecuzione> {
   const vecchie = await ctx.archivio.storico(id)
   const anomalia = controllaStorico(vecchie.length, righe.length)
   if (anomalia) return { esito: 'anomalia', messaggio: anomalia }
-  if (stessoStorico(vecchie, righe)) {
+  const invariato = stessoStorico(vecchie, righe)
+  if (!invariato) await ctx.archivio.salvaStorico(id, righe)
+
+  // Le righe di questo atleta nelle classifiche già salvate (lette quando non era ancora nell'app).
+  const collegate = await collegaRighe(ctx, id, codici)
+  const extra = collegate > 0 ? `, ${collegate} righe di classifica collegate` : ''
+  if (invariato) {
     return {
-      esito: nuoveGare.length > 0 ? 'ok' : 'invariato',
-      messaggio: `Storico invariato (${righe.length} gare)`,
+      esito: nuoveGare.length > 0 || collegate > 0 ? 'ok' : 'invariato',
+      messaggio: `Storico invariato (${righe.length} gare)${extra}`,
     }
   }
-  await ctx.archivio.salvaStorico(id, righe)
   return {
     esito: 'ok',
-    messaggio: `Storico salvato: ${righe.length} gare (${nuoveGare.length} gare nuove)`,
+    messaggio: `Storico salvato: ${righe.length} gare (${nuoveGare.length} gare nuove)${extra}`,
   }
+}
+
+/**
+ * Collega a un atleta le sue righe nelle classifiche già salvate delle gare del suo storico: righe della
+ * società 11003 senza collegamento, riconosciute per cognome e nome (come nei PDF). Nessuna richiesta.
+ */
+async function collegaRighe(ctx: Contesto, atletaId: string, codici: string[]): Promise<number> {
+  const daCollegare = await ctx.archivio.righeNonCollegate(codici)
+  if (daCollegare.length === 0) return 0
+  const atleti = await ctx.archivio.atleti()
+  const sue = daCollegare.filter(
+    (r) => trovaAtleta({ ...r, societa: { codice: CODICE_SOCIETA } }, atleti) === atletaId,
+  )
+  if (sue.length > 0) {
+    await ctx.archivio.collegaRighe(
+      sue.map(({ gara_codice, categoria, ordine }) => ({
+        gara_codice,
+        categoria,
+        ordine,
+        atleta_id: atletaId,
+      })),
+    )
+  }
+  return sue.length
 }
 
 async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [gara] = await ctx.archivio.gare([codice])
   if (!gara) return GARA_TOLTA
+  if (gara.dal < inizioClassificheComplete(ctx.oggi)) return GARA_FUORI_FINESTRA
+  if (!(await prevista(ctx, gara))) return GARA_NON_PREVISTA
   if (!gara.url_risultati) throw new Error(`Manca il link al PDF della gara ${codice}`)
   const file = await ctx.fonte.scarica(gara.url_risultati)
   if (!file.ok) {
@@ -391,14 +470,10 @@ async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   if (righe.length === 0) {
     return { esito: 'anomalia', messaggio: 'Nessun atleta trovato nel PDF: non salvo niente' }
   }
-  // Gare più vecchie di due stagioni intere: si tengono solo le righe dei nostri atleti.
-  const completa = gara.dal >= inizioClassificheComplete(ctx.oggi)
-  const nostre = righe.filter((r) => r.atleta_id !== null)
-  await ctx.archivio.salvaClassifica(codice, completa ? righe : nostre, impr, provvisoria)
+  await ctx.archivio.salvaClassifica(codice, righe, impr, provvisoria)
 
-  const riepilogo = completa
-    ? `${righe.length} atleti, ${nostre.length} dei nostri${provvisoria ? ', provvisoria' : ''}`
-    : `${righe.length} atleti, salvati solo i ${nostre.length} dei nostri (gara vecchia)`
+  const nostre = righe.filter((r) => r.atleta_id !== null).length
+  const riepilogo = `${righe.length} atleti, ${nostre} dei nostri${provvisoria ? ', provvisoria' : ''}`
   const anomalie = controllaClassifica(righe, await ctx.archivio.partecipanti(codice))
   if (anomalie.length === 0) return { esito: 'ok', messaggio: riepilogo }
   const nomi = new Map(atleti.map((a) => [a.id, `${a.nome} ${a.cognome}`]))
@@ -514,18 +589,18 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
       tipo: 'risultati',
       chiave: `potatura ${inizioClassificheComplete(ctx.oggi)}`,
       esito: 'ok',
-      messaggio: `Tolte ${potate} righe di altri atleti dalle classifiche delle gare vecchie`,
+      messaggio: `Tolte ${potate} righe di altre società dalle classifiche delle gare vecchie`,
       richieste: 0,
     })
   }
 
-  // Calendari solo dell'anno in corso: delle gare passate restano quelle fatte dai nostri atleti.
-  const inizioAnno = `${ctx.oggi.slice(0, 4)}-01-01`
-  const gareTolte = await ctx.archivio.potaGare(inizioAnno)
+  // Le gare uscite dalla finestra restano solo se le hanno fatte i nostri atleti.
+  const inizioFinestra = inizioClassificheComplete(ctx.oggi)
+  const gareTolte = await ctx.archivio.potaGare(inizioFinestra)
   if (gareTolte > 0) {
     await ctx.archivio.registra({
       tipo: 'calendario',
-      chiave: `gare passate ${inizioAnno}`,
+      chiave: `gare passate ${inizioFinestra}`,
       esito: 'ok',
       messaggio: `Tolte ${gareTolte} gare degli anni passati senza nostri atleti`,
       richieste: 0,

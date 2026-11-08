@@ -191,6 +191,29 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       return controlla(await db.rpc('pota_gare', { p_prima_del: primaDel }), 'pota gare') as number
     },
 
+    async righeNonCollegate(codiciGare) {
+      if (codiciGare.length === 0) return []
+      return controlla(
+        await db
+          .from('classifiche')
+          .select('gara_codice, categoria, ordine, cognome, nome')
+          .in('gara_codice', codiciGare)
+          .eq('societa_codice', '11003')
+          .is('atleta_id', null),
+        'righe da collegare',
+      ) as {
+        gara_codice: string
+        categoria: string
+        ordine: number
+        cognome: string
+        nome: string
+      }[]
+    },
+
+    async collegaRighe(righe) {
+      controlla(await db.rpc('collega_righe', { p_righe: righe }), 'collega righe')
+    },
+
     async ultimoBlocco() {
       const righe = controlla(
         await db

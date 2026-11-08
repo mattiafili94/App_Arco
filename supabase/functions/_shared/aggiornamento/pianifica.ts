@@ -66,13 +66,13 @@ export const GIORNI_MASSIMI_ATTESA_PDF = 90
 export const giorni = (da: string, a: string) =>
   Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
 
-/** Anni interi, prima di quello in corso, con le classifiche complete (scelta di Mattia, 8/11/2026). */
-export const ANNI_CLASSIFICHE_COMPLETE = 2
+/** Anni interi, prima di quello in corso, con le classifiche complete (scelta di Mattia, 9/11/2026). */
+export const ANNI_CLASSIFICHE_COMPLETE = 1
 
 /**
  * Dal giorno restituito ("AAAA-01-01") le classifiche si tengono complete (tutti gli atleti); per le
  * gare più vecchie solo le righe dei nostri atleti (con parziali e prove, per record e statistiche).
- * Novembre 2026 → "2024-01-01": 2026, 2025 e 2024 complete.
+ * Novembre 2026 → "2025-01-01": 2026 e 2025 complete.
  */
 export function inizioClassificheComplete(oggi: string): string {
   return `${Number(oggi.slice(0, 4)) - ANNI_CLASSIFICHE_COMPLETE}-01-01`

@@ -98,10 +98,20 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
     "Aggiungi a Google Calendar" (Android).
   - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
-- **Quanti dati tenere** (deciso l'8/11/2026): classifiche **complete** (tutti gli atleti) solo per le gare
-  dell'anno in corso e dei **due anni interi precedenti** (oggi 2024–2026); per le gare più vecchie si tengono
-  solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
-  da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
+- **Quanti dati tenere** (deciso l'8/11/2026, finestra ridotta il 9/11/2026): classifiche **complete** (tutti
+  gli atleti) solo per le gare dell'anno in corso e dell'**anno scorso** (oggi 2025–2026,
+  `ANNI_CLASSIFICHE_COMPLETE = 1`); le letture rimaste in lista per gare più vecchie escono senza richieste.
+  **Inviti**: solo per le gare future dell'Umbria (promemoria iscrizioni); per le gare passate si legge solo la
+  scheda, una volta, per il link al PDF. Per le gare più vecchie della finestra si tengono
+  solo le righe degli Eugubini, **anche di chi non è ancora nell'app** (società 11003: quando entra avrà i
+  dettagli), con parziali e prove. A inizio anno il server riduce da solo la stagione uscita dalla finestra
+  (`pota_classifiche`) e toglie le gare uscite dalla finestra senza nostri atleti (`pota_gare`). Lo storico
+  dalla scheda atleta resta intero.
+  **Quali gare si leggono** (scheda gara + PDF, Mattia 9/11/2026, `DATA_AVVIO` = 7/11/2026, primo accesso
+  dell'amministratore): le gare finite **prima** dell'avvio solo se le ha fatte un nostro atleta (dallo
+  storico); le gare dell'Umbria **dall'avvio in poi** tutte, chiunque abbia partecipato (`garaRilevante`).
+  **Atleta che entra dopo**: alla lettura della sua scheda il server collega a lui le sue righe nelle
+  classifiche già salvate (`collega_righe`, per cognome + nome + società 11003): niente da riscaricare.
   **Per risparmiare richieste** (Mattia, 8/11/2026): le gare più vecchie della finestra si conoscono SOLO dallo
   storico della scheda atleta (una richiesta per atleta): niente calendari, schede gara né PDF per loro (un
   arciere che tira dal 2009 non costa ~500 richieste). Compromesso: per quelle gare ci sono totale e posizione
@@ -305,9 +315,16 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           Da allora: se Fitarco non risponde, TUTTE le letture si fermano per 6 ore (`PAUSA_DOPO_BLOCCO_MS`,
           diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
           distanzia (Fase 2.5);
-   5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
-      (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
-      classifica solo con "Aggiorna").
+   5. controllo automatico ✅ (9/11/2026): Worker Cloudflare `arcieri-eugubini-controllo` in
+      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `0,15,30,45 5-22 * * *` (UTC) e
+      controllo dell'ora italiana nel codice: **ogni 15 minuti dalle 7:00 alle 22:45** (scelta di Mattia).
+      Ogni chiamata = un giro di `aggiorna-fitarco` (al massimo 6 letture, 1 pesante; zero richieste se non
+      c'è niente da fare); tiene anche sveglio Supabase. La chiave è il segreto `AGGIORNA_CHIAVE` del
+      Worker (uguale a quello della funzione). Pubblicazione dalla cartella del Worker:
+      `npx wrangler@4.152.0 deploy` (serve `npx wrangler@4.152.0 login` di Mattia, già fatto); log in
+      Cloudflare → Workers → arcieri-eugubini-controllo → Logs. Wrangler non è una dipendenza della repo
+      (scarica parecchio): si usa con `npx` alla versione indicata. La classifica (ranking) resta solo su
+      richiesta (`{"azione":"ranking"}`, poi pulsante "Aggiorna" nel tab Classifica).
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.
