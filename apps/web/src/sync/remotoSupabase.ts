@@ -55,6 +55,8 @@ export function creaRemotoSupabase(supabase: SupabaseClient): Remoto {
           p_distanza: x.distanza,
           p_bersaglio: x.bersaglio,
           p_frecce: x.frecce,
+          // Le simulazioni vecchie non hanno le note: senza, sul server restano com'erano.
+          p_note: x.note ?? null,
           p_conclusa: x.conclusa,
           p_eliminata: x.eliminata,
           p_creata_il: x.creata_il,

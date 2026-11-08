@@ -164,3 +164,22 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.dettagli summary {
+  min-height: var(--control-touch);
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.rigaNota {
+  background: var(--background-canvas);
+}
+
+.testoNota {
+  margin: 0;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

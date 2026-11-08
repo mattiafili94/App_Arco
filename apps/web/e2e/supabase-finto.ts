@@ -460,6 +460,8 @@ export async function simulaSupabase(
         distanza: p.p_distanza,
         bersaglio: p.p_bersaglio,
         frecce: p.p_frecce,
+        // Come il server: senza note nella richiesta restano quelle che c'erano.
+        note: p.p_note ?? simulazioni.find((r) => r.id === p.p_id)?.note ?? {},
         conclusa: p.p_conclusa,
         eliminata: p.p_eliminata,
         creata_il: p.p_creata_il,
