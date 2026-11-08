@@ -6,7 +6,7 @@
  * - per ogni categoria ("Arco Ricurvo - Senior Maschile", "… Continua" se prosegue) una riga che dichiara
  *   le colonne: `Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9`;
  * - riga atleta: posizione, turno-piazzola, COGNOME Nome (a volte con una parola in più),
- *   categoria (2 cifre), codice società (5 cifre), società, parziali `punti/ posizione`, totale, due conteggi;
+ *   categoria (2 cifre), codice società (5 cifre; per i club esteri il paese), società, parziali `punti/ posizione`, totale, due conteggi;
  * - gare composte (25+18, doppio 70 m): la riga atleta ha solo totale e conteggi; i parziali delle due
  *   prove stanno in una riga SOPRA (prima prova) e una SOTTO (seconda prova), con le colonne dichiarate
  *   allo stesso modo sopra e sotto l'intestazione (`25m-1 25m-2 Tot.` / `18m-1 18m-2 Tot.`).
@@ -14,6 +14,13 @@
  */
 import { ErroreFormatoFitarco, numero, type Societa } from './html.ts'
 import type { RigaTesto } from './pdf-testo.ts'
+
+/**
+ * Codice società degli atleti di club esteri: nel PDF hanno il paese al posto del codice a 5 cifre
+ * (visto nella gara R2611001, novembre 2026). "00000" non è un codice Fitarco vero e rispetta il
+ * vincolo del database (`^[0-9]{5}$`); il paese resta nel nome della società.
+ */
+export const CODICE_SOCIETA_ESTERA = '00000'
 
 /** Divisioni come le scrive il PDF → codice Fitarco. Nei PDF vecchi il ricurvo è "Arco Olimpico". */
 export const DIVISIONI_PDF: Record<string, string> = {
@@ -140,9 +147,20 @@ function leggiAtleta(riga: RigaTesto, categoria: CategoriaRisultati): AtletaRisu
   const t = parole(riga.testo.replace(/^(\S+ \d+-) /, '$1'))
   // Il codice società (5 cifre) separa il nome dalla società. Prima c'è la categoria (2 cifre),
   // che in alcune righe manca.
-  const s = t.findIndex((p, k) => k >= 3 && /^\d{5}$/.test(p))
-  const conCategoria = s > 0 && /^\d{2}$/.test(t[s - 1]!)
-  const finoNome = conCategoria ? s - 1 : s
+  let s = t.findIndex((p, k) => k >= 3 && /^\d{5}$/.test(p))
+  let categoriaEta = s > 0 && /^\d{2}$/.test(t[s - 1]!) ? t[s - 1]! : null
+  let finoNome = categoriaEta ? s - 1 : s
+  let codice = t[s]!
+  // Club estero: niente codice, dopo la categoria c'è il paese in maiuscolo ("ESTONIA",
+  // "SAN MARINO") e poi il nome del club. Il paese resta nel nome della società.
+  if (s < 0) {
+    finoNome = t.findIndex(
+      (p, k) => k >= 3 && /^\d{2}$/.test(p) && /^\p{Lu}[\p{Lu}'-]*$/u.test(t[k + 1] ?? ''),
+    )
+    s = finoNome
+    categoriaEta = t[s] ?? null
+    codice = CODICE_SOCIETA_ESTERA
+  }
   const n = categoria.colonneParziali.length
   const fine = t.length - 3 - n
   if (s < 0 || finoNome < 3 || fine <= s + 1) throw fermati('Riga atleta non riconosciuta', riga)
@@ -163,8 +181,8 @@ function leggiAtleta(riga: RigaTesto, categoria: CategoriaRisultati): AtletaRisu
     turno: t[1]!,
     nomeCompleto: nomeParti.join(' '),
     ...dividiNome(nomeParti),
-    categoria: conCategoria ? t[s - 1]! : null,
-    societa: { codice: t[s]!, nome: t.slice(s + 1, fine).join(' ') },
+    categoria: categoriaEta,
+    societa: { codice, nome: t.slice(s + 1, fine).join(' ') },
     parziali,
     prove: [],
     totale: tot,
