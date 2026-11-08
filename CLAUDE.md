@@ -349,8 +349,15 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       (`gare/dati.ts`), quindi anche offline. `ListRow` ha ora `description` (seconda riga) ed `esterno`
       (link fuori dall'app). Nei test del browser le date delle gare sono relative a oggi e le pagine lunghe
       si controllano con viewport alto (la barra dei tab coprirebbe un pezzo e axe lo segnala);
-   3. risultati nella scheda gara: classifica per categoria con gli Eugubini evidenziati, prove, 10/X,
-      provvisoria/definitiva, PDF originale;
+   3. risultati nella scheda gara ✅ (`pagine/Risultati.tsx`, `/gare/:codice/risultati`): la scheda gara ha
+      la riga "Classifica" (atleti, nostri, provvisori) accanto al PDF. La pagina mostra prima "I nostri
+      atleti" (di tutte le categorie: atleti riconosciuti o della società 11003, anche non ancora nell'app),
+      poi le "Categorie" (conteggio atleti e nostri); aprendo una categoria (`?categoria=`) si vede la sua
+      classifica: posizione o DNF, nome ("Rossi Mario": il PDF scrive il cognome in maiuscolo), totale, società,
+      punteggi per parziale o per prova ("272 (25 m) + 378 (18 m)") e conteggi con i nomi delle colonne della
+      gara ("10: 21 · 9: 26", "10+X: 13 · X: 3"). Gli atleti della compagnia sono evidenziati con bordo e
+      grassetto e con "Della compagnia:" per i lettori di schermo (non solo il colore). Avviso "Risultati
+      provvisori" finché la gara non è omologata. Logica pura in `packages/shared/src/risultati.ts`;
    4. promemoria iscrizioni e notifiche push (VAPID; su iPhone solo con l'app aggiunta alla Home).
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.

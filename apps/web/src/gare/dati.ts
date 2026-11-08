@@ -1,6 +1,6 @@
 import { useAtletaCorrente } from '../accesso/contesto'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Gara } from '@arco/shared'
+import type { Gara, RigaClassifica } from '@arco/shared'
 import { useSincronizzazione } from '../sync/contesto'
 
 /** Un invito com'è salvato sul telefono (tabella `inviti`). */
@@ -52,4 +52,16 @@ export function useMieGare(): Set<string> | undefined {
     const righe = await db.partecipazioni.where('atleta_id').equals(id).toArray()
     return new Set(righe.map((r) => r.gara_codice as string))
   }, [db, id])
+}
+
+/** La classifica salvata di una gara (tutte le categorie); `undefined` finché si legge, vuota se non c'è. */
+export function useClassifica(codice: string): RigaClassifica[] | undefined {
+  const { db } = useSincronizzazione()
+  return useLiveQuery(
+    () =>
+      db.classifiche.where('gara_codice').equals(codice).toArray() as Promise<unknown> as Promise<
+        RigaClassifica[]
+      >,
+    [db, codice],
+  )
 }

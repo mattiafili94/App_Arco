@@ -142,6 +142,17 @@ describe('ListGroup e ListRow', () => {
     expect(screen.getByText('12–13 dic')).toBeInTheDocument()
   })
 
+  it('una riga evidenziata si fa notare anche ai lettori di schermo, non solo con il colore', () => {
+    render(
+      <ListGroup title="Classifica">
+        <ListRow label="1° Rossi Mario" evidenziata />
+        <ListRow label="2° Bianchi Luca" />
+      </ListGroup>,
+    )
+    expect(screen.getAllByText('Della compagnia:')).toHaveLength(1)
+    expect(screen.getByText('Della compagnia:').parentElement).toHaveTextContent('Rossi Mario')
+  })
+
   it('una riga con un indirizzo fuori dall’app si apre a parte', () => {
     render(<ListRow label="PDF dei risultati" href="https://esempio.invalid/r.pdf" esterno />)
     const link = screen.getByRole('link', { name: 'PDF dei risultati' })

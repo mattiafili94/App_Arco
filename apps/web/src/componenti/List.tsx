@@ -34,6 +34,8 @@ export interface ListRowProps {
   description?: string
   /** Riga che porta a un'altra pagina: mostra la freccia. */
   href?: string
+  /** Riga da far notare (es. un atleta della compagnia in una classifica): bordo e testo in grassetto. */
+  evidenziata?: boolean
   /** Con `href`: l'indirizzo è fuori dall'app (sito, email, file): si apre a parte, con l'icona dedicata. */
   esterno?: boolean
   /** Riga di scelta: `selected` indica la scelta attuale, `onSelect` la cambia. */
@@ -49,14 +51,19 @@ export function ListRow({
   label,
   value,
   description,
+  evidenziata,
   href,
   esterno,
   selected,
   onSelect,
 }: ListRowProps) {
+  const classeRiga = (extra?: string) =>
+    [styles.row, extra, evidenziata && styles.evidenziata].filter(Boolean).join(' ')
+
   const contenuto = (
     <>
       <span className={styles.label}>
+        {evidenziata && <span className="visually-hidden">Della compagnia: </span>}
         {label}
         {description && <span className={`type-caption ${styles.description}`}>{description}</span>}
       </span>
@@ -71,7 +78,7 @@ export function ListRow({
   if (href && esterno) {
     return (
       <a
-        className={`${styles.row} ${styles.interactive}`}
+        className={classeRiga(styles.interactive)}
         href={href}
         target="_blank"
         rel="noopener noreferrer"
@@ -82,7 +89,7 @@ export function ListRow({
   }
   if (href) {
     return (
-      <Link className={`${styles.row} ${styles.interactive}`} to={href}>
+      <Link className={classeRiga(styles.interactive)} to={href}>
         {contenuto}
       </Link>
     )
@@ -91,7 +98,7 @@ export function ListRow({
     return (
       <button
         type="button"
-        className={`${styles.row} ${styles.interactive}`}
+        className={classeRiga(styles.interactive)}
         role={selected !== undefined ? 'radio' : undefined}
         aria-checked={selected}
         onClick={onSelect}
@@ -100,5 +107,5 @@ export function ListRow({
       </button>
     )
   }
-  return <div className={styles.row}>{contenuto}</div>
+  return <div className={classeRiga()}>{contenuto}</div>
 }

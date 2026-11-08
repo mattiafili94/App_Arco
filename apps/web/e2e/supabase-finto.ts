@@ -91,6 +91,66 @@ export const GARE_PROVA = [
   },
 ]
 
+/** Classifica della gara passata di prova: un atleta della compagnia e uno di un'altra società. */
+export const CLASSIFICA_PROVA = [
+  {
+    gara_codice: 'R9900001',
+    categoria: 'Arco Ricurvo - Senior Maschile',
+    ordine: 1,
+    divisione: 'OL',
+    classe: 'Senior Maschile',
+    posizione: 1,
+    esito: '1',
+    turno: '1-1A',
+    nome_completo: 'VERDI Luca',
+    cognome: 'VERDI',
+    nome: 'Luca',
+    classe_atleta: null,
+    categoria_eta: '02',
+    societa_codice: '11004',
+    societa_nome: 'Arcieri di Assisi',
+    parziali: [
+      { colonna: '18m-1', punti: 280, posizione: 1 },
+      { colonna: '18m-2', punti: 272, posizione: 1 },
+    ],
+    prove: [],
+    totale: 552,
+    conteggi: [21, 26],
+    colonne_conteggi: ['10', '9'],
+    atleta_id: null,
+    provvisoria: false,
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
+  },
+  {
+    gara_codice: 'R9900001',
+    categoria: 'Arco Ricurvo - Senior Maschile',
+    ordine: 2,
+    divisione: 'OL',
+    classe: 'Senior Maschile',
+    posizione: 2,
+    esito: '2',
+    turno: '1-1B',
+    nome_completo: 'PROVA Bruno',
+    cognome: 'PROVA',
+    nome: 'Bruno',
+    classe_atleta: null,
+    categoria_eta: '02',
+    societa_codice: '11003',
+    societa_nome: 'Arcieri Eugubini',
+    parziali: [
+      { colonna: '18m-1', punti: 263, posizione: 2 },
+      { colonna: '18m-2', punti: 271, posizione: 2 },
+    ],
+    prove: [],
+    totale: 534,
+    conteggi: [17, 25],
+    colonne_conteggi: ['10', '9'],
+    atleta_id: '10000000-0000-0000-0000-00000000000b',
+    provvisoria: false,
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
+  },
+]
+
 export const INVITO_PROVA = {
   gara_codice: 'R9900002',
   testo: 'PROGRAMMA\n\nSABATO\n9,30 Accreditamento\n\nISCRIZIONI dal 3 ottobre al 2 novembre',
@@ -213,7 +273,8 @@ export async function simulaSupabase(
     const tabella = /^\/rest\/v1\/(\w+)$/.exec(url.pathname)?.[1]
     if (tabella === 'gare') return json(route, GARE_PROVA)
     if (tabella === 'inviti') return json(route, [INVITO_PROVA])
-    if (['partecipazioni', 'classifiche', 'ranking', 'eliminazioni'].includes(tabella ?? '')) {
+    if (tabella === 'classifiche') return json(route, CLASSIFICA_PROVA)
+    if (['partecipazioni', 'ranking', 'eliminazioni'].includes(tabella ?? '')) {
       return json(route, [])
     }
 

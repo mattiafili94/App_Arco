@@ -82,3 +82,44 @@ test.describe('tab Gare', () => {
     }
   })
 })
+
+test.describe('risultati di una gara', () => {
+  test('dalla scheda si apre la classifica: i nostri atleti, poi le categorie con i nostri evidenziati', async ({
+    page,
+  }) => {
+    await page.goto('/gare')
+    await page.getByRole('link', { name: /Gubbio/ }).click()
+    await page
+      .getByRole('main')
+      .getByRole('link', { name: /Classifica/ })
+      .click()
+
+    const nostri = page.getByRole('region', { name: /I nostri atleti/ })
+    await expect(nostri).toContainText('Prova Bruno')
+    await expect(nostri).toContainText('534')
+
+    await page.getByRole('link', { name: /Arco Ricurvo - Senior Maschile/ }).click()
+    const classifica = page.getByRole('region', { name: 'Classifica' })
+    await expect(classifica).toContainText('1° Verdi Luca')
+    await expect(classifica).toContainText('2° Prova Bruno')
+    await expect(classifica).toContainText('263 + 271')
+    await expect(classifica).toContainText('10: 17 · 9: 25')
+  })
+
+  test.describe('accessibilità', () => {
+    test.use({ reducedMotion: 'reduce' })
+
+    for (const { scelta } of TEMI) {
+      test(`classifica e categoria, tema ${scelta}`, async ({ page }) => {
+        await conTema(page, scelta)
+        await page.goto('/gare/R9900001/risultati')
+        await expect(page.getByRole('region', { name: /I nostri atleti/ })).toBeVisible()
+        await controllaAccessibilita(page)
+
+        await page.goto('/gare/R9900001/risultati?categoria=Arco%20Ricurvo%20-%20Senior%20Maschile')
+        await expect(page.getByRole('region', { name: 'Classifica' })).toBeVisible()
+        await controllaAccessibilita(page)
+      })
+    }
+  })
+})
