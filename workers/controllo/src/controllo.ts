@@ -3,7 +3,7 @@
  * `aggiorna-fitarco`, che fa al massimo qualche lettura da Fitarco (vedi CLAUDE.md).
  * Tiene anche sveglio Supabase (il piano gratuito va in pausa dopo una settimana senza attività).
  *
- * Orario scelto da Mattia (9/11/2026): ogni 30 minuti dalle 7:00 alle 22:30, ora italiana.
+ * Orario scelto da Mattia (9/11/2026): ogni 15 minuti dalle 7:00 alle 22:45, ora italiana.
  */
 
 export interface Ambiente {
@@ -14,7 +14,7 @@ export interface Ambiente {
 }
 
 export const ORA_INIZIO = 7
-/** Esclusa: l'ultima chiamata è alle 22:30. */
+/** Esclusa: l'ultima chiamata è alle 22:45. */
 export const ORA_FINE = 23
 
 /** L'ora (0–23) in Italia, con l'ora legale. */

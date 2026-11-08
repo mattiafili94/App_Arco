@@ -22,10 +22,10 @@ describe('orario del controllo automatico', () => {
     expect(oraItaliana(new Date('2026-07-10T22:30:00Z'))).toBe(0)
   })
 
-  it('dalle 7:00 alle 22:30', () => {
+  it('dalle 7:00 alle 22:45', () => {
     expect(inOrario(new Date('2026-11-10T05:30:00Z'))).toBe(false) // 6:30
     expect(inOrario(new Date('2026-11-10T06:00:00Z'))).toBe(true) // 7:00
-    expect(inOrario(new Date('2026-11-10T21:30:00Z'))).toBe(true) // 22:30
+    expect(inOrario(new Date('2026-11-10T21:45:00Z'))).toBe(true) // 22:45
     expect(inOrario(new Date('2026-11-10T22:00:00Z'))).toBe(false) // 23:00
     expect(inOrario(new Date('2026-07-10T05:00:00Z'))).toBe(true) // 7:00 d'estate
     expect(inOrario(new Date('2026-07-10T21:00:00Z'))).toBe(false) // 23:00 d'estate

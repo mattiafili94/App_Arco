@@ -309,8 +309,8 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
           distanzia (Fase 2.5);
    5. controllo automatico ✅ (9/11/2026): Worker Cloudflare `arcieri-eugubini-controllo` in
-      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `0,30 5-22 * * *` (UTC) e
-      controllo dell'ora italiana nel codice: **ogni 30 minuti dalle 7:00 alle 22:30** (scelta di Mattia).
+      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `0,15,30,45 5-22 * * *` (UTC) e
+      controllo dell'ora italiana nel codice: **ogni 15 minuti dalle 7:00 alle 22:45** (scelta di Mattia).
       Ogni chiamata = un giro di `aggiorna-fitarco` (al massimo 6 letture, 1 pesante; zero richieste se non
       c'è niente da fare); tiene anche sveglio Supabase. La chiave è il segreto `AGGIORNA_CHIAVE` del
       Worker (uguale a quello della funzione). Pubblicazione dalla cartella del Worker:
