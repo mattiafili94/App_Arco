@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { pianificaLetture, PRIORITA, type StatoPianificazione } from '../aggiornamento'
+import {
+  pianificaLetture,
+  PRIORITA,
+  risultatiProvvisori,
+  type StatoPianificazione,
+} from '../aggiornamento'
 
 type Gara = StatoPianificazione['gare'][number]
 
@@ -147,5 +152,68 @@ describe('cosa leggere e quando', () => {
       { tipo: 'calendario', chiave: '2027', priorita: PRIORITA.calendario },
       { tipo: 'scheda-atleta', chiave: 'vecchio', priorita: PRIORITA.schedaAtleta },
     ])
+  })
+})
+
+describe('gare fuori Umbria (stato sconosciuto)', () => {
+  const fuori = { stato: 'sconosciuto' as const, inCalendarioUmbria: false }
+
+  it('i risultati sono provvisori per 60 giorni, poi definitivi', () => {
+    expect(risultatiProvvisori({ stato: 'omologata', al: '2027-02-01' }, '2027-02-02')).toBe(false)
+    expect(risultatiProvvisori({ stato: 'da-omologare', al: '2026-01-01' }, '2027-02-02')).toBe(
+      true,
+    )
+    expect(risultatiProvvisori({ stato: 'sconosciuto', al: '2027-01-01' }, '2027-03-01')).toBe(true)
+    expect(risultatiProvvisori({ stato: 'sconosciuto', al: '2027-01-01' }, '2027-03-03')).toBe(
+      false,
+    )
+  })
+
+  it('dopo 60 giorni si rilegge subito il PDF per salvarlo come definitivo', () => {
+    const g = gara({
+      ...fuori,
+      dal: '2026-12-20',
+      al: '2026-12-20',
+      urlRisultati: 'https://x/r.pdf',
+      risultati: { provvisoria: true },
+    })
+    const letta = new Map([
+      ['calendario|2027', '2027-02-28'],
+      ['calendario|2026', '2027-01-01'],
+      ['risultati|R2711001', '2027-02-28'],
+    ])
+    expect(letture(stato({ gare: [g], ultimeLetture: letta, anniStorico: [2026] }))).toEqual([
+      'risultati R2711001',
+    ])
+  })
+
+  it('non fanno rileggere il calendario del loro anno', () => {
+    const g = gara({
+      ...fuori,
+      dal: '2025-05-01',
+      al: '2025-05-01',
+      urlRisultati: 'x',
+      risultati: { provvisoria: false },
+    })
+    const letto = new Map([
+      ['calendario|2027', '2027-02-28'],
+      ['calendario|2025', '2026-01-01'],
+    ])
+    expect(letture(stato({ gare: [g], ultimeLetture: letto, anniStorico: [2025] }))).toEqual([])
+  })
+
+  it('una gara vecchia senza PDF si controlla una volta, poi basta', () => {
+    const g = gara({ ...fuori, dal: '2025-05-01', al: '2025-05-01' })
+    const base = new Map([
+      ['calendario|2027', '2027-02-28'],
+      ['calendario|2025', '2026-01-01'],
+    ])
+    expect(letture(stato({ gare: [g], ultimeLetture: base, anniStorico: [2025] }))).toEqual([
+      'scheda-gara R2711001',
+    ])
+    const controllata = new Map([...base, ['scheda-gara|R2711001', '2027-01-01']])
+    expect(letture(stato({ gare: [g], ultimeLetture: controllata, anniStorico: [2025] }))).toEqual(
+      [],
+    )
   })
 })

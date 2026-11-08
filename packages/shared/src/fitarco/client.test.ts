@@ -107,6 +107,34 @@ describe('client educato per Fitarco', () => {
     expect(f).toHaveBeenCalledTimes(4)
   })
 
+  it('scarica un file con un GET semplice, in coda con le altre richieste', async () => {
+    const o = orologio()
+    const f = fetchFinto(new Response(new Uint8Array([37, 80, 68, 70])), OK)
+    const client = creaClientFitarco({ fetch: f as typeof fetch, ...o })
+    const [file, risposta] = await Promise.all([
+      client.scarica('https://x/r.pdf'),
+      client.leggi(richiestaSchedaGara('A')),
+    ])
+    expect(file).toEqual({ ok: true, dati: new Uint8Array([37, 80, 68, 70]) })
+    expect(risposta).toMatchObject({ ok: true })
+    const [url, init] = f.mock.calls[0]!
+    expect(url).toBe('https://x/r.pdf')
+    expect(init?.method).toBeUndefined()
+    expect(init?.headers).toBeUndefined()
+    expect(o.attese).toEqual([PAUSA_PREDEFINITA_MS])
+  })
+
+  it('segnala un file che non si scarica', async () => {
+    const f = fetchFinto(new Response('Not Found', { status: 404 }), new TypeError('rete assente'))
+    const client = creaClientFitarco({ fetch: f as typeof fetch, ...orologio() })
+    expect(await client.scarica('https://x/a.pdf')).toEqual({
+      ok: false,
+      motivo: 'http',
+      dettaglio: '404',
+    })
+    expect(await client.scarica('https://x/a.pdf')).toMatchObject({ ok: false, motivo: 'rete' })
+  })
+
   it('interrompe una richiesta che non risponde', async () => {
     vi.useFakeTimers()
     try {

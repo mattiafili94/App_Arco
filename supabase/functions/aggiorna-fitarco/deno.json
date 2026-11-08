@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "node-html-parser": "npm:node-html-parser@9.0.5",
+    "unpdf": "npm:unpdf@1.9.1"
+  }
+}

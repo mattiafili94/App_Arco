@@ -4,7 +4,9 @@
  */
 import type { StatoGara } from '../fitarco/calendario.ts'
 
-export type TipoLettura = 'calendario' | 'scheda-gara' | 'invito' | 'scheda-atleta' | 'risultati'
+/** `ranking` non lo pianifica il calendario: si chiede con il pulsante "Aggiorna". */
+export type TipoLettura =
+  'calendario' | 'scheda-gara' | 'invito' | 'scheda-atleta' | 'risultati' | 'ranking'
 
 export interface Lettura {
   tipo: TipoLettura
@@ -58,7 +60,24 @@ export const PRIORITA = {
   schedaAtleta: 5,
 } as const
 
-const giorni = (da: string, a: string) => Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
+/** Giorni dopo i quali i risultati di una gara fuori Umbria si considerano definitivi. */
+export const GIORNI_DEFINITIVI_FUORI_UMBRIA = 60
+/** Giorni dopo la gara oltre i quali non si cerca più un PDF dei risultati mai uscito. */
+export const GIORNI_MASSIMI_ATTESA_PDF = 90
+
+export const giorni = (da: string, a: string) =>
+  Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
+
+/**
+ * I risultati di una gara sono ancora provvisori? Per le gare dell'Umbria lo dice il calendario
+ * (omologata o no). Per quelle fuori regione lo stato non si conosce (il calendario "00" ha solo le
+ * gare nazionali): si considerano definitivi dopo GIORNI_DEFINITIVI_FUORI_UMBRIA giorni.
+ */
+export function risultatiProvvisori(g: { stato: StatoGara; al: string }, oggi: string): boolean {
+  if (g.stato === 'omologata') return false
+  if (g.stato === 'sconosciuto') return giorni(g.al, oggi) <= GIORNI_DEFINITIVI_FUORI_UMBRIA
+  return true
+}
 
 export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   const lista: Lettura[] = []
@@ -72,14 +91,17 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
     lista.push({ tipo, chiave, priorita })
 
   // Calendari: l'anno in corso, il prossimo da ottobre (calendario provvisorio), e gli anni degli
-  // storici finché hanno gare non ancora definitive.
+  // storici finché hanno gare dell'Umbria non ancora definitive.
   const anno = Number(s.oggi.slice(0, 4))
   const anni = new Set([anno, ...s.anniStorico])
   if (Number(s.oggi.slice(5, 7)) >= 10) anni.add(anno + 1)
   for (const a of [...anni].sort()) {
     const inSospeso = s.gare.some(
       (g) =>
-        g.rilevante && g.dal.startsWith(String(a)) && !['omologata', 'annullata'].includes(g.stato),
+        g.rilevante &&
+        g.inCalendarioUmbria &&
+        g.dal.startsWith(String(a)) &&
+        !['omologata', 'annullata'].includes(g.stato),
     )
     const daLeggere = a >= anno || inSospeso || ultima('calendario', String(a)) === undefined
     if (daLeggere && scaduta('calendario', String(a), OGNI.calendario)) {
@@ -97,19 +119,27 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
       if (scaduta('invito', g.codice, OGNI.invito)) aggiungi('invito', g.codice, PRIORITA.invito)
     }
 
-    // Dopo la gara: la scheda dà il link al PDF dei risultati.
+    // Dopo la gara: la scheda dà il link al PDF dei risultati (le gare vecchie si controllano una
+    // volta sola, poi si smette se il PDF non è mai uscito).
     if (finita && !g.urlRisultati) {
-      const ogni = giorni(g.al, s.oggi) <= 30 ? OGNI.schedaGaraPrimoMese : OGNI.schedaGaraDopo
-      if (scaduta('scheda-gara', g.codice, ogni))
+      const dopo = giorni(g.al, s.oggi)
+      const ogni = dopo <= 30 ? OGNI.schedaGaraPrimoMese : OGNI.schedaGaraDopo
+      const maiLetta = ultima('scheda-gara', g.codice) === undefined
+      if (
+        (dopo <= GIORNI_MASSIMI_ATTESA_PDF || maiLetta) &&
+        scaduta('scheda-gara', g.codice, ogni)
+      ) {
         aggiungi('scheda-gara', g.codice, PRIORITA.schedaGara)
+      }
     }
 
-    // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando la gara è omologata).
+    // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando diventano definitivi).
     if (g.urlRisultati) {
       const daLeggere =
         g.risultati === null ||
         (g.risultati.provvisoria &&
-          (g.stato === 'omologata' || scaduta('risultati', g.codice, OGNI.risultatiProvvisori)))
+          (!risultatiProvvisori(g, s.oggi) ||
+            scaduta('risultati', g.codice, OGNI.risultatiProvvisori)))
       if (daLeggere) aggiungi('risultati', g.codice, PRIORITA.risultati)
     }
   }
