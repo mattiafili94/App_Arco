@@ -1,6 +1,7 @@
 import { createClient, FunctionsHttpError, type SupabaseClient } from '@supabase/supabase-js'
 import { emailTecnica } from '@arco/shared'
 import { dbPredefinito, svuotaDb } from '../sync/db'
+import { creaServizioClassifica } from '../classifica/servizioSupabase'
 import { creaRemotoSupabase } from '../sync/remotoSupabase'
 import type { Atleta, ServizioAccesso } from './servizio'
 
@@ -44,6 +45,7 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
 
   return {
     remoto: creaRemotoSupabase(supabase),
+    classifica: creaServizioClassifica(supabase),
 
     async sessioneSalvata() {
       const { data } = await supabase.auth.getSession()

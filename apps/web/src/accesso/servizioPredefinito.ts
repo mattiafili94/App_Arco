@@ -17,6 +17,11 @@ export const servizioPredefinito: ServizioAccesso =
           eliminazioni: async () => [],
           ultimaEliminazione: async () => 0,
         },
+        classifica: {
+          miePosizioni: async () => [],
+          leggi: async () => null,
+          aggiorna: async () => ({ esito: 'errore', errore: 'App non collegata al server.' }),
+        },
         sessioneSalvata: async () => null,
         accedi: async () => ({ esito: 'errore' }),
         esci: async () => {},

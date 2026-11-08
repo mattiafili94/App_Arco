@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 import type { Atleta, IscrizionePush, ServizioAccesso } from '../accesso/servizio'
+import { ClassificaFinta } from './classificaFinta'
 import { RemotoFinto } from './remotoFinto'
 
 /** Atleti inventati per i test (nessun dato vero). */
@@ -42,6 +43,7 @@ export function servizioFinto({
   atleti = [AMMINISTRATORE, ATLETA, SENZA_ACCESSO],
   rete = true,
   remoto = new RemotoFinto(),
+  classifica = new ClassificaFinta(),
 } = {}) {
   let utente: string | null = collegato?.id ?? null
   // Copie: un test non deve modificare gli atleti usati dagli altri.
@@ -50,6 +52,7 @@ export function servizioFinto({
 
   const servizio = {
     remoto,
+    classifica,
     sessioneSalvata: vi.fn(async () => (utente ? { utenteId: utente } : null)),
     accedi: vi.fn(async (matricola: string, codice: string) => {
       if (!rete) return { esito: 'offline' as const }
@@ -104,6 +107,7 @@ export function servizioFinto({
   return {
     servizio,
     remoto,
+    classifica,
     /** Simula un accesso terminato dal server (es. revocato dall'amministratore). */
     simulaUscita: () => avvisaUscita?.(),
     impostaRete: (valore: boolean) => {

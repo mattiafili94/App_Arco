@@ -3,6 +3,8 @@ import { useAccesso } from './accesso/contesto'
 import { Accedi } from './pagine/Accedi'
 import { Amministrazione } from './pagine/Amministrazione'
 import { Atleti } from './pagine/Atleti'
+import { Classifica } from './pagine/Classifica'
+import { ClassificaCompleta } from './pagine/ClassificaCompleta'
 import { Benvenuto } from './pagine/Benvenuto'
 import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { DettaglioGara } from './pagine/DettaglioGara'
@@ -11,7 +13,7 @@ import { SchedaAtleta } from './pagine/SchedaAtleta'
 import { Gare } from './pagine/Gare'
 import { Impostazioni } from './pagine/Impostazioni'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
-import { Allenamento, Classifica } from './pagine/Tab'
+import { Allenamento } from './pagine/Tab'
 import { Sincronizzazione } from './sync/Sincronizzazione'
 import { Shell } from './Shell'
 
@@ -44,6 +46,10 @@ export function App() {
           <Route path="atleti" element={<Atleti />} />
           <Route path="atleti/:id" element={<SchedaAtleta />} />
           <Route path="classifica" element={<Classifica />} />
+          <Route
+            path="classifica/:tipo/:divisione/:classe/:genere"
+            element={<ClassificaCompleta />}
+          />
           <Route path="allenamento" element={<Allenamento />} />
           <Route path="impostazioni" element={<Impostazioni />} />
           <Route path="amministrazione" element={<Amministrazione />} />

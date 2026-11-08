@@ -1,0 +1,19 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.etichetta {
+  color: var(--text-primary);
+}
+
+.select {
+  min-height: var(--control-touch);
+  padding: 0 var(--space-12);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--background-surface);
+  color: var(--text-primary);
+  font: inherit;
+}
