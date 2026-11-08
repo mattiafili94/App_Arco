@@ -6,10 +6,14 @@
  * - Il primo giro scarica tutto. Un telefono fermo da troppo tempo riparte da zero: il registro delle
  *   eliminazioni non tiene tracce così vecchie.
  * Dati condivisi: solo dal server al telefono, mai il contrario.
+ * Allenamento (privato): nei due sensi. Prima si mandano al server le modifiche fatte sul telefono, poi si
+ *   scaricano le novità; una riga con modifiche non ancora inviate non si sovrascrive mai con quella del
+ *   server (al giro dopo il server sceglie la più recente).
  */
+import type { GiornoAllenamento } from '@arco/shared'
 import { svuotaDb, type ArcoDb } from './db'
 import type { Remoto } from './remoto'
-import { chiaveDi, TABELLE, type DefinizioneTabella } from './tabelle'
+import { chiaveDi, TABELLE, type DefinizioneTabella, type Riga } from './tabelle'
 
 export const DIMENSIONE_PAGINA = 1000
 /** Si rileggono le righe cambiate negli ultimi minuti prima dell'ultimo cursore (transazioni lente). */
@@ -24,6 +28,8 @@ export interface EsitoSincronizzazione {
   eliminate: number
   /** Il telefono era fermo da troppo tempo: è ripartito da zero. */
   daCapo: boolean
+  /** Modifiche dell'allenamento mandate al server. */
+  inviate: number
 }
 
 const CHIAVE_ULTIMA = 'ultima'
@@ -38,6 +44,42 @@ export async function ultimaSincronizzazione(db: ArcoDb): Promise<number | null>
   return (await leggiMeta(db, CHIAVE_ULTIMA)) ?? null
 }
 
+/**
+ * Manda al server le modifiche fatte sul telefono (allenamento): una riga alla volta. Il server fa
+ * vincere la modifica più recente e restituisce la riga che vale: il telefono la tiene com'è. Se la riga
+ * è stata modificata di nuovo mentre si inviava, resta quella locale (e si invia al giro dopo).
+ * Se un invio fallisce si prosegue con gli altri e l'errore si segnala alla fine.
+ */
+async function inviaModifiche(
+  remoto: Remoto,
+  db: ArcoDb,
+): Promise<{ inviate: number; errore: unknown }> {
+  const sporche = await db.allenamento_giorni.where('da_inviare').equals(1).toArray()
+  let inviate = 0
+  let errore: unknown = null
+  for (const riga of sporche) {
+    // Il server non riceve il segno interno "da_inviare".
+    const dati = { ...riga }
+    delete dati.da_inviare
+    try {
+      const vincente = await remoto.salvaAllenamento(dati as unknown as GiornoAllenamento)
+      await db.transaction('rw', db.allenamento_giorni, async () => {
+        const attuale = await db.allenamento_giorni.get([riga.atleta_id, riga.giorno] as [
+          string,
+          string,
+        ])
+        if (attuale && attuale.modificato_il === riga.modificato_il) {
+          await db.allenamento_giorni.put(vincente)
+        }
+      })
+      inviate++
+    } catch (e) {
+      errore ??= e
+    }
+  }
+  return { inviate, errore }
+}
+
 async function scaricaTabella(
   remoto: Remoto,
   db: ArcoDb,
@@ -49,7 +91,8 @@ async function scaricaTabella(
   let scritte = 0
   for (let da = 0; ; da += DIMENSIONE_PAGINA) {
     const pagina = await remoto.cambiamenti(def.nome, dal, da, DIMENSIONE_PAGINA)
-    if (pagina.length > 0) await db.tabella(def.nome).bulkPut(pagina)
+    if (pagina.length > 0)
+      await db.tabella(def.nome).bulkPut(await senzaModificheLocali(db, def, pagina))
     scritte += pagina.length
     for (const riga of pagina) {
       const quando = Date.parse(String(riga.aggiornato_il))
@@ -59,6 +102,19 @@ async function scaricaTabella(
   }
   if (massimo > 0) await scriviMeta(db, chiaveCursore(def), massimo)
   return scritte
+}
+
+/** Le righe del server da scrivere: quelle con modifiche locali non ancora inviate restano come sono. */
+async function senzaModificheLocali(
+  db: ArcoDb,
+  def: DefinizioneTabella,
+  righe: Riga[],
+): Promise<Riga[]> {
+  if (def.nome !== 'allenamento_giorni') return righe
+  const locali = await db.allenamento_giorni.bulkGet(
+    righe.map((r) => chiaveDi(def, r) as [string, string]),
+  )
+  return righe.filter((_, i) => !locali[i]?.da_inviare)
 }
 
 async function applicaEliminazioni(remoto: Remoto, db: ArcoDb, dopoId: number): Promise<number> {
@@ -86,8 +142,13 @@ export async function sincronizza(
   db: ArcoDb,
   adesso: () => number = Date.now,
 ): Promise<EsitoSincronizzazione> {
+  // Prima le modifiche fatte sul telefono (anche dopo tanto tempo: non si perdono mai).
+  const invio = await inviaModifiche(remoto, db)
   const ultima = await leggiMeta(db, CHIAVE_ULTIMA)
-  const daCapo = ultima !== undefined && adesso() - ultima > GIORNI_MASSIMI_FERMO * 86_400_000
+  const daCapo =
+    ultima !== undefined &&
+    invio.errore === null &&
+    adesso() - ultima > GIORNI_MASSIMI_FERMO * 86_400_000
   if (daCapo) await svuotaDb(db)
 
   let eliminate = 0
@@ -105,5 +166,7 @@ export async function sincronizza(
     for (const def of TABELLE) righe += await scaricaTabella(remoto, db, def)
   }
   await scriviMeta(db, CHIAVE_ULTIMA, adesso())
-  return { righe, eliminate, daCapo }
+  // Un invio fallito si segnala, ma dopo aver scaricato le novità.
+  if (invio.errore !== null) throw invio.errore
+  return { righe, eliminate, daCapo, inviate: invio.inviate }
 }

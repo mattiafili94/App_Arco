@@ -1,3 +1,4 @@
+import type { GiornoAllenamento } from '@arco/shared'
 import type { Eliminazione, NomeTabella, Riga } from './tabelle'
 
 /** Cosa serve alla sincronizzazione dal server. L'implementazione vera usa Supabase; i test una finta. */
@@ -11,4 +12,9 @@ export interface Remoto {
   eliminazioni(dopoId: number, quante: number): Promise<Eliminazione[]>
   /** `id` dell'ultima eliminazione registrata (0 se non ce ne sono). */
   ultimaEliminazione(): Promise<number>
+  /**
+   * Salva un giorno di allenamento. Se sul server c'è già una modifica più recente, resta quella.
+   * Restituisce la riga che vale adesso (con `aggiornato_il` del server).
+   */
+  salvaAllenamento(giorno: GiornoAllenamento): Promise<Riga>
 }

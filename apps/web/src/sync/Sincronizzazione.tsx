@@ -25,6 +25,7 @@ export function Sincronizzazione({
   const [fase, setFase] = useState<FaseSincronizzazione>('ferma')
   const [ultima, setUltima] = useState<number | null>(null)
   const inCorso = useRef(false)
+  const daRipetere = useRef(false)
   // Dopo l'uscita dalla schermata una sincronizzazione ancora in corso non deve più toccare lo stato.
   const montato = useRef(true)
   useEffect(() => {
@@ -36,22 +37,34 @@ export function Sincronizzazione({
 
   const aggiorna = useCallback(async () => {
     // Una alla volta, e solo con la rete (altrimenti si resta com'è).
-    if (inCorso.current || !navigator.onLine) return
+    if (!navigator.onLine) return
+    if (inCorso.current) return
     inCorso.current = true
-    setFase('in-corso')
     try {
-      await sincronizza(servizio.remoto, db)
-      const quando = await ultimaSincronizzazione(db)
-      if (montato.current) {
-        setUltima(quando)
-        setFase('ferma')
-      }
-    } catch {
-      if (montato.current) setFase('errore')
+      do {
+        daRipetere.current = false
+        if (montato.current) setFase('in-corso')
+        try {
+          await sincronizza(servizio.remoto, db)
+          const quando = await ultimaSincronizzazione(db)
+          if (montato.current) {
+            setUltima(quando)
+            setFase('ferma')
+          }
+        } catch {
+          if (montato.current) setFase('errore')
+        }
+      } while (daRipetere.current && montato.current)
     } finally {
       inCorso.current = false
     }
   }, [servizio, db])
+
+  /** Una modifica locale (es. l'allenamento): parte subito, o appena finito il giro in corso. */
+  const modificato = useCallback(() => {
+    if (inCorso.current) daRipetere.current = true
+    else void aggiorna()
+  }, [aggiorna])
 
   useEffect(() => {
     let attivo = true
@@ -78,6 +91,9 @@ export function Sincronizzazione({
   }, [aggiorna, db, intervalloMs])
 
   const stato = useMemo<StatoSincronizzazione>(() => ({ fase, ultima }), [fase, ultima])
-  const valore = useMemo(() => ({ stato, db, aggiorna }), [stato, db, aggiorna])
+  const valore = useMemo(
+    () => ({ stato, db, aggiorna, modificato }),
+    [stato, db, aggiorna, modificato],
+  )
   return <Contesto.Provider value={valore}>{children}</Contesto.Provider>
 }

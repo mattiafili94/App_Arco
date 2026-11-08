@@ -76,6 +76,58 @@ describe('sincronizzazione con Supabase', () => {
     expect(await creaRemotoSupabase(vuota.cliente).ultimaEliminazione()).toBe(0)
   })
 
+  it('salva un giorno di allenamento con la funzione del server e restituisce la riga che vale', async () => {
+    const giorno = {
+      atleta_id: 'a1',
+      giorno: '2026-11-10',
+      programma: '60 frecce',
+      fatto: true,
+      frecce_libere: 60,
+      nota: 'bene',
+      modificato_il: '2026-11-10T10:00:00.000Z',
+    }
+    const chiamate: [string, unknown][] = []
+    const cliente = {
+      rpc: async (nome: string, argomenti: unknown) => {
+        chiamate.push([nome, argomenti])
+        return { data: { ...giorno, aggiornato_il: '2026-11-10T10:00:01+00:00' }, error: null }
+      },
+    } as unknown as SupabaseClient
+    const r = await creaRemotoSupabase(cliente).salvaAllenamento(giorno)
+    expect(r.aggiornato_il).toBe('2026-11-10T10:00:01+00:00')
+    expect(chiamate).toEqual([
+      [
+        'salva_allenamento_giorno',
+        {
+          p_atleta: 'a1',
+          p_giorno: '2026-11-10',
+          p_programma: '60 frecce',
+          p_fatto: true,
+          p_frecce_libere: 60,
+          p_nota: 'bene',
+          p_modificato_il: '2026-11-10T10:00:00.000Z',
+        },
+      ],
+    ])
+  })
+
+  it('un errore nel salvataggio dell’allenamento si segnala (la riga resta da inviare)', async () => {
+    const cliente = {
+      rpc: async () => ({ data: null, error: { message: 'Accesso non valido' } }),
+    } as unknown as SupabaseClient
+    await expect(
+      creaRemotoSupabase(cliente).salvaAllenamento({
+        atleta_id: 'a1',
+        giorno: '2026-11-10',
+        programma: '',
+        fatto: false,
+        frecce_libere: 0,
+        nota: '',
+        modificato_il: '2026-11-10T10:00:00.000Z',
+      }),
+    ).rejects.toThrow('Accesso non valido')
+  })
+
   it('un errore del server ferma la sincronizzazione', async () => {
     const { cliente } = clienteFinto({ data: null, error: { message: 'JWT scaduto' } })
     await expect(creaRemotoSupabase(cliente).cambiamenti('gare', null, 0, 10)).rejects.toThrow(

@@ -8,6 +8,7 @@ import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
 import type { StatoNotifiche } from '../notifiche/servizio'
 import { useNotifiche } from '../notifiche/useNotifiche'
+import { useModificheDaInviare } from '../allenamento/dati'
 import { useSincronizzazione } from '../sync/contesto'
 import { descriviUltima } from '../sync/formato'
 import { useOnline } from '../stato/useOnline'
@@ -43,6 +44,7 @@ export function Impostazioni() {
   const online = useOnline()
   const { stato: sync, aggiorna } = useSincronizzazione()
   const notifiche = useNotifiche()
+  const daInviare = useModificheDaInviare()
   const interruttoreUtilizzabile =
     !notifiche.occupato && (notifiche.stato === 'spente' || notifiche.stato === 'accese')
   const stato = useLocation().state as { da?: string } | null
@@ -121,6 +123,14 @@ export function Impostazioni() {
               <Notice status="warning">
                 Uscendo, per rientrare su questo telefono ti servirà di nuovo il codice personale.
               </Notice>
+              {(daInviare ?? 0) > 0 && (
+                <Notice status="error">
+                  {daInviare === 1
+                    ? 'C’è 1 modifica dell’allenamento non ancora inviata al server: uscendo ora la perdi.'
+                    : `Ci sono ${daInviare} modifiche dell’allenamento non ancora inviate al server: uscendo ora le perdi.`}{' '}
+                  Aspetta di essere online e che l’aggiornamento finisca.
+                </Notice>
+              )}
               <div className={styles.azioni}>
                 <Button variant="destructive" onClick={() => void esci()}>
                   Esci da questo telefono

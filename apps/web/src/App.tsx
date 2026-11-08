@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { useAccesso } from './accesso/contesto'
 import { Accedi } from './pagine/Accedi'
+import { Allenamento } from './pagine/Allenamento'
 import { Amministrazione } from './pagine/Amministrazione'
 import { Atleti } from './pagine/Atleti'
 import { Classifica } from './pagine/Classifica'
@@ -11,9 +12,9 @@ import { DettaglioGara } from './pagine/DettaglioGara'
 import { Risultati } from './pagine/Risultati'
 import { SchedaAtleta } from './pagine/SchedaAtleta'
 import { Gare } from './pagine/Gare'
+import { GiornoAllenamentoPagina } from './pagine/GiornoAllenamento'
 import { Impostazioni } from './pagine/Impostazioni'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
-import { Allenamento } from './pagine/Tab'
 import { Sincronizzazione } from './sync/Sincronizzazione'
 import { Shell } from './Shell'
 
@@ -51,6 +52,7 @@ export function App() {
             element={<ClassificaCompleta />}
           />
           <Route path="allenamento" element={<Allenamento />} />
+          <Route path="allenamento/:giorno" element={<GiornoAllenamentoPagina />} />
           <Route path="impostazioni" element={<Impostazioni />} />
           <Route path="amministrazione" element={<Amministrazione />} />
           <Route path="amministrazione/atleti/:id" element={<DettaglioAtleta />} />
