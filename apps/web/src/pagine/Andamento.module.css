@@ -1,0 +1,70 @@
+.sezione {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.titolo {
+  color: var(--text-secondary);
+  padding-inline: var(--space-16);
+}
+
+.riquadro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.scelte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.scelta {
+  min-height: var(--control-touch);
+  padding: 0 var(--space-16);
+  background: var(--background-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* La scelta attuale si riconosce dal bordo spesso e dal fondo, non solo dal colore. */
+.scelta[aria-checked='true'] {
+  background: var(--state-selected);
+  border: 2px solid var(--accent-default);
+  font-weight: 600;
+}
+
+.tabella summary {
+  min-height: var(--control-touch);
+  display: flex;
+  align-items: center;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.tabella table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-primary);
+}
+
+.tabella th,
+.tabella td {
+  padding: var(--space-8) var(--space-4);
+  text-align: start;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tabella th {
+  color: var(--text-secondary);
+  font-weight: 500;
+}

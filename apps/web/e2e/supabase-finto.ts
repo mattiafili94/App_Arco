@@ -53,7 +53,10 @@ const giornoRelativo = (giorni: number) => {
   return `${d.getFullYear()}-${due(d.getMonth() + 1)}-${due(d.getDate())}`
 }
 
-/** Due gare di prova (una passata, una futura con invito) per sincronizzazione e tab Gare (dati inventati). */
+/**
+ * Tre gare di prova (due passate, una futura con invito) per sincronizzazione, tab Gare e tab Atleti
+ * (dati inventati). La più vecchia, senza PDF, dà a Bruno un secondo punteggio per l'andamento.
+ */
 export const GARE_PROVA = [
   {
     codice: 'R9900001',
@@ -88,6 +91,23 @@ export const GARE_PROVA = [
     ha_invito: true,
     url_risultati: null,
     aggiornato_il: '2026-11-02T10:00:00+00:00',
+  },
+  {
+    codice: 'R9900003',
+    dal: giornoRelativo(-200),
+    al: giornoRelativo(-200),
+    calendario: 'Interregionale',
+    regione: 'Umbria',
+    localita: 'Terni (TR)',
+    tipologia: '18 m',
+    dettaglio: null,
+    societa_codice: '11005',
+    societa_nome: 'Arcieri Ternani',
+    stato: 'omologata',
+    in_calendario_umbria: true,
+    ha_invito: false,
+    url_risultati: null,
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
   },
 ]
 
@@ -151,7 +171,7 @@ export const CLASSIFICA_PROVA = [
   },
 ]
 
-/** Lo storico di Bruno: la gara passata R9900001 (18 m, 534 punti, secondo). */
+/** Lo storico di Bruno: due gare passate da 18 m (534 punti, secondo; 520 punti, quarto). */
 export const PARTECIPAZIONI_PROVA = [
   {
     atleta_id: '10000000-0000-0000-0000-00000000000b',
@@ -161,6 +181,16 @@ export const PARTECIPAZIONI_PROVA = [
     rank: 'SM',
     posizione: 2,
     totale: 534,
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
+  },
+  {
+    atleta_id: '10000000-0000-0000-0000-00000000000b',
+    gara_codice: 'R9900003',
+    divisione: 'OL',
+    classe: 'SM',
+    rank: 'SM',
+    posizione: 4,
+    totale: 520,
     aggiornato_il: '2026-11-01T10:00:00+00:00',
   },
 ]

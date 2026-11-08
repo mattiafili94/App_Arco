@@ -33,11 +33,17 @@ test.describe('tab Atleti', () => {
     const record = page.getByRole('region', { name: 'Record personali' })
     await expect(record.getByRole('link')).toContainText('18 m · Ricurvo')
     await expect(record.getByRole('link')).toContainText('534')
+    // Due punteggi da 18 m: c'è l'andamento, con la media per anno.
+    const andamento = page.getByRole('region', { name: 'Andamento' })
+    await expect(andamento.getByRole('group', { name: 'Andamento 18 m · Ricurvo' })).toBeVisible()
+    await expect(andamento.getByRole('button', { name: /^520 punti/ })).toBeVisible()
+    await andamento.getByRole('button', { name: /^520 punti/ }).click()
+    await expect(andamento).toContainText('520 · Terni (TR)')
     const storico = page.getByRole('region', { name: 'Storico gare' })
-    await expect(storico.getByRole('link')).toContainText('2° posto')
+    await expect(storico.getByRole('link').first()).toContainText('2° posto')
 
     // Dallo storico si apre la gara.
-    await storico.getByRole('link').click()
+    await storico.getByRole('link').first().click()
     await expect(page.getByText('Tipologia')).toBeVisible()
   })
 
@@ -65,6 +71,12 @@ test.describe('tab Atleti', () => {
         await expect(
           page.getByRole('region', { name: 'Record personali' }).getByRole('link'),
         ).toBeVisible()
+        // Anche il grafico dell'andamento, e la tabella aperta, devono essere accessibili.
+        const andamento = page.getByRole('region', { name: 'Andamento' })
+        await expect(
+          andamento.getByRole('group', { name: 'Andamento 18 m · Ricurvo' }),
+        ).toBeVisible()
+        await andamento.getByText('Mostra come tabella').click()
         await controllaAccessibilita(page)
       })
     }
