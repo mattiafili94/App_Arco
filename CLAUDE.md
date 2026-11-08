@@ -103,8 +103,15 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   `ANNI_CLASSIFICHE_COMPLETE = 1`); le letture rimaste in lista per gare più vecchie escono senza richieste.
   **Inviti**: solo per le gare future dell'Umbria (promemoria iscrizioni); per le gare passate si legge solo la
   scheda, una volta, per il link al PDF. Per le gare più vecchie della finestra si tengono
-  solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
-  da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
+  solo le righe degli Eugubini, **anche di chi non è ancora nell'app** (società 11003: quando entra avrà i
+  dettagli), con parziali e prove. A inizio anno il server riduce da solo la stagione uscita dalla finestra
+  (`pota_classifiche`) e toglie le gare uscite dalla finestra senza nostri atleti (`pota_gare`). Lo storico
+  dalla scheda atleta resta intero.
+  **Quali gare si leggono** (scheda gara + PDF, Mattia 9/11/2026, `DATA_AVVIO` = 7/11/2026, primo accesso
+  dell'amministratore): le gare finite **prima** dell'avvio solo se le ha fatte un nostro atleta (dallo
+  storico); le gare dell'Umbria **dall'avvio in poi** tutte, chiunque abbia partecipato (`garaRilevante`).
+  **Atleta che entra dopo**: alla lettura della sua scheda il server collega a lui le sue righe nelle
+  classifiche già salvate (`collega_righe`, per cognome + nome + società 11003): niente da riscaricare.
   **Per risparmiare richieste** (Mattia, 8/11/2026): le gare più vecchie della finestra si conoscono SOLO dallo
   storico della scheda atleta (una richiesta per atleta): niente calendari, schede gara né PDF per loro (un
   arciere che tira dal 2009 non costa ~500 richieste). Compromesso: per quelle gare ci sono totale e posizione
