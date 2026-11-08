@@ -378,3 +378,102 @@ describe('allenamento: nei due sensi', () => {
     expect(await db.allenamento_giorni.count()).toBe(0)
   })
 })
+
+describe('simulazioni: nei due sensi, come l’allenamento', () => {
+  const ATLETA = '10000000-0000-0000-0000-00000000000b'
+  const ID = '20000000-0000-0000-0000-000000000001'
+  const simulazione = (dati: Record<string, unknown> = {}) => ({
+    id: ID,
+    atleta_id: ATLETA,
+    giorno: '2026-11-12',
+    formato: '18m',
+    distanza: null,
+    bersaglio: 'trispot',
+    frecce: ['10', '9'],
+    conclusa: false,
+    eliminata: false,
+    creata_il: quando(60),
+    modificato_il: quando(30),
+    ...dati,
+  })
+  const locale = (dati: Record<string, unknown> = {}) =>
+    db.simulazioni.put({ ...simulazione(dati), da_inviare: 1 })
+
+  beforeEach(() => {
+    remoto.orologio = () => ORA
+  })
+
+  it('la simulazione fatta sul telefono va al server, senza il segno "da_inviare"', async () => {
+    await locale({ frecce: ['10', '9', 'M'], modificato_il: quando(5) })
+    const esito = await sincronizza(remoto, db, adesso)
+    expect(esito.inviate).toBe(1)
+    expect(remoto.salvataggiSimulazioni).toHaveLength(1)
+    expect(remoto.salvataggiSimulazioni[0]).not.toHaveProperty('da_inviare')
+    expect(remoto.righe.simulazioni[0]).toMatchObject({ id: ID, frecce: ['10', '9', 'M'] })
+    const salvata = (await db.simulazioni.get(ID))!
+    expect(salvata.da_inviare).toBeUndefined()
+    expect(salvata.aggiornato_il).toBe(new Date(ORA).toISOString())
+  })
+
+  it('scarica le simulazioni fatte su un altro telefono', async () => {
+    remoto.scrivi('simulazioni', simulazione({ aggiornato_il: quando(10) }))
+    await sincronizza(remoto, db, adesso)
+    expect((await db.simulazioni.get(ID))?.frecce).toEqual(['10', '9'])
+  })
+
+  it('vince la modifica più recente, in tutti e due i sensi', async () => {
+    remoto.scrivi(
+      'simulazioni',
+      simulazione({ frecce: ['10'], modificato_il: quando(1), aggiornato_il: quando(1) }),
+    )
+    await locale({ frecce: ['10', '9', '8'], modificato_il: quando(10) })
+    await sincronizza(remoto, db, adesso)
+    // Il server aveva una modifica più recente: il telefono si adegua.
+    expect((await db.simulazioni.get(ID))?.frecce).toEqual(['10'])
+
+    await locale({ frecce: ['10', '9'], modificato_il: quando(0) })
+    await sincronizza(remoto, db, adesso)
+    expect(remoto.righe.simulazioni[0]!.frecce).toEqual(['10', '9'])
+  })
+
+  it('una simulazione con modifiche non inviate non si sovrascrive col server', async () => {
+    remoto.scrivi(
+      'simulazioni',
+      simulazione({ frecce: ['1'], modificato_il: quando(1), aggiornato_il: quando(1) }),
+    )
+    await locale({ frecce: ['10', '9', '8'], modificato_il: quando(2) })
+    remoto.salvaSimulazione = async () => {
+      throw new Error('server in manutenzione')
+    }
+    await expect(sincronizza(remoto, db, adesso)).rejects.toThrow('server in manutenzione')
+    const rimasta = (await db.simulazioni.get(ID))!
+    expect(rimasta.frecce).toEqual(['10', '9', '8'])
+    expect(rimasta.da_inviare).toBe(1)
+  })
+
+  it('allenamento e simulazioni partono insieme; se una tabella fallisce l’altra arriva lo stesso', async () => {
+    await db.allenamento_giorni.put({
+      atleta_id: ATLETA,
+      giorno: '2026-11-12',
+      programma: 'x',
+      fatto: false,
+      frecce_libere: 0,
+      nota: '',
+      modificato_il: quando(5),
+      da_inviare: 1,
+    })
+    await locale({ modificato_il: quando(5) })
+    remoto.salvaSimulazione = async () => {
+      throw new Error('no')
+    }
+    await expect(sincronizza(remoto, db, adesso)).rejects.toThrow('no')
+    expect(remoto.righe.allenamento_giorni).toHaveLength(1)
+    expect((await db.simulazioni.get(ID))?.da_inviare).toBe(1)
+  })
+
+  it('all’uscita le simulazioni si svuotano con tutto il resto', async () => {
+    await locale()
+    await svuotaDb(db)
+    expect(await db.simulazioni.count()).toBe(0)
+  })
+})

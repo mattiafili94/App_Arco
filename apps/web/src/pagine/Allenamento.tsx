@@ -6,6 +6,7 @@ import {
   descriviSettimana,
   etichettaGiorno,
   frecceDelGiorno,
+  frecceDelleSimulazioni,
   giorniDellaSettimana,
   inizioSettimana,
   riepilogoSettimana,
@@ -13,7 +14,7 @@ import {
 } from '@arco/shared'
 import { useAtletaCorrente } from '../accesso/contesto'
 import { copiaSettimanaScorsa } from '../allenamento/scrittura'
-import { useSettimanaAllenamento } from '../allenamento/dati'
+import { useSettimanaAllenamento, useSimulazioniSettimana } from '../allenamento/dati'
 import { Button } from '../componenti/Button'
 import { IconLink } from '../componenti/IconLink'
 import { ListGroup, ListRow } from '../componenti/List'
@@ -59,6 +60,7 @@ export function Allenamento() {
   const inizio = inizioSettimana(richiesta && RE_GIORNO.test(richiesta) ? richiesta : oggi)
   const questaSettimana = inizioSettimana(oggi)
   const giorni = useSettimanaAllenamento(inizio)
+  const simulazioni = useSimulazioniSettimana(inizio)
   const annoCorrente = Number(oggi.slice(0, 4))
 
   const verso = (settimana: string) => `/allenamento?settimana=${settimana}`
@@ -82,7 +84,10 @@ export function Allenamento() {
   }
 
   const perGiorno = new Map((giorni ?? []).map((g) => [g.giorno, g]))
-  const riepilogo = riepilogoSettimana(giorni ?? [])
+  const frecceSimulazioni = frecceDelleSimulazioni(simulazioni ?? [])
+  const riepilogo = riepilogoSettimana(giorni ?? [], frecceSimulazioni)
+  const frecceSimulazioniDelGiorno = (g: string) =>
+    frecceSimulazioni.filter((x) => x.giorno === g).reduce((t, x) => t + x.frecce, 0)
 
   return (
     <PaginaTab title="Allenamento">
@@ -110,7 +115,7 @@ export function Allenamento() {
           </div>
         )}
 
-        {giorni !== undefined && (
+        {giorni !== undefined && simulazioni !== undefined && (
           <>
             <ListGroup title="Riepilogo della settimana">
               <ListRow
@@ -124,7 +129,7 @@ export function Allenamento() {
             <ListGroup title="Giorni">
               {giorniDellaSettimana(inizio).map((g) => {
                 const riga = perGiorno.get(g)
-                const frecce = frecceDelGiorno(riga)
+                const frecce = frecceDelGiorno(riga, frecceSimulazioniDelGiorno(g))
                 return (
                   <ListRow
                     key={g}

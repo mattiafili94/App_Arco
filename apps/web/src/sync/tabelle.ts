@@ -5,7 +5,14 @@
  */
 
 export type NomeTabella =
-  'atleti' | 'gare' | 'inviti' | 'partecipazioni' | 'classifiche' | 'ranking' | 'allenamento_giorni'
+  | 'atleti'
+  | 'gare'
+  | 'inviti'
+  | 'partecipazioni'
+  | 'classifiche'
+  | 'ranking'
+  | 'allenamento_giorni'
+  | 'simulazioni'
 
 export interface DefinizioneTabella {
   nome: NomeTabella
@@ -31,6 +38,8 @@ export const TABELLE: readonly DefinizioneTabella[] = [
   // Privato: il server restituisce solo le righe dell'atleta collegato. Si scrive anche dal telefono
   // (vedi motore.ts, "inviaModifiche").
   { nome: 'allenamento_giorni', chiave: ['atleta_id', 'giorno'], colonne: '*' },
+  // Privato e scrivibile come l'allenamento: le simulazioni di gara con tutte le frecce.
+  { nome: 'simulazioni', chiave: ['id'], colonne: '*' },
 ]
 
 export type Riga = Record<string, unknown>

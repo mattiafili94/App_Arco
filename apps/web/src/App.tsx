@@ -11,9 +11,11 @@ import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { DettaglioGara } from './pagine/DettaglioGara'
 import { Risultati } from './pagine/Risultati'
 import { SchedaAtleta } from './pagine/SchedaAtleta'
+import { SimulazionePagina } from './pagine/SimulazionePagina'
 import { Gare } from './pagine/Gare'
 import { GiornoAllenamentoPagina } from './pagine/GiornoAllenamento'
 import { Impostazioni } from './pagine/Impostazioni'
+import { NuovaSimulazionePagina } from './pagine/NuovaSimulazione'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
 import { Sincronizzazione } from './sync/Sincronizzazione'
 import { Shell } from './Shell'
@@ -53,6 +55,8 @@ export function App() {
           />
           <Route path="allenamento" element={<Allenamento />} />
           <Route path="allenamento/:giorno" element={<GiornoAllenamentoPagina />} />
+          <Route path="allenamento/:giorno/nuova" element={<NuovaSimulazionePagina />} />
+          <Route path="allenamento/:giorno/simulazione/:id" element={<SimulazionePagina />} />
           <Route path="impostazioni" element={<Impostazioni />} />
           <Route path="amministrazione" element={<Amministrazione />} />
           <Route path="amministrazione/atleti/:id" element={<DettaglioAtleta />} />

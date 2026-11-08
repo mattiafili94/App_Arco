@@ -45,6 +45,24 @@ export function creaRemotoSupabase(supabase: SupabaseClient): Remoto {
       ) as Riga
     },
 
+    async salvaSimulazione(x) {
+      return controlla(
+        await supabase.rpc('salva_simulazione', {
+          p_id: x.id,
+          p_atleta: x.atleta_id,
+          p_giorno: x.giorno,
+          p_formato: x.formato,
+          p_distanza: x.distanza,
+          p_bersaglio: x.bersaglio,
+          p_frecce: x.frecce,
+          p_conclusa: x.conclusa,
+          p_eliminata: x.eliminata,
+          p_creata_il: x.creata_il,
+          p_modificato_il: x.modificato_il,
+        }),
+      ) as Riga
+    },
+
     async ultimaEliminazione() {
       const righe = controlla(
         await supabase.from('eliminazioni').select('id').order('id', { ascending: false }).limit(1),

@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import { Navigate, useParams } from 'react-router'
+import { useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router'
 import {
+  ETICHETTE_BERSAGLIO,
   etichettaGiorno,
+  frecceDelleSimulazioni,
+  nomeSimulazione,
+  riepilogoSimulazione,
+  type Simulazione,
   frecceDelGiorno,
   inizioSettimana,
   leggiFrecce,
@@ -10,10 +15,13 @@ import {
   type GiornoAllenamento,
 } from '@arco/shared'
 import { useAtletaCorrente } from '../accesso/contesto'
-import { useGiornoAllenamento } from '../allenamento/dati'
+import { useGiornoAllenamento, useSimulazioniGiorno } from '../allenamento/dati'
+import { useInvioDifferito } from '../allenamento/invioDifferito'
 import { salvaGiorno, type CampiGiorno } from '../allenamento/scrittura'
+import { Button } from '../componenti/Button'
 import { Checkbox } from '../componenti/Checkbox'
 import { Field } from '../componenti/Field'
+import { ListGroup, ListRow } from '../componenti/List'
 import { PageHeader } from '../componenti/PageHeader'
 import { Textarea } from '../componenti/Textarea'
 import { oggi as oggiIn } from '../gare/dati'
@@ -21,13 +29,50 @@ import { useSincronizzazione } from '../sync/contesto'
 import styles from './Allenamento.module.css'
 
 const RE_GIORNO = /^\d{4}-\d{2}-\d{2}$/
-/** Dopo l'ultima modifica si aspetta un attimo prima di inviare al server (non a ogni lettera). */
-const ATTESA_INVIO_MS = 1500
+
+/** Le simulazioni di gara del giorno e il pulsante per iniziarne una nuova. */
+function ElencoSimulazioni({
+  giorno,
+  simulazioni,
+}: {
+  giorno: string
+  simulazioni: Simulazione[]
+}) {
+  const vai = useNavigate()
+  return (
+    <div className={styles.simulazioni}>
+      <ListGroup title="Simulazioni di gara">
+        {simulazioni.length === 0 ? (
+          <ListRow
+            label="Nessuna simulazione"
+            description="Tira una gara in allenamento e segna le frecce: si sommano alle frecce del giorno."
+          />
+        ) : (
+          simulazioni.map((s) => {
+            const r = riepilogoSimulazione(s)
+            return (
+              <ListRow
+                key={s.id}
+                label={`${nomeSimulazione(s)} · ${ETICHETTE_BERSAGLIO[s.bersaglio]}`}
+                value={String(r.totale)}
+                description={`${r.frecceSegnate} frecce di ${r.frecceTotali} · ${r.completa ? 'Conclusa' : 'In corso'}`}
+                href={`/allenamento/${giorno}/simulazione/${s.id}`}
+              />
+            )
+          })
+        )}
+      </ListGroup>
+      <Button variant="primary" onClick={() => vai(`/allenamento/${giorno}/nuova`)}>
+        Nuova simulazione
+      </Button>
+    </div>
+  )
+}
 
 /** Il giorno scelto: cosa fare, fatto, frecce libere e nota. Ogni modifica si salva subito sul telefono. */
 function Modulo({ giorno, riga }: { giorno: string; riga: GiornoAllenamento | null }) {
   const io = useAtletaCorrente()
-  const { db, modificato } = useSincronizzazione()
+  const { db } = useSincronizzazione()
   const [programma, setProgramma] = useState(riga?.programma ?? '')
   const [nota, setNota] = useState(riga?.nota ?? '')
   const [fatto, setFatto] = useState(riga?.fatto ?? false)
@@ -46,37 +91,25 @@ function Modulo({ giorno, riga }: { giorno: string; riga: GiornoAllenamento | nu
   const valoreFrecce = leggiFrecce(frecce)
   const annoCorrente = Number(oggiIn().slice(0, 4))
 
-  // L'invio al server parte un attimo dopo l'ultima modifica, e comunque lasciando la pagina.
-  const timer = useRef<number | null>(null)
-  const inAttesa = useRef(false)
-  const programmaInvio = () => {
-    inAttesa.current = true
-    if (timer.current !== null) window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => {
-      inAttesa.current = false
-      modificato()
-    }, ATTESA_INVIO_MS)
-  }
-  useEffect(
-    () => () => {
-      if (timer.current !== null) window.clearTimeout(timer.current)
-      if (inAttesa.current) modificato()
-    },
-    [modificato],
-  )
+  const programmaInvio = useInvioDifferito()
 
   const salva = (campi: CampiGiorno) => {
     void salvaGiorno(db, io.id, giorno, campi).then(programmaInvio)
   }
 
-  const totale = frecceDelGiorno({ frecce_libere: valoreFrecce ?? 0 })
+  const simulazioni = useSimulazioniGiorno(giorno)
+  const frecceSimulazioni = frecceDelleSimulazioni(simulazioni ?? []).reduce(
+    (t, x) => t + x.frecce,
+    0,
+  )
+  const totale = frecceDelGiorno({ frecce_libere: valoreFrecce ?? 0 }, frecceSimulazioni)
 
   return (
     <>
       <PageHeader
         title={etichettaGiorno(giorno, annoCorrente)}
         back={{ label: 'Allenamento', href: `/allenamento?settimana=${inizioSettimana(giorno)}` }}
-        description={totale > 0 ? `${totale} frecce` : undefined}
+        description={totale > 0 ? `${totale} frecce in tutto` : undefined}
       />
       <div className={styles.modulo}>
         <Textarea
@@ -130,6 +163,7 @@ function Modulo({ giorno, riga }: { giorno: string; riga: GiornoAllenamento | nu
               : 'Salvato.'}
         </p>
       </div>
+      {simulazioni !== undefined && <ElencoSimulazioni giorno={giorno} simulazioni={simulazioni} />}
     </>
   )
 }
