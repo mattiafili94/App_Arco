@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { ErroreFormatoFitarco, leggiRisultati, type RigaTesto } from '../fitarco'
+import {
+  CODICE_SOCIETA_ESTERA,
+  ErroreFormatoFitarco,
+  leggiRisultati,
+  type RigaTesto,
+} from '../fitarco'
 import { esempioRisultati, type EsempioRisultati } from './esempi'
 
 const leggi = (nome: EsempioRisultati) => leggiRisultati(esempioRisultati(nome))
@@ -243,6 +248,35 @@ describe('lettore dei PDF dei risultati: formati inattesi', () => {
     expect(() =>
       leggiRisultati([...testata, r(700, 'Arco Nudo - Senior'), r(690, ATLETA)]),
     ).toThrow('Riga atleta prima delle colonne')
+  })
+
+  it('accetta gli atleti di società estere (paese al posto del codice)', () => {
+    // Riga vera della gara R2611001 (pagina 2), con nomi finti.
+    const estero = semplice(
+      r(680, ATLETA),
+      r(670, '1 3- 2B ESEMPIO-NOME Prova 04 ESTONIA Club Esempio 292/ 1 294/ 1 586 46 14'),
+      r(660, '2 3- 3B FINTO Mario 02 SAN MARINO Arcieri Esempio 280/ 2 270/ 2 550 20 18'),
+    ).categorie[0]!.atleti
+    expect(estero.map((a) => a.societa.codice)).toEqual([
+      '11003',
+      CODICE_SOCIETA_ESTERA,
+      CODICE_SOCIETA_ESTERA,
+    ])
+    expect(estero[1]).toMatchObject({
+      turno: '3-2B',
+      nomeCompleto: 'ESEMPIO-NOME Prova',
+      cognome: 'ESEMPIO-NOME',
+      nome: 'Prova',
+      categoria: '04',
+      societa: { codice: '00000', nome: 'ESTONIA Club Esempio' },
+      totale: 586,
+      conteggi: [46, 14],
+    })
+    expect(estero[2]!.societa.nome).toBe('SAN MARINO Arcieri Esempio')
+    // Senza la colonna "Cat." non si capisce dove finisce il nome: la sentinella si ferma.
+    expect(() =>
+      semplice(r(680, '1 3- 2B ESEMPIO Prova ESTONIA Club 292/ 1 294/ 1 586 46 14')),
+    ).toThrow('Riga atleta non riconosciuta')
   })
 
   it('si ferma se una riga atleta non torna', () => {

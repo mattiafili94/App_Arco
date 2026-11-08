@@ -266,7 +266,10 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         nella riga **sopra** (prima prova) e **sotto** (seconda), abbinate per vicinanza (~6 punti);
       - casi veri gestiti: "DNF" (ritirato, parziale senza posizione), colonna "Cat." a volte vuota,
         classe dell'atleta dopo il nome ("Rita MF", "Brando GM"), "… Continua" nella pagina dopo,
-        "Arco Olimpico", gare annullate senza PDF (il link dà una pagina 404: errore "non è un PDF");
+        "Arco Olimpico", gare annullate senza PDF (il link dà una pagina 404: errore "non è un PDF"),
+        atleti di club esteri (paese al posto del codice società, es. "04 ESTONIA Club…": codice
+        `CODICE_SOCIETA_ESTERA` = "00000", il paese resta nel nome della società; scelta di Mattia,
+        8/11/2026, così il database non cambia);
       - sentinella: la somma dei parziali deve fare il totale (e le due prove il totale); una divisione
         sconosciuta o una riga atleta che non torna fermano la lettura con `ErroreFormatoFitarco`;
       - esempi: le righe di testo di 7 PDF veri (18 m, 70 m, 12+12, 3D, doppio 70 m, 24+24 del 2022,
