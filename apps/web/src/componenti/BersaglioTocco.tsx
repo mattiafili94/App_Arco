@@ -4,7 +4,7 @@ import {
   arrotondaPosizione,
   limitaPosizione,
   valoreDaPosizione,
-  type Bersaglio,
+  type BersaglioConAnelli,
   type Posizione,
   type ValoreFreccia,
 } from '@arco/shared'
@@ -20,7 +20,7 @@ export interface PuntoSuBersaglio {
 }
 
 export interface BersaglioToccoProps {
-  bersaglio: Bersaglio
+  bersaglio: BersaglioConAnelli
   compound: boolean
   punti: readonly PuntoSuBersaglio[]
   /** Chiamata quando si alza il dito: il punto e il valore che ha. Senza, il bersaglio è solo da guardare. */
@@ -46,7 +46,7 @@ const classeAnello = (valore: ValoreFreccia): string => {
 }
 
 /** Gli anelli (dal più grande al più piccolo, per sovrapporli bene). */
-function Anelli({ bersaglio, compound }: { bersaglio: Bersaglio; compound: boolean }) {
+function Anelli({ bersaglio, compound }: { bersaglio: BersaglioConAnelli; compound: boolean }) {
   const lista = anelli(bersaglio, compound)
   return (
     <>

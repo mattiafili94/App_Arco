@@ -14,7 +14,7 @@
  * - **Compound all'indoor**: conta come 10 solo l'anello piccolo interno (la metà del 10); il resto dell'anello
  *   del 10 vale 9. All'outdoor non cambia niente (c'è la X).
  */
-import type { Bersaglio, ValoreFreccia } from './segnapunti'
+import type { BersaglioConAnelli, ValoreFreccia } from './segnapunti'
 
 /** Un punto sul bersaglio: [x, y] normalizzati. */
 export type Posizione = readonly [number, number]
@@ -28,13 +28,23 @@ export interface Anello {
 const VALORI_ANELLI: ValoreFreccia[] = ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1']
 
 /** Quanti anelli ha la faccia di ogni bersaglio (senza contare la X). */
-const NUMERO_ANELLI: Record<Bersaglio, number> = { singolo: 10, trispot: 5, '122': 10, '80': 6 }
+const NUMERO_ANELLI: Record<BersaglioConAnelli, number> = {
+  singolo: 10,
+  trispot: 5,
+  '122': 10,
+  '80': 6,
+}
 
 /** Il bersaglio ha la X (gli anelli del 10 e della X). */
-const HA_X: Record<Bersaglio, boolean> = { singolo: false, trispot: false, '122': true, '80': true }
+const HA_X: Record<BersaglioConAnelli, boolean> = {
+  singolo: false,
+  trispot: false,
+  '122': true,
+  '80': true,
+}
 
 /** Gli anelli di un bersaglio, dal centro all'esterno. `compound` vale solo per l'indoor. */
-export function anelli(bersaglio: Bersaglio, compound = false): Anello[] {
+export function anelli(bersaglio: BersaglioConAnelli, compound = false): Anello[] {
   const n = NUMERO_ANELLI[bersaglio]
   const larghezza = 1 / n
   const risultato: Anello[] = []
@@ -57,7 +67,7 @@ export const distanzaDalCentro = (p: Posizione) => Math.hypot(p[0], p[1])
 
 /** Il valore di una freccia che cade in questo punto: la mancata (M) fuori dalla faccia. */
 export function valoreDaPosizione(
-  bersaglio: Bersaglio,
+  bersaglio: BersaglioConAnelli,
   compound: boolean,
   p: Posizione,
 ): ValoreFreccia {

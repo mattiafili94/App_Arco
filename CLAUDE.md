@@ -154,7 +154,7 @@ Nello storico la gara resta una sola, con totale e posizione.
 - Inserimento con tocco sul bersaglio (posizione della freccia, lente d'ingrandimento) + tastierino veloce;
   per il 3D solo tastierino.
 - Timer della volée con segnale acustico, note per volée, confronto media allenamento / gara.
-- Le regole di punteggio di 3D e Hunter & Field vanno **confermate con Mattia** prima di scriverle.
+- Regole di campagna e 3D confermate da Mattia il 15/11/2026 (vedi 6.3b): per piazzola, 3 frecce a piazzola.
 
 ### Rapporto con il sito Fitarco
 - Si leggono solo **dati pubblici**, poco e di rado, con cache. Niente area riservata Fitarco.
@@ -520,8 +520,27 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         `p_compound` (null = restano com'erano). **Elenco delle volée**: da tabella a elenco (`ol`) perché su
         telefono la colonna delle frecce si spezzava in verticale. Alternativa da tastiera: il tastierino (il
         bersaglio è `role="img"`);
-      - **6.3b** campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24) e 3D (3 frecce a piazzola, punteggi
-        11/10/8/5/0), con confronto media allenamento/gara.
+      - **6.3b ✅** campagna e 3D, con confronto tra le medie. **Regole** (Mattia, 15/11/2026): si tira per
+        **piazzola**, **3 frecce a piazzola**, solo tastierino (niente tocco sul bersaglio) e **niente timer**.
+        *Campagna* (Hunter & Field): punteggi **6…1** e M; **12+12** = 24 piazzole = 72 frecce, **24+24** = 48
+        piazzole = 144 frecce, una prova sola (il 24+24 non si divide); in fondo si contano **6 e 5**; i due
+        parziali sono le due metà (12+12: 36 + 36; 24+24: 72 + 72). *3D*: 24 piazzole = 72 frecce, punteggi
+        **11, 10, 8, 5** e M (zero); in fondo si contano **11 e 10**. Se un giorno cambiano (es. il 3D con meno
+        frecce per piazzola) basta cambiare le costanti `PROVA_CAMPAGNA_12`, `PROVA_CAMPAGNA_24` e `PROVA_3D` in
+        `packages/shared/src/segnapunti.ts` (e il tetto di frecce in una nuova migrazione).
+        Migrazione `20261115120000_simulazioni_campagna_3d.sql`: cambiano solo i vincoli (formati `12+12`,
+        `24+24`, `3d`; bersagli `campagna` e `3d`, senza distanza; valori e numero di frecce per bersaglio);
+        `salva_simulazione` e le colonne restano uguali, quindi le app vecchie non si rompono.
+        Nel codice: `Bersaglio` ora include `campagna` e `3d`; `BersaglioConAnelli` (singolo, trispot, 122, 80)
+        è l'unico che si può toccare (`eBersaglioConAnelli`); `Prova.distanza` è `null` per campagna e 3D;
+        `eAPiazzole`/`haTimer`/`unitaDiTiro` (volée o piazzola, con il plurale) guidano i testi dell'app.
+        **Confronto con le gare** (`packages/shared/src/confronto.ts`, `pagine/ConfrontoMedie.tsx`, dentro il
+        riepilogo): una riga per prova (il 25+18 ne ha due) con la **media per freccia** (due decimali) di
+        questa simulazione, delle **altre simulazioni** dello stesso tipo (stesso formato, distanza, bersaglio e
+        compound; solo prove tirate fino in fondo, mai le cancellate né quella in corso) e delle **ultime 5 gare**
+        della stessa prova con **un solo arco** (il compound se la simulazione è compound, altrimenti l'arco
+        dell'ultima gara). Per le gare il numero di frecce è quello del formato della simulazione. Non compare
+        se non c'è niente con cui confrontare. Tutto dai dati del telefono, anche offline.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

@@ -5,7 +5,10 @@ import {
   ETICHETTE_BERSAGLIO,
   allineaPosizioni,
   durataTiroMs,
+  eAPiazzole,
+  eBersaglioConAnelli,
   etichetteConteggi,
+  haTimer,
   NOTA_VOLEE_MASSIMA,
   notaVolee,
   etichettaGiorno,
@@ -13,6 +16,7 @@ import {
   puntiFreccia,
   riepilogoSimulazione,
   statoTiro,
+  unitaDiTiro,
   valoriAmmessi,
   type Posizione,
   type Simulazione,
@@ -29,6 +33,7 @@ import {
 } from '../allenamento/simulazioni'
 import { BersaglioTocco, type PuntoSuBersaglio } from '../componenti/BersaglioTocco'
 import { Button } from '../componenti/Button'
+import { ConfrontoMedie } from './ConfrontoMedie'
 import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
@@ -43,6 +48,7 @@ import styles from './SimulazionePagina.module.css'
 /** Il colore della zona del bersaglio in cui cade il valore (la X e il 10 sono oro, come il bersaglio). */
 const ZONA: Record<ValoreFreccia, string> = {
   X: 'oro',
+  '11': 'oro',
   '10': 'oro',
   '9': 'oro',
   '8': 'rosso',
@@ -55,6 +61,9 @@ const ZONA: Record<ValoreFreccia, string> = {
   '1': 'bianco',
   M: 'mancata',
 }
+
+/** " · 70 m" se la prova ha una distanza (campagna e 3D no). */
+const metri = (distanza: number | null) => (distanza === null ? '' : ` · ${distanza} m`)
 
 /** La zona di un valore: oro, rosso, blu, nero, bianco o mancata. */
 const classeZona = (v: ValoreFreccia) => styles[ZONA[v]!]!
@@ -157,6 +166,10 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const stato = statoTiro(s)
   const valori = valoriAmmessi(s.bersaglio)
   const [nome1, nome2] = etichetteConteggi(s.formato)
+  const unita = unitaDiTiro(s.formato)
+  // Il bersaglio da toccare esiste solo per indoor e outdoor; campagna e 3D hanno solo il tastierino.
+  const conAnelli = eBersaglioConAnelli(s.bersaglio) ? s.bersaglio : null
+  const modoEffettivo: Modo = conAnelli === null ? 'tastierino' : modo
 
   const premi = async (v: ValoreFreccia, posizione: Posizione | null = null) => {
     if (selezionata !== null) {
@@ -218,12 +231,16 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
 
   const dove = stato.finita
     ? 'Tutte le frecce sono state segnate'
-    : `${stato.prove > 1 ? `Prova ${stato.prova + 1} di ${stato.prove} · ` : ''}${stato.distanza} m · Volée ${stato.volee} di ${stato.voleeTotali}`
+    : `${stato.prove > 1 ? `Prova ${stato.prova + 1} di ${stato.prove} · ` : ''}${stato.distanza === null ? '' : `${stato.distanza} m · `}${unita.maiuscolo} ${stato.volee} di ${stato.voleeTotali}`
 
   return (
     <>
       <PageHeader
-        title={`${nomeSimulazione(s)} · ${ETICHETTE_BERSAGLIO[s.bersaglio]}`}
+        title={
+          eAPiazzole(s.formato)
+            ? nomeSimulazione(s)
+            : `${nomeSimulazione(s)} · ${ETICHETTE_BERSAGLIO[s.bersaglio]}`
+        }
         back={{
           label: etichettaGiorno(s.giorno, annoCorrente),
           href: `/allenamento/${s.giorno}`,
@@ -231,7 +248,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
         description={dove}
       />
       <div className={styles.pagina}>
-        <section className={styles.volee} aria-label="Volée in corso">
+        <section className={styles.volee} aria-label={`${unita.maiuscolo} in corso`}>
           <div className={styles.frecce}>
             {Array.from({ length: provaInCorso.prova.frecceVolee }, (_, i) => (
               <Casella
@@ -240,29 +257,29 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                 indice={primaDellaVolee + i}
                 selezionata={selezionata === primaDellaVolee + i}
                 onScegli={setSelezionata}
-                etichetta={`Freccia ${i + 1} della volée ${stato.volee}`}
+                etichetta={`Freccia ${i + 1} della ${unita.minuscolo} ${stato.volee}`}
               />
             ))}
           </div>
           <p className={`type-caption ${styles.nota}`} aria-live="polite">
-            {`Volée: ${totaleVolee}${precedente === undefined ? '' : ` · Volée precedente: ${precedente}`} · Totale: ${r.totale} · ${r.frecceSegnate} frecce su ${r.frecceTotali}`}
+            {`${unita.maiuscolo}: ${totaleVolee}${precedente === undefined ? '' : ` · ${unita.maiuscolo} precedente: ${precedente}`} · Totale: ${r.totale} · ${r.frecceSegnate} frecce su ${r.frecceTotali}`}
           </p>
         </section>
 
-        {!stato.finita && <TimerVolee durataTiro={durataTiroMs(s.formato)} />}
+        {!stato.finita && haTimer(s.formato) && <TimerVolee durataTiro={durataTiroMs(s.formato)} />}
 
         <details className={styles.dettagli}>
           <summary>
             {notaVolee(s, indiceVoleeInCorso) === ''
-              ? `Nota della volée ${stato.volee} (facoltativa)`
-              : `Nota della volée ${stato.volee}: ${notaVolee(s, indiceVoleeInCorso)}`}
+              ? `Nota della ${unita.minuscolo} ${stato.volee} (facoltativa)`
+              : `Nota della ${unita.minuscolo} ${stato.volee}: ${notaVolee(s, indiceVoleeInCorso)}`}
           </summary>
           {/* `key`: cambiando volée si riparte dalla nota di quella volée. */}
           <NotaVolee
             key={indiceVoleeInCorso}
             indice={indiceVoleeInCorso}
             testo={notaVolee(s, indiceVoleeInCorso)}
-            etichetta={`Nota della volée ${stato.volee}`}
+            etichetta={`Nota della ${unita.minuscolo} ${stato.volee}`}
             onSalva={salvaNota}
           />
         </details>
@@ -276,18 +293,20 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
           </Notice>
         )}
 
-        <Scelte
-          label="Come segni le frecce"
-          opzioni={[
-            { valore: 'tastierino', etichetta: 'Tastierino' },
-            { valore: 'bersaglio', etichetta: 'Bersaglio' },
-          ]}
-          valore={modo}
-          onChange={(v) => impostaModo(v === 'bersaglio' ? 'bersaglio' : 'tastierino')}
-        />
-        {modo === 'bersaglio' ? (
+        {conAnelli !== null && (
+          <Scelte
+            label="Come segni le frecce"
+            opzioni={[
+              { valore: 'tastierino', etichetta: 'Tastierino' },
+              { valore: 'bersaglio', etichetta: 'Bersaglio' },
+            ]}
+            valore={modo}
+            onChange={(v) => impostaModo(v === 'bersaglio' ? 'bersaglio' : 'tastierino')}
+          />
+        )}
+        {modoEffettivo === 'bersaglio' && conAnelli !== null ? (
           <BersaglioTocco
-            bersaglio={s.bersaglio}
+            bersaglio={conAnelli}
             compound={s.compound ?? false}
             punti={puntiProva}
             onSegna={(posizione, valore) => void premi(valore, posizione)}
@@ -299,7 +318,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
             className={styles.tastierino}
             role="group"
             aria-label="Valore della freccia"
-            data-colonne={valori.length > 8 ? 4 : 3}
+            data-colonne={valori.length > 8 || s.bersaglio === 'campagna' ? 4 : 3}
           >
             {valori.map((v) => (
               <button
@@ -331,7 +350,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                 <ListRow
                   key={i}
                   label={
-                    r.prove.length > 1 ? `Prova ${i + 1} · ${p.prova.distanza} m` : 'Punteggio'
+                    r.prove.length > 1 ? `Prova ${i + 1}${metri(p.prova.distanza)}` : 'Punteggio'
                   }
                   value={String(p.totale)}
                   description={`Parziali ${p.parziali[0]} + ${p.parziali[1]}`}
@@ -347,6 +366,8 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
               )}
             </ListGroup>
 
+            <ConfrontoMedie simulazione={s} />
+
             {r.prove.map((p, i) => {
               const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
               const punti: PuntoSuBersaglio[] = s.frecce.flatMap((v, k) => {
@@ -361,7 +382,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                     ]
                   : []
               })
-              if (punti.length === 0) return null
+              if (punti.length === 0 || conAnelli === null) return null
               return (
                 <section
                   key={i}
@@ -374,7 +395,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                       : 'Dove sono arrivate le frecce'}
                   </h2>
                   <BersaglioTocco
-                    bersaglio={s.bersaglio}
+                    bersaglio={conAnelli}
                     compound={s.compound ?? false}
                     punti={punti}
                     etichetta={`Bersaglio con ${punti.length} frecce`}
@@ -383,7 +404,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
               )
             })}
 
-            <section className={styles.elenco} aria-label="Tutte le volée">
+            <section className={styles.elenco} aria-label={`Tutte le ${unita.plurale}`}>
               {r.prove.map((p, i) => {
                 const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
                 const voleePrima = r.prove
@@ -393,11 +414,13 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                 return (
                   <div key={i}>
                     <h2 className={`type-label ${styles.titolo}`}>
-                      {r.prove.length > 1 ? `Prova ${i + 1} · ${p.prova.distanza} m` : 'Volée'}
+                      {r.prove.length > 1
+                        ? `Prova ${i + 1}${metri(p.prova.distanza)}`
+                        : unita.maiuscolo}
                     </h2>
                     <ol
                       className={styles.listaVolee}
-                      aria-label={`Volée${r.prove.length > 1 ? ` della prova ${i + 1}` : ''}`}
+                      aria-label={`${unita.maiuscolo}${r.prove.length > 1 ? ` della prova ${i + 1}` : ''}`}
                     >
                       {p.volee.map((v, j) => {
                         progressivo += v.totale
@@ -406,9 +429,11 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                         return (
                           <li key={j} className={styles.voleeRiga}>
                             <div className={styles.testata}>
-                              <span className={styles.numero}>Volée {j + 1}</span>
+                              <span className={styles.numero}>
+                                {unita.maiuscolo} {j + 1}
+                              </span>
                               <span className={styles.totali}>
-                                {`Volée ${v.totale} · Totale ${progressivo}`}
+                                {`${unita.maiuscolo} ${v.totale} · Totale ${progressivo}`}
                               </span>
                               <button
                                 type="button"
@@ -418,7 +443,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                                   setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
                                 }
                               >
-                                <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>{' '}
+                                <span className="visually-hidden">{`Nota della ${unita.minuscolo} ${j + 1}: `}</span>{' '}
                                 {nota === '' ? 'Aggiungi' : 'Modifica'}
                               </button>
                             </div>
@@ -432,7 +457,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                                     indice={indice}
                                     selezionata={selezionata === indice}
                                     onScegli={setSelezionata}
-                                    etichetta={`Freccia ${k + 1} della volée ${j + 1}`}
+                                    etichetta={`Freccia ${k + 1} della ${unita.minuscolo} ${j + 1}`}
                                   />
                                 )
                               })}
@@ -441,13 +466,13 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                               <NotaVolee
                                 indice={indiceVolee}
                                 testo={nota}
-                                etichetta={`Nota della volée ${j + 1}`}
+                                etichetta={`Nota della ${unita.minuscolo} ${j + 1}`}
                                 onSalva={salvaNota}
                               />
                             ) : (
                               nota !== '' && (
                                 <p className={styles.testoNota}>
-                                  <span className="visually-hidden">{`Nota della volée ${j + 1}: `}</span>
+                                  <span className="visually-hidden">{`Nota della ${unita.minuscolo} ${j + 1}: `}</span>
                                   {nota}
                                 </p>
                               )

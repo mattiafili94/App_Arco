@@ -14,12 +14,13 @@ import {
   allineaPosizioni,
   correggiFrecciaConPosizione,
   togliUltimaConPosizione,
-  type Bersaglio,
+  type BersaglioConAnelli,
   type Simulazione,
   type ValoreFreccia,
 } from './segnapunti'
 
-const a = (b: Bersaglio, compound = false) => anelli(b, compound).map((x) => [x.valore, x.raggio])
+const a = (b: BersaglioConAnelli, compound = false) =>
+  anelli(b, compound).map((x) => [x.valore, x.raggio])
 
 describe('gli anelli di ogni bersaglio', () => {
   it('singolo indoor: 10 anelli larghi uguale, il 10 al centro; niente X', () => {
@@ -79,7 +80,7 @@ describe('gli anelli di ogni bersaglio', () => {
 })
 
 describe('il valore dal punto toccato', () => {
-  const v = (b: Bersaglio, x: number, y: number, compound = false) =>
+  const v = (b: BersaglioConAnelli, x: number, y: number, compound = false) =>
     valoreDaPosizione(b, compound, [x, y])
 
   it('il centro vale il massimo, e la distanza conta in tutte le direzioni', () => {

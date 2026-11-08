@@ -10,14 +10,23 @@
  * - La X vale 10 punti, la M (mancata) zero.
  * - Le gare composte si dividono in prove: il 25+18 fa prima i 25 m poi i 18 m, il doppio fa due prove
  *   alla stessa distanza.
+ * - **Campagna** (Hunter & Field, 12+12 e 24+24) e **3D** (Fase 6.3b, Mattia 15/11/2026): si tira per
+ *   **piazzola**, 3 frecce a piazzola. Campagna: punteggi 6…1 (e M), 12+12 = 24 piazzole = 72 frecce, 24+24 =
+ *   48 piazzole = 144 frecce (una prova sola, non si divide); in fondo si contano **6 e 5**. 3D: 24 piazzole =
+ *   72 frecce, punteggi 11, 10, 8, 5 e 0 (M); in fondo si contano **11 e 10**. Solo tastierino, niente timer.
  * Solo i formati ufficiali.
  */
 
 import type { Posizione } from './bersaglio'
 
-export type FormatoSimulazione = '18m' | '25m' | '25+18m' | '70m' | 'doppio70m'
-export type Bersaglio = 'singolo' | 'trispot' | '122' | '80'
-export type ValoreFreccia = 'X' | '10' | '9' | '8' | '7' | '6' | '5' | '4' | '3' | '2' | '1' | 'M'
+export type FormatoSimulazione =
+  '18m' | '25m' | '25+18m' | '70m' | 'doppio70m' | '12+12' | '24+24' | '3d'
+/** I bersagli che si possono toccare sullo schermo (hanno gli anelli: vedi bersaglio.ts). */
+export type BersaglioConAnelli = 'singolo' | 'trispot' | '122' | '80'
+/** Campagna e 3D non hanno un bersaglio da toccare: ognuno ha il suo valore fisso. */
+export type Bersaglio = BersaglioConAnelli | 'campagna' | '3d'
+export type ValoreFreccia =
+  'X' | '11' | '10' | '9' | '8' | '7' | '6' | '5' | '4' | '3' | '2' | '1' | 'M'
 /** Le distanze dell'outdoor: 70 m, 60 m (Master/Allievi) o 50 m (compound e altri). */
 export type DistanzaOutdoor = 70 | 60 | 50
 
@@ -29,7 +38,7 @@ export interface Simulazione {
   /** Il giorno di allenamento a cui appartiene ("AAAA-MM-GG"). */
   giorno: string
   formato: FormatoSimulazione
-  /** Solo outdoor. */
+  /** Solo outdoor (campagna e 3D non hanno distanza). */
   distanza: DistanzaOutdoor | null
   bersaglio: Bersaglio
   /** Tutte le frecce segnate, nell'ordine in cui sono state tirate. */
@@ -48,7 +57,16 @@ export interface Simulazione {
   modificato_il: string
 }
 
-export const FORMATI: readonly FormatoSimulazione[] = ['18m', '25m', '25+18m', '70m', 'doppio70m']
+export const FORMATI: readonly FormatoSimulazione[] = [
+  '18m',
+  '25m',
+  '25+18m',
+  '70m',
+  'doppio70m',
+  '12+12',
+  '24+24',
+  '3d',
+]
 
 export const ETICHETTE_FORMATO: Record<FormatoSimulazione, string> = {
   '18m': '18 m',
@@ -56,6 +74,9 @@ export const ETICHETTE_FORMATO: Record<FormatoSimulazione, string> = {
   '25+18m': '25+18 m',
   '70m': 'Round 70/60/50 m',
   doppio70m: 'Doppio round 70/60/50 m',
+  '12+12': 'Campagna 12+12',
+  '24+24': 'Campagna 24+24',
+  '3d': '3D',
 }
 
 export const ETICHETTE_BERSAGLIO: Record<Bersaglio, string> = {
@@ -63,6 +84,8 @@ export const ETICHETTE_BERSAGLIO: Record<Bersaglio, string> = {
   trispot: 'Trispot',
   '122': '122 cm',
   '80': '80 cm ridotto',
+  campagna: 'Bersagli da campagna',
+  '3d': 'Sagome 3D',
 }
 
 export const DISTANZE_OUTDOOR: readonly DistanzaOutdoor[] = [70, 60, 50]
@@ -70,15 +93,39 @@ export const DISTANZE_OUTDOOR: readonly DistanzaOutdoor[] = [70, 60, 50]
 export const eIndoor = (formato: FormatoSimulazione) =>
   formato === '18m' || formato === '25m' || formato === '25+18m'
 
+/** Campagna e 3D: si tira per piazzola (3 frecce), niente volée a tempo. */
+export const eAPiazzole = (formato: FormatoSimulazione) =>
+  formato === '12+12' || formato === '24+24' || formato === '3d'
+
+/** Il timer della volée c'è solo per indoor e outdoor (per campagna e 3D non ci sono tempi). */
+export const haTimer = (formato: FormatoSimulazione) => !eAPiazzole(formato)
+
+/** Il bersaglio ha gli anelli (si può toccare sullo schermo). */
+export const eBersaglioConAnelli = (b: Bersaglio): b is BersaglioConAnelli =>
+  b === 'singolo' || b === 'trispot' || b === '122' || b === '80'
+
+/** Come si chiama il turno di tiro: la "volée" (indoor e outdoor) o la "piazzola" (campagna e 3D). */
+export const unitaDiTiro = (
+  formato: FormatoSimulazione,
+): { minuscolo: string; maiuscolo: string; plurale: string } =>
+  eAPiazzole(formato)
+    ? { minuscolo: 'piazzola', maiuscolo: 'Piazzola', plurale: 'piazzole' }
+    : { minuscolo: 'volée', maiuscolo: 'Volée', plurale: 'volée' }
+
 /** I bersagli tra cui scegliere per un formato. */
-export const bersagliAmmessi = (formato: FormatoSimulazione): Bersaglio[] =>
-  eIndoor(formato) ? ['singolo', 'trispot'] : ['122', '80']
+export function bersagliAmmessi(formato: FormatoSimulazione): Bersaglio[] {
+  if (formato === '3d') return ['3d']
+  if (formato === '12+12' || formato === '24+24') return ['campagna']
+  return eIndoor(formato) ? ['singolo', 'trispot'] : ['122', '80']
+}
 
 const VALORI: Record<Bersaglio, ValoreFreccia[]> = {
   singolo: ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'M'],
   trispot: ['10', '9', '8', '7', '6', 'M'],
   '122': ['X', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'M'],
   '80': ['X', '10', '9', '8', '7', '6', '5', 'M'],
+  campagna: ['6', '5', '4', '3', '2', '1', 'M'],
+  '3d': ['11', '10', '8', '5', 'M'],
 }
 
 /** I valori che si possono segnare su un bersaglio, nell'ordine del tastierino. */
@@ -90,8 +137,8 @@ export const puntiFreccia = (v: ValoreFreccia): number =>
 
 /** Una prova: una serie di volée alla stessa distanza. */
 export interface Prova {
-  /** In metri: 18, 25, 70, 60 o 50. */
-  distanza: number
+  /** In metri: 18, 25, 70, 60 o 50. `null` per campagna e 3D (non hanno una distanza sola). */
+  distanza: number | null
   frecceTotali: number
   frecceVolee: number
   /** Quante frecce ha ognuno dei due parziali. */
@@ -100,6 +147,10 @@ export interface Prova {
 
 const PROVA_INDOOR = { frecceTotali: 60, frecceVolee: 3, frecceParziale: 30 }
 const PROVA_OUTDOOR = { frecceTotali: 72, frecceVolee: 6, frecceParziale: 36 }
+// Campagna e 3D: 3 frecce a piazzola. 12+12 e 3D = 24 piazzole; 24+24 = 48 piazzole (due metà da 24).
+const PROVA_CAMPAGNA_12 = { distanza: null, frecceTotali: 72, frecceVolee: 3, frecceParziale: 36 }
+const PROVA_CAMPAGNA_24 = { distanza: null, frecceTotali: 144, frecceVolee: 3, frecceParziale: 72 }
+const PROVA_3D = { distanza: null, frecceTotali: 72, frecceVolee: 3, frecceParziale: 36 }
 
 /** Le prove di un formato, nell'ordine in cui si tirano. */
 export function proveDelFormato(
@@ -124,6 +175,12 @@ export function proveDelFormato(
         { distanza: d, ...PROVA_OUTDOOR },
         { distanza: d, ...PROVA_OUTDOOR },
       ]
+    case '12+12':
+      return [{ ...PROVA_CAMPAGNA_12 }]
+    case '24+24':
+      return [{ ...PROVA_CAMPAGNA_24 }]
+    case '3d':
+      return [{ ...PROVA_3D }]
   }
 }
 
@@ -139,9 +196,15 @@ export function nomeSimulazione(s: Pick<Simulazione, 'formato' | 'distanza'>): s
 export const frecceTotaliSimulazione = (s: Pick<FormaSimulazione, 'formato' | 'distanza'>) =>
   proveDelFormato(s.formato, s.distanza).reduce((somma, p) => somma + p.frecceTotali, 0)
 
-/** In fondo al punteggio: "10 e 9" all'indoor, "10+X e X" all'outdoor (come i PDF Fitarco). */
-export const etichetteConteggi = (formato: FormatoSimulazione): [string, string] =>
-  eIndoor(formato) ? ['10', '9'] : ['10+X', 'X']
+/**
+ * In fondo al punteggio (come i PDF Fitarco): "10 e 9" all'indoor, "10+X e X" all'outdoor, "6 e 5" alla
+ * campagna, "11 e 10" al 3D.
+ */
+export function etichetteConteggi(formato: FormatoSimulazione): [string, string] {
+  if (formato === '3d') return ['11', '10']
+  if (formato === '12+12' || formato === '24+24') return ['6', '5']
+  return eIndoor(formato) ? ['10', '9'] : ['10+X', 'X']
+}
 
 export interface VoleeCalcolata {
   frecce: ValoreFreccia[]
@@ -197,9 +260,14 @@ export function riepilogoSimulazione(s: FormaSimulazione): RiepilogoSimulazione 
   })
   const tutte = s.frecce.slice(0, frecceTotaliSimulazione(s))
   const conta = (...valori: ValoreFreccia[]) => tutte.filter((v) => valori.includes(v)).length
-  const conteggi: [number, number] = eIndoor(s.formato)
-    ? [conta('10'), conta('9')]
-    : [conta('10', 'X'), conta('X')]
+  const conteggi: [number, number] =
+    s.formato === '3d'
+      ? [conta('11'), conta('10')]
+      : eAPiazzole(s.formato)
+        ? [conta('6'), conta('5')]
+        : eIndoor(s.formato)
+          ? [conta('10'), conta('9')]
+          : [conta('10', 'X'), conta('X')]
   const totale = calcolate.reduce((t, p) => t + p.totale, 0)
   return {
     prove: calcolate,
@@ -222,8 +290,8 @@ export interface StatoTiro {
   voleeTotali: number
   /** Posizione della prossima freccia dentro la volée (da 0). */
   frecciaInVolee: number
-  /** Distanza della prova in corso. */
-  distanza: number
+  /** Distanza della prova in corso (`null` per campagna e 3D). */
+  distanza: number | null
   finita: boolean
 }
 
