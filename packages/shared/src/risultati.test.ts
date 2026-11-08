@@ -12,6 +12,7 @@ import {
 const riga = (dati: Partial<RigaClassifica> = {}): RigaClassifica => ({
   gara_codice: 'R2611039',
   categoria: 'Arco Ricurvo - Senior Maschile',
+  divisione: 'OL',
   ordine: 1,
   posizione: 1,
   esito: '1',

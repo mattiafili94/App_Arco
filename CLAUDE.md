@@ -376,7 +376,22 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       - app: `apps/web/src/notifiche/` (regole in `servizio.ts`, browser vero in `browser.ts`), interruttore
         in Impostazioni; il service worker carica `apps/web/public/push.js` (`importScripts`), che mostra la
         notifica e apre la gara al tocco. Il test dei permessi (pgTAP) gira solo su GitHub (serve Docker).
-4. **Tab Atleti**: storico, record, andamento.
+4. **Tab Atleti**, due PR (piano approvato il 10/11/2026):
+   1. elenco, scheda con record e storico ✅. Note:
+      - elenco (`pagine/Atleti.tsx`): gli atleti **attivi con l'accesso** (link generato, anche se non sono ancora
+        entrati: Mattia 10/11/2026), tu in cima con "Tu", poi per cognome; sotto il nome "Ricurvo · ultima gara
+        31 ott". Il telefono sa chi ha il link grazie a `atleti.ha_accesso` (colonna calcolata da `utente_id`,
+        migrazione `20261110130000`; `utente_id` non esce dal server);
+      - scheda (`pagine/SchedaAtleta.tsx`, `/atleti/:id`): "Record personali" e "Storico gare"; logica pura in
+        `packages/shared/src/atleti.ts`;
+      - **record per prova, arco e distanza vera**: dai PDF (colonne "70m-1", "60m-1"…) con le gare composte
+        divise in prove; per le gare vecchie senza PDF solo il totale e solo se la gara è a prova unica, con la
+        distanza outdoor ricavata da divisione e classe (`distanzaOutdoor`: OL S/J 70, M/A 60, R 40, G 25; CO
+        e AN/AI/LB S/J/M 50…; le combinazioni mai viste restano senza distanza e non contano). I DNF non
+        contano; i **provvisori contano** con la scritta "provvisorio" (Mattia, 10/11/2026). Record a parità:
+        il primo ottenuto. Indoor 25 m e outdoor 25 m (Giovanissimi) sono prove diverse (`indoor:25m` e
+        `outdoor:25m`);
+   2. andamento (grafico per prova, tutta la carriera, medie): da fare.
 5. **Tab Classifica**.
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).

@@ -151,6 +151,20 @@ export const CLASSIFICA_PROVA = [
   },
 ]
 
+/** Lo storico di Bruno: la gara passata R9900001 (18 m, 534 punti, secondo). */
+export const PARTECIPAZIONI_PROVA = [
+  {
+    atleta_id: '10000000-0000-0000-0000-00000000000b',
+    gara_codice: 'R9900001',
+    divisione: 'OL',
+    classe: 'SM',
+    rank: 'SM',
+    posizione: 2,
+    totale: 534,
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
+  },
+]
+
 export const INVITO_PROVA = {
   gara_codice: 'R9900002',
   testo: 'PROGRAMMA\n\nSABATO\n9,30 Accreditamento\n\nISCRIZIONI dal 3 ottobre al 2 novembre',
@@ -266,7 +280,9 @@ export async function simulaSupabase(
       const filtroUtente = url.searchParams.get('utente_id')?.replace(/^eq\./, '')
       const righe = filtroUtente ? atleti.filter((a) => a.utente_id === filtroUtente) : atleti
       const oggetto = (richiesta.headers()['accept'] ?? '').includes('vnd.pgrst.object')
-      return json(route, oggetto ? (righe[0] ?? null) : righe)
+      // Come il server: `ha_accesso` è calcolato da `utente_id`.
+      const conAccesso = (a: AtletaProva) => ({ ...a, ha_accesso: a.utente_id !== null })
+      return json(route, oggetto ? (righe[0] ? conAccesso(righe[0]) : null) : righe.map(conAccesso))
     }
 
     // Dati condivisi della sincronizzazione (gare, inviti, classifiche…) e registro delle eliminazioni.
@@ -274,7 +290,8 @@ export async function simulaSupabase(
     if (tabella === 'gare') return json(route, GARE_PROVA)
     if (tabella === 'inviti') return json(route, [INVITO_PROVA])
     if (tabella === 'classifiche') return json(route, CLASSIFICA_PROVA)
-    if (['partecipazioni', 'ranking', 'eliminazioni'].includes(tabella ?? '')) {
+    if (tabella === 'partecipazioni') return json(route, PARTECIPAZIONI_PROVA)
+    if (['ranking', 'eliminazioni'].includes(tabella ?? '')) {
       return json(route, [])
     }
 

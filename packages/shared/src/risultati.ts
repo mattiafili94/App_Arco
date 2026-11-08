@@ -20,6 +20,8 @@ export interface RigaClassifica {
   gara_codice: string
   /** "Arco Ricurvo - Senior Maschile". */
   categoria: string
+  /** L'arco della categoria: "OL", "CO", "AN"… */
+  divisione: string
   /** Posizione della riga nella categoria, come nel PDF. */
   ordine: number
   posizione: number | null

@@ -49,7 +49,7 @@ describe('sincronizzazione con Supabase', () => {
     const { cliente, chiamate } = clienteFinto({ data: [], error: null })
     await creaRemotoSupabase(cliente).cambiamenti('atleti', null, 0, 1000)
     expect(chiamate[1]).toBe(
-      'select id, matricola, nome, cognome, ruolo, attivo, classe, genere, aggiornato_il',
+      'select id, matricola, nome, cognome, ruolo, attivo, ha_accesso, classe, genere, aggiornato_il',
     )
     expect(chiamate.some((c) => c.startsWith('gte'))).toBe(false)
     expect(chiamate.at(-1)).toBe('range 0-999')
