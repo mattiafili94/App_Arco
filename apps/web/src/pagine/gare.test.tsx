@@ -149,7 +149,7 @@ describe('scheda gara', () => {
 
   it('una gara con invito mostra dettagli, contatti e testo completo', async () => {
     await apri(/Perugia/)
-    expect(screen.getByRole('heading', { level: 1, name: '18 m' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '18 m' })).toBeInTheDocument()
     expect(screen.getByText('Perugia (PG) · 12–13 dic 2026')).toBeInTheDocument()
     expect(screen.getByText('ASD Arcieri Augusta Perusia')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /societa@example.com/ })).toHaveAttribute(

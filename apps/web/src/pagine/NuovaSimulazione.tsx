@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router'
 import {
   bersagliAmmessi,
   DISTANZE_OUTDOOR,
+  eAPiazzole,
   eIndoor,
   ETICHETTE_BERSAGLIO,
   ETICHETTE_FORMATO,
@@ -10,6 +11,7 @@ import {
   FORMATI,
   frecceTotaliSimulazione,
   proveDelFormato,
+  unitaDiTiro,
   type Bersaglio,
   type DistanzaOutdoor,
   type FormatoSimulazione,
@@ -31,12 +33,12 @@ const RE_GIORNO = /^\d{4}-\d{2}-\d{2}$/
 const OPZIONI_FORMATO = FORMATI.map((f) => ({ valore: f, etichetta: ETICHETTE_FORMATO[f] }))
 const OPZIONI_DISTANZA = DISTANZE_OUTDOOR.map((d) => ({ valore: String(d), etichetta: `${d} m` }))
 
-/** "60 frecce: 20 volée da 3, in due parziali da 30." */
+/** "60 frecce: 20 volée da 3 frecce, in due parziali da 30." (campagna e 3D: "24 piazzole da 3 frecce…") */
 function descriviStruttura(formato: FormatoSimulazione, distanza: DistanzaOutdoor): string {
   const prove = proveDelFormato(formato, distanza)
   const p = prove[0]!
   const volee = p.frecceTotali / p.frecceVolee
-  const una = `${volee} volée da ${p.frecceVolee} frecce, in due parziali da ${p.frecceParziale}`
+  const una = `${volee} ${unitaDiTiro(formato).plurale} da ${p.frecceVolee} frecce, in due parziali da ${p.frecceParziale}`
   return prove.length === 1
     ? `${frecceTotaliSimulazione({ formato, distanza })} frecce: ${una}.`
     : `${frecceTotaliSimulazione({ formato, distanza })} frecce in ${prove.length} prove (${prove.map((x) => `${x.distanza} m`).join(' e ')}), ognuna da ${una}.`
@@ -57,12 +59,14 @@ function Modulo({ giorno }: { giorno: string }) {
   // Cambiando gara, se il bersaglio scelto non esiste per quella gara si torna al primo.
   const ammessi = bersagliAmmessi(formato)
   const bersaglio = scelto && ammessi.includes(scelto) ? scelto : ammessi[0]!
+  // La distanza si sceglie solo per l'outdoor (campagna e 3D non ne hanno).
+  const outdoor = !eIndoor(formato) && !eAPiazzole(formato)
 
   const inizia = async () => {
     setInCorso(true)
     const s = await creaSimulazione(db, io.id, giorno, {
       formato,
-      distanza: eIndoor(formato) ? null : distanza,
+      distanza: outdoor ? distanza : null,
       bersaglio,
       compound: eIndoor(formato) && compound,
     })
@@ -87,7 +91,7 @@ function Modulo({ giorno }: { giorno: string }) {
           valore={formato}
           onChange={(v) => setFormato(v as FormatoSimulazione)}
         />
-        {!eIndoor(formato) && (
+        {outdoor && (
           <Scelte
             label="Distanza"
             opzioni={OPZIONI_DISTANZA}
@@ -95,12 +99,14 @@ function Modulo({ giorno }: { giorno: string }) {
             onChange={(v) => setDistanza(Number(v) as DistanzaOutdoor)}
           />
         )}
-        <Scelte
-          label="Bersaglio"
-          opzioni={ammessi.map((b) => ({ valore: b, etichetta: ETICHETTE_BERSAGLIO[b] }))}
-          valore={bersaglio}
-          onChange={(v) => setScelto(v as Bersaglio)}
-        />
+        {ammessi.length > 1 && (
+          <Scelte
+            label="Bersaglio"
+            opzioni={ammessi.map((b) => ({ valore: b, etichetta: ETICHETTE_BERSAGLIO[b] }))}
+            valore={bersaglio}
+            onChange={(v) => setScelto(v as Bersaglio)}
+          />
+        )}
         {eIndoor(formato) && (
           <Checkbox
             label="Arco compound: il 10 vale solo l'anello piccolo al centro"

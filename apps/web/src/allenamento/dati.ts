@@ -78,3 +78,16 @@ export function useSimulazione(idSimulazione: string): Simulazione | null | unde
     return s && !s.eliminata && s.atleta_id === id ? s : null
   }, [db, id, idSimulazione])
 }
+
+/** Tutte le simulazioni dell'atleta (non cancellate): servono al confronto tra le medie. */
+export function useSimulazioniAtleta(): Simulazione[] | undefined {
+  const { db } = useSincronizzazione()
+  const { id } = useAtletaCorrente()
+  return useLiveQuery(
+    async () =>
+      simulazioniVisibili(
+        (await db.simulazioni.where('atleta_id').equals(id).toArray()) as unknown as Simulazione[],
+      ),
+    [db, id],
+  )
+}
