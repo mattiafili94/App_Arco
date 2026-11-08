@@ -64,17 +64,17 @@ select throws_ok(
   '23514', null, 'indoor: la X non esiste'
 );
 select throws_ok(
-  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
-       '18m', null, 'trispot', '["5"]', false, false, now(), now()) $,
+  $$ select public.salva_simulazione('20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+       '18m', null, 'trispot', '["5"]', false, false, now(), now()) $$,
   '23514', null, 'il trispot ha solo da 10 a 6'
 );
 select throws_ok(
-  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
-       '70m', 50, '80', '["4"]', false, false, now(), now()) $,
+  $$ select public.salva_simulazione('20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+       '70m', 50, '80', '["4"]', false, false, now(), now()) $$,
   '23514', null, 'il bersaglio da 80 cm ha solo da 10 a 5'
 );
 select throws_ok(
-  $ select public.salva_simulazione('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
+  $$ select public.salva_simulazione('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-0000000000b9', '2027-03-02',
        '18m', null, '122', '[]', false, false, now(), now()) $$,
   '23514', null, 'indoor con un bersaglio da outdoor: no'
 );
