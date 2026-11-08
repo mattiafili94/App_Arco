@@ -3,6 +3,8 @@
  * (servizioSupabase.ts); i test ne usano una finta.
  */
 
+import type { Remoto } from '../sync/remoto'
+
 export interface Atleta {
   id: string
   matricola: string
@@ -20,6 +22,8 @@ export type EsitoAccedi =
 export type EsitoAggiungi = { esito: 'ok' } | { esito: 'duplicato' | 'errore' }
 
 export interface ServizioAccesso {
+  /** I dati condivisi (gare, risultati…) da tenere in copia sul telefono. */
+  remoto: Remoto
   /** Accesso già fatto su questo telefono (si legge anche offline), oppure `null`. */
   sessioneSalvata(): Promise<{ utenteId: string } | null>
   accedi(matricola: string, codice: string): Promise<EsitoAccedi>

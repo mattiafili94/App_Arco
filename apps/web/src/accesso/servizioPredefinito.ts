@@ -12,6 +12,11 @@ export const servizioPredefinito: ServizioAccesso =
   url && chiave
     ? creaServizioSupabase(url, chiave)
     : {
+        remoto: {
+          cambiamenti: async () => [],
+          eliminazioni: async () => [],
+          ultimaEliminazione: async () => 0,
+        },
         sessioneSalvata: async () => null,
         accedi: async () => ({ esito: 'errore' }),
         esci: async () => {},

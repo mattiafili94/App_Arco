@@ -1,8 +1,12 @@
+import 'fake-indexeddb/auto'
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import { dbPredefinito, svuotaDb } from '../sync/db'
 
-afterEach(() => {
+afterEach(async () => {
+  // La copia dei dati sul telefono non passa da un test all'altro.
+  await svuotaDb(dbPredefinito())
   cleanup()
   localStorage.clear()
   document.documentElement.removeAttribute('data-theme')

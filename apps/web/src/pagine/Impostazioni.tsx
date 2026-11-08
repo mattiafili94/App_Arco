@@ -6,6 +6,9 @@ import { Button } from '../componenti/Button'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
+import { useSincronizzazione } from '../sync/contesto'
+import { descriviUltima } from '../sync/formato'
+import { useOnline } from '../stato/useOnline'
 import { DESTINAZIONI, destinazioneDi } from '../navigazione'
 import { SCELTE_TEMA } from '../tema/tema'
 import { useTema } from '../tema/useTema'
@@ -17,6 +20,8 @@ export function Impostazioni() {
   const atleta = useAtletaCorrente()
   const { esci } = useAccesso()
   const [confermaUscita, setConfermaUscita] = useState(false)
+  const online = useOnline()
+  const { stato: sync, aggiorna } = useSincronizzazione()
   const stato = useLocation().state as { da?: string } | null
   const provenienza = destinazioneDi(stato?.da ?? '') ?? DESTINAZIONI[0]!
 
@@ -33,6 +38,23 @@ export function Impostazioni() {
           {atleta.ruolo === 'amministratore' && (
             <ListRow label="Amministrazione" href="/amministrazione" />
           )}
+        </ListGroup>
+
+        <ListGroup title="Dati">
+          <ListRow label="Ultimo aggiornamento" value={descriviUltima(sync.ultima)} />
+          <ListRow
+            label="Aggiorna ora"
+            value={
+              sync.fase === 'in-corso'
+                ? 'In corso…'
+                : sync.fase === 'errore'
+                  ? 'Non riuscito, riprova'
+                  : !online
+                    ? 'Offline'
+                    : undefined
+            }
+            onSelect={() => void aggiorna()}
+          />
         </ListGroup>
 
         <ListGroup title="Tema" role="radiogroup">

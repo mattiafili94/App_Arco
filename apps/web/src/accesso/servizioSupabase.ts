@@ -1,5 +1,7 @@
 import { createClient, FunctionsHttpError, type SupabaseClient } from '@supabase/supabase-js'
 import { emailTecnica } from '@arco/shared'
+import { dbPredefinito, svuotaDb } from '../sync/db'
+import { creaRemotoSupabase } from '../sync/remotoSupabase'
 import type { Atleta, ServizioAccesso } from './servizio'
 
 interface RigaAtleta {
@@ -37,7 +39,12 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
     },
   })
 
+  // La copia dei dati sul telefono non deve restare a chi non ha più l'accesso.
+  const svuotaCopia = () => svuotaDb(dbPredefinito()).catch(() => {})
+
   return {
+    remoto: creaRemotoSupabase(supabase),
+
     async sessioneSalvata() {
       const { data } = await supabase.auth.getSession()
       return data.session ? { utenteId: data.session.user.id } : null
@@ -59,6 +66,7 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
 
     async esci() {
       await supabase.auth.signOut({ scope: 'local' })
+      await svuotaCopia()
     },
 
     async profilo(utenteId) {
@@ -73,7 +81,9 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
 
     quandoEsce(avvisa) {
       const { data } = supabase.auth.onAuthStateChange((evento) => {
-        if (evento === 'SIGNED_OUT') avvisa()
+        if (evento !== 'SIGNED_OUT') return
+        void svuotaCopia()
+        avvisa()
       })
       return () => data.subscription.unsubscribe()
     },
