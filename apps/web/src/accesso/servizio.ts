@@ -3,6 +3,7 @@
  * (servizioSupabase.ts); i test ne usano una finta.
  */
 
+import type { ServizioClassifica } from '../classifica/servizio'
 import type { Remoto } from '../sync/remoto'
 
 export interface Atleta {
@@ -31,6 +32,8 @@ export interface IscrizionePush {
 export interface ServizioAccesso {
   /** I dati condivisi (gare, risultati…) da tenere in copia sul telefono. */
   remoto: Remoto
+  /** Le classifiche (ranking) complete: lette dal nostro database, aggiornate da Fitarco col pulsante. */
+  classifica: ServizioClassifica
   /** Accesso già fatto su questo telefono (si legge anche offline), oppure `null`. */
   sessioneSalvata(): Promise<{ utenteId: string } | null>
   accedi(matricola: string, codice: string): Promise<EsitoAccedi>

@@ -6,17 +6,6 @@ import { PaginaTab } from './PaginaTab'
  * Nessun pulsante finché l'azione non esiste davvero (UI Top: ogni controllo ha un effetto).
  */
 
-export function Classifica() {
-  return (
-    <PaginaTab title="Classifica">
-      <EmptyState
-        title="Classifica non ancora scaricata"
-        description="Qui vedrai la posizione di ogni atleta nella classifica per l'ammissione ai Campionati Italiani, presa da Fitarco."
-      />
-    </PaginaTab>
-  )
-}
-
 export function Allenamento() {
   return (
     <PaginaTab title="Allenamento">

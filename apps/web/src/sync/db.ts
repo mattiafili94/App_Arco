@@ -18,6 +18,10 @@ export class ArcoDb extends Dexie {
   partecipazioni!: Table<Riga>
   classifiche!: Table<Riga>
   ranking!: Table<Riga>
+  /** Le classifiche (ranking) complete già aperte: restano disponibili offline. */
+  classifiche_ranking!: Table<Riga>
+  /** La tua riga di ogni classifica in cui compari ("La tua posizione"). */
+  mie_posizioni!: Table<Riga>
   meta!: Table<Meta, string>
 
   constructor(nome = 'arco') {
@@ -30,6 +34,11 @@ export class ArcoDb extends Dexie {
       classifiche: '[gara_codice+categoria+ordine], gara_codice, atleta_id',
       ranking: '[atleta_id+tipo+divisione]',
       meta: 'chiave',
+    })
+    // Fase 5: classifiche complete e posizioni dell'atleta, scaricate a richiesta (non dalla sincronizzazione).
+    this.version(2).stores({
+      classifiche_ranking: '[tipo+divisione+classe+genere]',
+      mie_posizioni: '[tipo+divisione+classe+genere]',
     })
   }
 
@@ -47,7 +56,13 @@ export function dbPredefinito(): ArcoDb {
 
 /** Toglie tutti i dati dal telefono (all'uscita): la copia non resta a chi non ha più l'accesso. */
 export async function svuotaDb(db: ArcoDb): Promise<void> {
-  await db.transaction('rw', [...TABELLE.map((t) => db.tabella(t.nome)), db.meta], async () => {
-    await Promise.all([...TABELLE.map((t) => db.tabella(t.nome).clear()), db.meta.clear()])
+  const tabelle = [
+    ...TABELLE.map((t) => db.tabella(t.nome)),
+    db.meta,
+    db.classifiche_ranking,
+    db.mie_posizioni,
+  ]
+  await db.transaction('rw', tabelle, async () => {
+    await Promise.all(tabelle.map((t) => t.clear()))
   })
 }

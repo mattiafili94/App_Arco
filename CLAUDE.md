@@ -423,7 +423,25 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       **La tabella `ranking` e `salva_ranking` restano** (vuote, inutilizzate): i telefoni con la versione vecchia
       dell'app le chiedono ancora; si tolgono in una migrazione successiva, insieme alla sincronizzazione
       di `ranking` nell'app;
-   2. app: da fare (scheda "La tua posizione", filtri, classifica completa, offline).
+   2. app ✅ (`pagine/Classifica.tsx`, `pagine/ClassificaCompleta.tsx`, dati in `classifica/dati.ts`):
+      - tab: "La tua posizione" in primo piano (una riga per classifica in cui compari: posto, punti, le due
+        gare; funzione `mie_classifiche(matricola)`, migrazione `20261110150000`, restituisce solo la tua riga) e
+        "Cerca una classifica" con filtri come sul sito (tipo, arco, classe, genere, regione); i filtri partono
+        dalla tua classifica;
+      - `/classifica/:tipo/:divisione/:classe/:genere` (`?regione=umbria`, `?mia=1`): tutti gli atleti, 50 alla
+        volta, posizione nazionale, punti, società e le due gare; ricerca per nome o società; "Umbria" = società
+        con codice che inizia per 11 (il numero del comitato); le nostre società evidenziate, tu con "· Tu";
+        "Vai alla mia posizione"; pulsante "Aggiorna" (rifiuti spiegati con l'ora per riprovare);
+      - **cercare legge solo il nostro database** (`classifiche_ranking`), mai Fitarco. La classifica non
+        scaricata dice "Questa classifica non è ancora scaricata" e offre "Scarica da Fitarco" (stessa funzione
+        del pulsante Aggiorna);
+      - offline: la copia di ogni classifica aperta e le tue posizioni restano nel database del telefono (Dexie
+        versione 2: `classifiche_ranking` e `mie_posizioni`, svuotate all'uscita); all'apertura con rete si
+        legge prima solo `aggiornato_il` (pochi byte) e si riscarica la classifica (~150 KB) solo se è cambiata.
+      - nuovi componenti `Select` e `Scelte` (gruppo di scelte alternative). Nei test del browser Supabase è
+        simulato anche per classifiche, `mie_classifiche` e `aggiorna-classifica`.
+      Per la versione vecchia dell'app: dopo l'aggiornamento di tutti i telefoni si può togliere la tabella
+      `ranking` (vedi 5.1).
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 

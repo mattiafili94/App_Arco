@@ -195,6 +195,51 @@ export const PARTECIPAZIONI_PROVA = [
   },
 ]
 
+/** Una classifica (ranking) di prova: 60 atleti, Bruno è il 2°. Indoor · Ricurvo · Senior M. */
+const LETTA_PROVA = '2026-11-02T09:30:00+00:00'
+export const CLASSIFICA_RANKING_PROVA = {
+  tipo: 'I',
+  divisione: 'OL',
+  classe: 'S',
+  genere: 'M',
+  categoria: 'Arco Ricurvo - Seniores Maschile',
+  totale: 60,
+  righe: Array.from({ length: 60 }, (_, i) => {
+    const posizione = i + 1
+    const bruno = posizione === 2
+    return {
+      posizione,
+      matricola: bruno ? '900002' : `91${String(posizione).padStart(4, '0')}`,
+      nome: bruno ? 'Prova Bruno' : `Cognome${posizione} Nome`,
+      societa_codice: bruno ? '11003' : posizione % 4 === 0 ? '11018' : '05001',
+      societa_nome: bruno
+        ? 'A.S.D. Compagnia Arcieri Eugubini'
+        : posizione % 4 === 0
+          ? 'ASD Arcieri Augusta Perusia'
+          : 'Arcieri del Nord',
+      punti: 1200 - posizione,
+      gare: [
+        {
+          codice: 'R9900001',
+          punti: 600 - posizione,
+          localita: 'Terni (TR)',
+          dal: '2026-03-14',
+          al: '2026-03-15',
+        },
+        {
+          codice: 'N9900002',
+          punti: 600,
+          localita: 'Roma (RM)',
+          dal: '2026-02-26',
+          al: '2026-03-01',
+        },
+      ],
+    }
+  }),
+  letta_il: LETTA_PROVA,
+  aggiornato_il: LETTA_PROVA,
+}
+
 export const INVITO_PROVA = {
   gara_codice: 'R9900002',
   testo: 'PROGRAMMA\n\nSABATO\n9,30 Accreditamento\n\nISCRIZIONI dal 3 ottobre al 2 novembre',
@@ -321,8 +366,42 @@ export async function simulaSupabase(
     if (tabella === 'inviti') return json(route, [INVITO_PROVA])
     if (tabella === 'classifiche') return json(route, CLASSIFICA_PROVA)
     if (tabella === 'partecipazioni') return json(route, PARTECIPAZIONI_PROVA)
+    if (tabella === 'classifiche_ranking') {
+      // Solo la classifica di prova esiste; le altre "non sono ancora scaricate".
+      const ricercata = ['tipo', 'divisione', 'classe', 'genere'].every(
+        (c) => url.searchParams.get(c) === `eq.${CLASSIFICA_RANKING_PROVA[c as 'tipo']}`,
+      )
+      const solaData = url.searchParams.get('select') === 'aggiornato_il'
+      const corpo = solaData
+        ? { aggiornato_il: CLASSIFICA_RANKING_PROVA.aggiornato_il }
+        : CLASSIFICA_RANKING_PROVA
+      // maybeSingle(): il server risponde con un elenco di 0 o 1 righe.
+      return json(route, ricercata ? [corpo] : [])
+    }
     if (['ranking', 'eliminazioni'].includes(tabella ?? '')) {
       return json(route, [])
+    }
+
+    // "La tua posizione": la riga di Bruno in ogni classifica in cui compare.
+    if (url.pathname === '/rest/v1/rpc/mie_classifiche') {
+      const { righe, ...testata } = CLASSIFICA_RANKING_PROVA
+      const mia = righe.find(
+        (r) => r.matricola === (richiesta.postDataJSON() as { p_matricola: string }).p_matricola,
+      )
+      return json(route, mia ? [{ ...testata, riga: mia }] : [])
+    }
+
+    // Il pulsante "Aggiorna" delle classifiche: Fitarco è stato letto da poco.
+    if (url.pathname === '/functions/v1/aggiorna-classifica') {
+      return json(
+        route,
+        {
+          esito: 'troppo-presto',
+          errore: 'Questa classifica è stata aggiornata da poco: si può rileggere ogni 6 ore.',
+          riprovaDopo: new Date(Date.now() + 5 * 3_600_000).toISOString(),
+        },
+        429,
+      )
     }
 
     // Funzione del server crea-accesso.

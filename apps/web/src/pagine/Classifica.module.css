@@ -1,0 +1,50 @@
+.gruppi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.sezione {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.titolo {
+  color: var(--text-secondary);
+  padding-inline: var(--space-16);
+  margin: 0;
+}
+
+.nota {
+  color: var(--text-secondary);
+  padding-inline: var(--space-16);
+  margin: 0;
+}
+
+.modulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.controlli {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.centro {
+  display: flex;
+  justify-content: center;
+}
