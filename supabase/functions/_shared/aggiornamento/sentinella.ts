@@ -48,3 +48,24 @@ export function controllaClassifica(
     return []
   })
 }
+
+/**
+ * Una classifica (ranking) letta da Fitarco: i conti devono tornare con quello che dichiara il sito e
+ * non deve svuotarsi né dimezzarsi rispetto a quella già salvata. `null` = tutto a posto.
+ */
+export function controllaRanking(
+  righeLette: number,
+  totaleDichiarato: number,
+  totaleSalvato: number | null,
+): string | null {
+  if (righeLette !== totaleDichiarato) {
+    return `Fitarco dichiara ${totaleDichiarato} atleti ma ne ho letti ${righeLette}: non salvo niente.`
+  }
+  if (totaleSalvato !== null && totaleSalvato > 0 && righeLette === 0) {
+    return `La classifica letta è vuota, prima aveva ${totaleSalvato} atleti: non salvo niente.`
+  }
+  if (totaleSalvato !== null && righeLette < totaleSalvato / 2) {
+    return `La classifica letta ha ${righeLette} atleti, prima ne aveva ${totaleSalvato}: non salvo niente.`
+  }
+  return null
+}

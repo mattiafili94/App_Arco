@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   COMITATO_UMBRIA,
+  TUTTA_ITALIA,
   contaGareCalendario,
   richiestaInvito,
   richiestaRanking,
@@ -77,7 +78,7 @@ describe('richieste per ogni tipo di dato', () => {
     })
   })
 
-  it("la ranking è individuale e filtrata sull'Umbria se non si indica il comitato", () => {
+  it('la ranking è individuale e nazionale (nessun comitato) se non si indica il comitato', () => {
     const filtro = { tipo: 'I', divisione: 'OL', classe: 'S', genere: 'M' } as const
     expect(params(richiestaRanking(filtro))).toEqual({
       idRankingTipo: 'I',
@@ -85,9 +86,10 @@ describe('richieste per ogni tipo di dato', () => {
       idClasse: 'S',
       idGenere: 'M',
       idTipoSquadra: '0',
-      idComitato: COMITATO_UMBRIA,
+      idComitato: TUTTA_ITALIA,
     })
-    expect(params(richiestaRanking({ ...filtro, comitato: '00' })).idComitato).toBe('00')
+    expect(TUTTA_ITALIA).toBe('')
+    expect(params(richiestaRanking({ ...filtro, comitato: COMITATO_UMBRIA })).idComitato).toBe('11')
   })
 })
 

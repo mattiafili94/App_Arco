@@ -11,8 +11,11 @@ const BASE = 'https://www.fitarco.it/index.php?option=com_tesseramentofiv&format
 export const URL_ELENCHI = `${BASE}&view=risultati`
 export const URL_DETTAGLI = `${BASE}&view=dettaglio`
 
-/** Comitato regionale dell'Umbria; "00" = tutta Italia. */
+/** Comitato regionale dell'Umbria. */
 export const COMITATO_UMBRIA = '11'
+
+/** Per la ranking, tutta Italia = nessun comitato (verificato il 10/11/2026: "00" non dà risultati). */
+export const TUTTA_ITALIA = ''
 
 export interface RichiestaFitarco {
   url: string
@@ -74,12 +77,13 @@ export function richiestaTesserati(filtro: {
 /** Tipo di ranking: I indoor, T targa (outdoor), C campagna, 3 3D. */
 export type TipoRanking = 'I' | 'T' | 'C' | '3'
 
-/** Ranking individuale per tipo, divisione, classe e genere (la posizione è nazionale). */
+/** Ranking individuale per tipo, divisione, classe e genere (la posizione è sempre nazionale). */
 export function richiestaRanking(filtro: {
   tipo: TipoRanking
   divisione: string
   classe: string
   genere: 'M' | 'F'
+  /** Di base tutta Italia (la lista nazionale completa); con un comitato solo i suoi atleti. */
   comitato?: string
 }): RichiestaFitarco {
   return richiesta(URL_ELENCHI, 'ranking_gare', 'lista_ranking_gare_results', {
@@ -88,7 +92,7 @@ export function richiestaRanking(filtro: {
     idClasse: filtro.classe,
     idGenere: filtro.genere,
     idTipoSquadra: '0',
-    idComitato: filtro.comitato ?? COMITATO_UMBRIA,
+    idComitato: filtro.comitato ?? TUTTA_ITALIA,
   })
 }
 

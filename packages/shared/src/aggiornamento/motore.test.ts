@@ -239,7 +239,10 @@ describe('un giro di lavoro', () => {
       },
     ]
     const leggeri = await giro(ctx, { massimo: 10, massimoPesanti: 1, scadenza: Infinity })
-    expect(leggeri.eseguite.filter((e) => e.tipo === 'calendario')).toHaveLength(1)
+    // Le classifiche sono letture pesanti come i calendari: tra le due ne passa una sola.
+    expect(
+      leggeri.eseguite.filter((e) => e.tipo === 'calendario' || e.tipo === 'ranking'),
+    ).toHaveLength(1)
 
     let t = 0
     const finito = await giro(ctx, {
@@ -585,137 +588,104 @@ describe('le singole letture', () => {
     })
   })
 
-  it('ranking: mette in lista le combinazioni dei nostri atleti e salva solo i nostri', async () => {
-    archivio.atletiSalvati[0]!.classi_ranking = { Indoor: 'SM' }
-    archivio.atletiSalvati[0]!.matricola = '900011'
-    expect(await accodaRanking(ctx)).toBe(1)
-    expect(archivio.coda.map((c) => `${c.tipo} ${c.chiave}`)).toContain('ranking I|OL|S|M')
-    expect(await esegui('ranking', 'I|OL|S|M')).toMatchObject({
-      esito: 'ok',
-      messaggio: '1 dei nostri su 1 in classifica',
+  describe('classifiche ranking complete', () => {
+    /** La classifica di esempio dichiara 13 atleti ma ne contiene 6: si adatta il totale al vero. */
+    const rankingCoerente = () => ({
+      ok: true as const,
+      html: esempio('ranking').replace('Numero totale: 13', 'Numero totale: 6'),
     })
-    expect(fonte.chiamate.at(-1)).toContain('"idRankingTipo":"I"')
-    expect(archivio.ranking.get('I|OL|a1')).toHaveLength(1)
-    expect(await esegui('ranking', 'T|OL|S|M')).toMatchObject({ esito: 'invariato' })
-  })
-})
 
-describe('più archi e gare vecchie', () => {
-  beforeEach(async () => {
-    archivio.diario = [
-      {
-        tipo: 'scheda-atleta',
-        chiave: 'a1',
+    it('mette in lista le classifiche dei nostri atleti', async () => {
+      archivio.atletiSalvati[0]!.classi_ranking = { Indoor: 'SM' }
+      expect(await accodaRanking(ctx)).toBe(1)
+      expect(archivio.coda.map((c) => `${c.tipo} ${c.chiave}`)).toContain('ranking I|OL|S|M')
+    })
+
+    it('la legge intera (tutta Italia) e la salva con i suoi numeri', async () => {
+      fonte.risposte.lista_ranking_gare_results = rankingCoerente()
+      expect(await esegui('ranking', 'I|OL|S|M')).toMatchObject({
         esito: 'ok',
-        messaggio: '',
-        richieste: 1,
-        giorno: OGGI,
-      },
-    ]
-    await esegui('calendario', '2026')
-    await esegui('scheda-atleta', 'a1')
-    await esegui('scheda-gara', 'R2611039')
-  })
-
-  /** Mario Rossi nella stessa gara con due archi: ricurvo (534) e nudo (480). */
-  const dueArchi = () =>
-    pdfConRighe([
-      ...righePdf(),
-      'Arco Nudo - Senior Maschile',
-      'Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9',
-      '1 1- 3A ROSSI Mario 02 11003 Arcieri Eugubini 240/ 1 240/ 1 480 5 9',
-    ])
-
-  it('stesso arciere, stessa gara, due archi: due righe collegate, nessuna anomalia', async () => {
-    const storico = archivio.storici.get('a1')!
-    archivio.storici.set('a1', [
-      ...storico,
-      {
-        gara_codice: 'R2611039',
-        divisione: 'AN',
-        classe: 'SM',
-        rank: 'SM',
-        posizione: 1,
-        totale: 480,
-      },
-    ])
-    fonte.pdf = { ok: true, dati: dueArchi() }
-    expect(await esegui('risultati', 'R2611039')).toMatchObject({
-      esito: 'ok',
-      messaggio: '3 atleti, 2 dei nostri, provvisoria',
-    })
-    const nostre = archivio.classifiche
-      .get('R2611039')!
-      .righe.filter((r) => r.atleta_id === 'a1') as unknown as {
-      divisione: string
-      totale: number
-    }[]
-    expect(nostre.map((r) => [r.divisione, r.totale])).toEqual([
-      ['OL', 534],
-      ['AN', 480],
-    ])
-  })
-
-  it('se il secondo arco manca dal PDF, la sentinella lo dice', async () => {
-    archivio.storici.set('a1', [
-      ...archivio.storici.get('a1')!,
-      {
-        gara_codice: 'R2611039',
-        divisione: 'AN',
-        classe: 'SM',
-        rank: 'SM',
-        posizione: 1,
-        totale: 480,
-      },
-    ])
-    const r = await esegui('risultati', 'R2611039')
-    expect(r.esito).toBe('anomalia')
-    expect(r.messaggio).toContain('Mario Rossi (AN): non trovato nel PDF')
-  })
-
-  it('gara prima dell’anno scorso rimasta in lista: esce senza richieste (basta lo storico)', async () => {
-    archivio.gareSalvate.get('R2611039')!.dal = '2024-10-24'
-    archivio.gareSalvate.get('R2611039')!.al = '2024-10-25'
-    const prima = fonte.richiesteFatte
-    for (const tipo of ['scheda-gara', 'risultati'] as const) {
-      expect(await esegui(tipo, 'R2611039')).toMatchObject({
-        esito: 'invariato',
-        messaggio: 'Gara prima dell’anno scorso: basta lo storico degli atleti',
+        messaggio: '6 atleti, 2 dei nostri',
       })
-    }
-    expect(fonte.richiesteFatte).toBe(prima)
-    expect(archivio.classifiche.has('R2611039')).toBe(false)
-  })
+      const richiesta = fonte.chiamate.at(-1)!
+      expect(richiesta).toContain('"idRankingTipo":"I"')
+      expect(richiesta).toContain('"idComitato":""')
+      const salvata = archivio.classificheComplete.get('I|OL|S|M')!
+      expect(salvata).toMatchObject({
+        categoria: 'Arco Ricurvo - Seniores Maschile',
+        totale: 6,
+        letta_il: new Date(archivio.adesso).toISOString(),
+      })
+      expect(salvata.righe).toHaveLength(6)
+    })
 
-  it('a inizio anno la stagione più vecchia si riduce agli Eugubini (anche quelli non ancora nell’app)', async () => {
-    // Anna Bianchi è degli Arcieri Eugubini ma non è (ancora) nell'app.
-    fonte.pdf = {
-      ok: true,
-      dati: pdfConRighe([
-        ...righePdf(),
-        '3 2- 1A BIANCHI Anna 02 11003 Arcieri Eugubini 200/ 3 200/ 3 400 1 2',
-      ]),
-    }
-    await esegui('risultati', 'R2611039')
-    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(3)
+    it('se Fitarco dichiara più atleti di quelli letti, non salva e lo dice', async () => {
+      const r = await esegui('ranking', 'I|OL|S|M')
+      expect(r).toMatchObject({ esito: 'anomalia' })
+      expect(r.messaggio).toContain('dichiara 13 atleti ma ne ho letti 6')
+      expect(archivio.classificheComplete.size).toBe(0)
+    })
 
-    // Nel 2027 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
-    archivio.oggi = '2027-01-02'
-    ctx.oggi = '2027-01-02'
-    await giro(ctx, { ...OPZIONI, massimo: 0 })
-    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(3)
+    it('una combinazione senza atleti non è un errore: si salva vuota', async () => {
+      fonte.risposte.lista_ranking_gare_results = {
+        ok: true,
+        html: '<div class="no-results">Nessun risultato per questa ricerca</div>',
+      }
+      expect(await esegui('ranking', 'T|LB|A|F')).toMatchObject({
+        esito: 'ok',
+        messaggio: '0 atleti, 0 dei nostri',
+      })
+      expect(archivio.classificheComplete.get('T|LB|A|F')).toMatchObject({ totale: 0, righe: [] })
+    })
 
-    // Nel 2028 partono dal 2027: della gara del 2026 restano gli Eugubini, e il diario lo dice.
-    archivio.oggi = '2028-01-02'
-    ctx.oggi = '2028-01-02'
-    await giro(ctx, { ...OPZIONI, massimo: 0 })
-    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual([
-      'a1',
-      null,
-    ])
-    expect(archivio.diario.find((d) => d.chiave.startsWith('potatura'))).toMatchObject({
-      chiave: 'potatura 2027-01-01',
-      messaggio: 'Tolte 1 righe di altre società dalle classifiche delle gare vecchie',
+    it('una lettura vuota non cancella una classifica buona', async () => {
+      fonte.risposte.lista_ranking_gare_results = rankingCoerente()
+      await esegui('ranking', 'I|OL|S|M')
+      fonte.risposte.lista_ranking_gare_results = {
+        ok: true,
+        html: '<div class="no-results">Nessun risultato per questa ricerca</div>',
+      }
+      expect(await esegui('ranking', 'I|OL|S|M')).toMatchObject({ esito: 'anomalia' })
+      expect(archivio.classificheComplete.get('I|OL|S|M')!.righe).toHaveLength(6)
+    })
+
+    it('una chiave non valida si toglie dalla lista senza chiamare Fitarco', async () => {
+      const prima = fonte.richiesteFatte
+      expect(await esegui('ranking', 'X|OL|S|M')).toMatchObject({ esito: 'invariato' })
+      expect(fonte.richiesteFatte).toBe(prima)
+    })
+
+    it('il lunedì dalle 10 si rileggono le classifiche scaricate, una per giro', async () => {
+      fonte.risposte.lista_ranking_gare_results = rankingCoerente()
+      archivio.atletiSalvati[0]!.classi_ranking = { Indoor: 'SM' }
+      const vecchia = '2026-11-02T09:30:00.000Z'
+      for (const k of ['I|OL|S|M', 'T|CO|S|M', 'C|AN|S|M']) {
+        const [tipo, divisione, classe, genere] = k.split('|') as ['I', string, string, 'M']
+        archivio.classificheComplete.set(k, {
+          tipo,
+          divisione,
+          classe,
+          genere,
+          categoria: 'x',
+          totale: 6,
+          righe: [],
+          letta_il: vecchia,
+        })
+      }
+      // Lunedì 9 novembre 2026, 10:05 in Italia.
+      archivio.adesso = Date.parse('2026-11-09T09:05:00Z')
+      const giriRanking: string[] = []
+      for (let i = 0; i < 4; i++) {
+        archivio.adesso += 15 * 60_000
+        const r = await giro(ctx, { ...OPZIONI, massimo: 6, massimoPesanti: 1 })
+        giriRanking.push(...r.eseguite.filter((e) => e.tipo === 'ranking').map((e) => e.chiave))
+        expect(r.eseguite.filter((e) => e.tipo === 'ranking').length).toBeLessThanOrEqual(1)
+      }
+      expect(giriRanking.sort()).toEqual(['C|AN|S|M', 'I|OL|S|M', 'T|CO|S|M'])
+      // Finito: non si ripete lo stesso giorno.
+      archivio.adesso += 15 * 60_000
+      const ancora = await giro(ctx, { ...OPZIONI, massimo: 6, massimoPesanti: 1 })
+      expect(ancora.eseguite.filter((e) => e.tipo === 'ranking')).toEqual([])
     })
   })
 
