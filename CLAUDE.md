@@ -263,9 +263,23 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         atleta subito per i nuovi, poi ogni 7 giorni), sentinella (calendario vuoto/dimezzato, storico più
         corto, Eugubini attesi non trovati nel PDF o con totale diverso). Le "ultime letture" vengono dal
         diario `letture`. Posizione 999 dello storico → nessuna posizione;
-      - **2.4b** funzione `aggiorna-fitarco` con la lista di lavoro (un pezzo per chiamata: il piano gratuito
-        dà poco tempo di calcolo) e primo caricamento vero. Da verificare: il calendario nazionale
-        (comitato "00") per avere lo stato delle gare fuori regione;
+      - **2.4b** ✅ funzione `aggiorna-fitarco` (motore in `_shared/aggiornamento/motore.ts`, provato con
+        database e Fitarco finti in `packages/shared/src/aggiornamento/`). Ogni chiamata (header
+        `x-aggiorna-chiave` = segreto `AGGIORNA_CHIAVE`): pianifica, accoda, fa al massimo 6 letture di cui
+        1 "pesante" (PDF o calendario) in 40 s, salva solo le novità, scrive il diario; si ferma se Fitarco
+        non risponde; letture fallite riprovate dopo 2, 4, 8… ore (max 1 giorno). `{"azione":"ranking"}`
+        accoda le classifiche dei nostri atleti. Stato dal database con `stato_aggiornamento()`.
+        Scoperte dal primo caricamento (8/11/2026):
+        - il calendario con comitato "00" NON è tutta Italia: sono solo le gare nazionali/internazionali
+          (46 nel 2026). Lo stato delle gare fuori Umbria non si conosce: risultati considerati definitivi
+          dopo 60 giorni, PDF cercato al massimo per 90 giorni dopo la gara (`risultatiProvvisori`);
+        - il calendario provvisorio del prossimo anno ha quasi tutte le gare con codice temporaneo
+          (`tmp11564`): si salvano solo i codici definitivi, le altre arrivano quando hanno il codice vero;
+        - un aggiornamento parziale di una gara va fatto con `update` (`aggiornaGara`), non con "inserisci o
+          aggiorna" (Postgres vuole comunque i campi obbligatori);
+        - pdf.js consuma il file che riceve: `estraiRighe` gli passa una copia;
+        - il database finto dei test (`archivio-finto.ts`) imita i vincoli di quello vero (colonne del
+          diario, campi obbligatori delle gare): se si aggiunge un vincolo, aggiungerlo anche lì;
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
       (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
       classifica solo con "Aggiorna").

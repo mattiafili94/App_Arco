@@ -105,7 +105,10 @@ export interface Archivio {
 
   gare(codici: string[]): Promise<GaraSalvata[]>
   gareDiAnno(anno: number): Promise<GaraSalvata[]>
-  salvaGare(righe: (Partial<GaraSalvata> & { codice: string })[]): Promise<void>
+  /** Gare complete: le inserisce o le aggiorna. */
+  salvaGare(righe: (RigaGara & { ha_invito?: boolean })[]): Promise<void>
+  /** Cambia solo alcuni campi di una gara già salvata. */
+  aggiornaGara(codice: string, campi: Partial<GaraSalvata>): Promise<void>
   invito(codice: string): Promise<RigaInvito | null>
   salvaInvito(riga: RigaInvito): Promise<void>
   /** Solo gli atleti attivi. */
@@ -198,6 +201,9 @@ async function leggiHtml(fonte: Fonte, richiesta: RichiestaFitarco): Promise<str
   throw new FitarcoNonRisponde(`Fitarco non risponde (${r.motivo}: ${r.dettaglio})`)
 }
 
+/** Codice gara definitivo Fitarco: una lettera e 7 cifre (R2611039). */
+const CODICE_DEFINITIVO = /^[A-Z]\d{7}$/
+
 const CAMPI_GARA: (keyof RigaGara)[] = [
   'dal',
   'al',
@@ -214,9 +220,11 @@ const CAMPI_GARA: (keyof RigaGara)[] = [
 
 async function calendario(ctx: Contesto, chiave: string): Promise<Esecuzione> {
   const anno = Number(chiave)
-  const lette = leggiCalendario(await leggiHtml(ctx.fonte, richiestaCalendario(anno))).map(
-    rigaGaraDaCalendario,
-  )
+  const tutte = leggiCalendario(await leggiHtml(ctx.fonte, richiestaCalendario(anno)))
+  // Nel calendario provvisorio (es. il prossimo anno) molte gare hanno un codice temporaneo
+  // ("tmp11564"): diventerebbero doppioni quando arriva quello vero. Si salvano solo i codici definitivi.
+  const lette = tutte.filter((g) => CODICE_DEFINITIVO.test(g.codice)).map(rigaGaraDaCalendario)
+  const temporanee = tutte.length - lette.length
   const salvate = new Map((await ctx.archivio.gareDiAnno(anno)).map((g) => [g.codice, g]))
 
   const umbria = (righe: Iterable<{ in_calendario_umbria: boolean }>) =>
@@ -232,7 +240,9 @@ async function calendario(ctx: Contesto, chiave: string): Promise<Esecuzione> {
     .map((r) => (r.stato === 'invito' ? { ...r, ha_invito: true } : r))
   if (cambiate.length > 0) await ctx.archivio.salvaGare(cambiate)
 
-  const riepilogo = `${cambiate.length} gare nuove o cambiate su ${lette.length}`
+  const riepilogo =
+    `${cambiate.length} gare nuove o cambiate su ${lette.length}` +
+    (temporanee > 0 ? ` (${temporanee} con codice provvisorio, non salvate)` : '')
   if (anomalia) return { esito: 'anomalia', messaggio: `${anomalia} (${riepilogo})` }
   return { esito: cambiate.length > 0 ? 'ok' : 'invariato', messaggio: riepilogo }
 }
@@ -256,11 +266,11 @@ async function schedaGara(ctx: Contesto, codice: string): Promise<Esecuzione> {
       messaggio: pdf ? 'PDF già noto' : 'Risultati non ancora pubblicati',
     }
   }
-  await ctx.archivio.salvaGare([{ codice, ...campi }])
+  const pdfNuovo = pdf !== null && !salvata.url_risultati
+  await ctx.archivio.aggiornaGara(codice, campi)
   return {
     esito: 'ok',
-    messaggio:
-      pdf && !salvata.url_risultati ? 'Pubblicato il PDF dei risultati' : 'Scheda aggiornata',
+    messaggio: pdfNuovo ? 'Pubblicato il PDF dei risultati' : 'Scheda aggiornata',
   }
 }
 
@@ -272,7 +282,7 @@ async function invito(ctx: Contesto, codice: string): Promise<Esecuzione> {
   }
   await ctx.archivio.salvaInvito(riga)
   const [gara] = await ctx.archivio.gare([codice])
-  if (gara && !gara.ha_invito) await ctx.archivio.salvaGare([{ codice, ha_invito: true }])
+  if (gara && !gara.ha_invito) await ctx.archivio.aggiornaGara(codice, { ha_invito: true })
   return { esito: 'ok', messaggio: salvato ? 'Invito cambiato' : 'Invito nuovo' }
 }
 
@@ -347,6 +357,10 @@ async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   }
   const atleti = await ctx.archivio.atleti()
   const righe = righeClassifica(letti, atleti)
+  // Un PDF senza atleti ha un formato che non conosciamo (es. gare "sperimentali"): meglio non salvarlo.
+  if (righe.length === 0) {
+    return { esito: 'anomalia', messaggio: 'Nessun atleta trovato nel PDF: non salvo niente' }
+  }
   await ctx.archivio.salvaClassifica(codice, righe, impr, provvisoria)
 
   const eugubini = righe.filter((r) => r.atleta_id !== null).length
@@ -405,6 +419,9 @@ const PESANTI = new Set<TipoLettura>(['risultati', 'calendario'])
 
 export const PRIORITA_RANKING = 25
 
+/** Quante letture in lista si guardano a ogni giro. */
+export const LAVORI_DA_GUARDARE = 200
+
 /** Mette in lista le classifiche (ranking) di tutti i nostri atleti: pulsante "Aggiorna". */
 export async function accodaRanking(ctx: Contesto): Promise<number> {
   const lista = (await combinazioni(ctx)).map((c) => ({
@@ -447,7 +464,9 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
 
   const riepilogo: Riepilogo = { pianificate: piano.length, eseguite: [], fermato: null }
   let pesanti = 0
-  for (const lavoro of await ctx.archivio.prossime(opzioni.massimo * 3)) {
+  // Si guarda avanti nella lista: se in cima ci sono tante letture pesanti (ne basta una per
+  // chiamata), si trovano comunque quelle leggere più in basso.
+  for (const lavoro of await ctx.archivio.prossime(LAVORI_DA_GUARDARE)) {
     if (riepilogo.eseguite.length >= opzioni.massimo) break
     if (adesso() >= opzioni.scadenza) {
       riepilogo.fermato = 'Tempo finito: si continua alla prossima chiamata'
@@ -462,7 +481,14 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
     try {
       const r = await ESECUTORI[lavoro.tipo](ctx, lavoro.chiave)
       await ctx.archivio.completa(lavoro.tipo, lavoro.chiave)
-      await ctx.archivio.registra({ ...lavoro, ...r, richieste: fatte() })
+      // Solo le colonne del diario (non `tentativi` della lista di lavoro).
+      await ctx.archivio.registra({
+        tipo: lavoro.tipo,
+        chiave: lavoro.chiave,
+        esito: r.esito,
+        messaggio: r.messaggio,
+        richieste: fatte(),
+      })
       riepilogo.eseguite.push({ tipo: lavoro.tipo, chiave: lavoro.chiave, ...r })
     } catch (errore) {
       const messaggio = errore instanceof Error ? errore.message : String(errore)

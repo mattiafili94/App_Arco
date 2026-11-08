@@ -8,6 +8,7 @@ import type {
   Esito,
   GaraSalvata,
   Lettura,
+  RigaGara,
   RigaInvito,
   RigaPartecipazione,
   StatoArchivio,
@@ -116,6 +117,11 @@ export class ArchivioFinto implements Archivio {
     messaggio: string
     richieste: number
   }) {
+    // Come il database vero: solo le colonne della tabella `letture` (altre colonne = errore).
+    const colonne = Object.keys(r).sort().join(',')
+    if (colonne !== 'chiave,esito,messaggio,richieste,tipo') {
+      throw new Error(`Database (diario): colonne sconosciute in ${colonne}`)
+    }
     this.diario.push({ ...r, giorno: this.oggi })
   }
 
@@ -127,8 +133,14 @@ export class ArchivioFinto implements Archivio {
     return [...this.gareSalvate.values()].filter((g) => g.dal.startsWith(String(anno)))
   }
 
-  async salvaGare(righe: (Partial<GaraSalvata> & { codice: string })[]) {
+  async salvaGare(righe: RigaGara[]) {
     for (const r of righe) {
+      // Come il database vero ("inserisci o aggiorna"): servono sempre i campi obbligatori.
+      for (const campo of ['dal', 'al', 'calendario', 'localita', 'tipologia', 'stato'] as const) {
+        if (r[campo] == null) throw new Error(`Database (salva gare): manca "${campo}"`)
+      }
+      if (!/^[A-Z][0-9]{7}$/.test(r.codice))
+        throw new Error(`Database (salva gare): codice ${r.codice}`)
       const prima = this.gareSalvate.get(r.codice)
       this.gareSalvate.set(r.codice, {
         ha_invito: false,
@@ -138,6 +150,11 @@ export class ArchivioFinto implements Archivio {
         ...r,
       } as GaraSalvata)
     }
+  }
+
+  async aggiornaGara(codice: string, campi: Partial<GaraSalvata>) {
+    const g = this.gareSalvate.get(codice)
+    if (g) Object.assign(g, campi)
   }
 
   async invito(codice: string) {

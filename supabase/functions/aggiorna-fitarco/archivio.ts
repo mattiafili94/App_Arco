@@ -97,6 +97,10 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       }
     },
 
+    async aggiornaGara(codice, campi) {
+      controlla(await db.from('gare').update(campi).eq('codice', codice), 'aggiorna gara')
+    },
+
     async invito(codice) {
       return controlla(
         await db

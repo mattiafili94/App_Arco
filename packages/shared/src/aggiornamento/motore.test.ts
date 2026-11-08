@@ -157,6 +157,51 @@ describe('un giro di lavoro', () => {
     expect(secondo).toEqual(expect.arrayContaining(['calendario 2024', 'calendario 2025']))
   })
 
+  it('con tante letture pesanti in lista, fa comunque quelle leggere', async () => {
+    archivio.diario = [
+      {
+        tipo: 'scheda-atleta',
+        chiave: 'a1',
+        esito: 'ok',
+        messaggio: '',
+        richieste: 1,
+        giorno: OGGI,
+      },
+      {
+        tipo: 'calendario',
+        chiave: '2026',
+        esito: 'ok',
+        messaggio: '',
+        richieste: 1,
+        giorno: OGGI,
+      },
+      {
+        tipo: 'calendario',
+        chiave: '2027',
+        esito: 'ok',
+        messaggio: '',
+        richieste: 1,
+        giorno: OGGI,
+      },
+    ]
+    const lavoro = (tipo: 'risultati' | 'invito', chiave: string, priorita: number) => ({
+      tipo,
+      chiave,
+      priorita,
+      tentativi: 0,
+      daFareDal: 0,
+      ultimoErrore: null,
+    })
+    archivio.coda = [
+      ...Array.from({ length: 30 }, (_, i) =>
+        lavoro('risultati', `R26110${String(i).padStart(2, '0')}`, 15),
+      ),
+      lavoro('invito', 'R2611040', 5),
+    ]
+    const r = await giro(ctx, { ...OPZIONI, massimo: 6, massimoPesanti: 1 })
+    expect(r.eseguite.map((e) => e.tipo)).toEqual(['risultati', 'invito'])
+  })
+
   it('rispetta i limiti: numero di letture, letture pesanti e tempo', async () => {
     const pochi = await giro(ctx, { massimo: 1, massimoPesanti: 1, scadenza: Infinity })
     expect(pochi.eseguite).toHaveLength(1)
@@ -244,6 +289,18 @@ describe('le singole letture', () => {
       esito: 'invariato',
       messaggio: '0 gare nuove o cambiate su 21',
     })
+  })
+
+  it('calendario provvisorio: le gare con codice temporaneo non si salvano', async () => {
+    fonte.risposte.lista_calendario_results = {
+      ok: true,
+      html: esempio('calendario').replace(/data-id="R2611044"/, 'data-id="tmp11564"'),
+    }
+    const r = await esegui('calendario', '2026')
+    expect(r.messaggio).toBe(
+      '0 gare nuove o cambiate su 20 (1 con codice provvisorio, non salvate)',
+    )
+    expect(archivio.gareSalvate.has('tmp11564')).toBe(false)
   })
 
   it('calendario: se torna vuoto non si salva niente (sentinella)', async () => {
@@ -395,6 +452,16 @@ describe('le singole letture', () => {
       expect(r.messaggio).toContain('Mario Rossi: totale diverso dallo storico')
       // I dati del PDF si salvano comunque (il PDF è la fonte ufficiale).
       expect(archivio.classifiche.has('R2611039')).toBe(true)
+    })
+
+    it('sentinella: un PDF senza atleti (formato diverso) non si salva', async () => {
+      fonte.pdf = { ok: true, dati: pdfConRighe(righePdf().slice(0, 3)) }
+      const r = await esegui('risultati', 'R2611039')
+      expect(r).toMatchObject({
+        esito: 'anomalia',
+        messaggio: 'Nessun atleta trovato nel PDF: non salvo niente',
+      })
+      expect(archivio.classifiche.has('R2611039')).toBe(false)
     })
 
     it('sentinella: un nostro atleta che manca dal PDF', async () => {

@@ -103,6 +103,19 @@ describe('cosa leggere e quando', () => {
     expect(letture(stato({ ...tardi, gare: [g] }))).toEqual([])
   })
 
+  it('risultati letti ma non salvati (anomalia): si riprova ogni 3 giorni, non a ogni giro', () => {
+    const g = gara({ dal: '2027-02-20', al: '2027-02-21', stato: 'omologata', urlRisultati: 'x' })
+    const letta = (quando: string) =>
+      new Map([
+        ['calendario|2027', '2027-02-28'],
+        ['risultati|R2711001', quando],
+      ])
+    expect(letture(stato({ gare: [g], ultimeLetture: letta('2027-02-28') }))).toEqual([])
+    expect(letture(stato({ gare: [g], ultimeLetture: letta('2027-02-26') }))).toEqual([
+      'risultati R2711001',
+    ])
+  })
+
   it('risultati: la prima volta, poi ogni 3 giorni se provvisori, subito appena omologata', () => {
     const conPdf = { dal: '2027-02-20', al: '2027-02-21', urlRisultati: 'https://x/r.pdf' }
     expect(letture(stato({ gare: [gara({ ...conPdf, stato: 'da-omologare' })] }))).toEqual([

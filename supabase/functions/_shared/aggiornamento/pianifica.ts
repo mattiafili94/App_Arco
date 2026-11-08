@@ -134,12 +134,14 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
     }
 
     // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando diventano definitivi).
+    // Un PDF letto ma non salvato (anomalia della sentinella) si riprova ogni 3 giorni.
     if (g.urlRisultati) {
       const daLeggere =
-        g.risultati === null ||
-        (g.risultati.provvisoria &&
-          (!risultatiProvvisori(g, s.oggi) ||
-            scaduta('risultati', g.codice, OGNI.risultatiProvvisori)))
+        g.risultati === null
+          ? scaduta('risultati', g.codice, OGNI.risultatiProvvisori)
+          : g.risultati.provvisoria &&
+            (!risultatiProvvisori(g, s.oggi) ||
+              scaduta('risultati', g.codice, OGNI.risultatiProvvisori))
       if (daLeggere) aggiungi('risultati', g.codice, PRIORITA.risultati)
     }
   }
