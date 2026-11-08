@@ -325,7 +325,24 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       Cloudflare → Workers → arcieri-eugubini-controllo → Logs. Wrangler non è una dipendenza della repo
       (scarica parecchio): si usa con `npx` alla versione indicata. La classifica (ranking) resta solo su
       richiesta (`{"azione":"ranking"}`, poi pulsante "Aggiorna" nel tab Classifica).
-3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
+3. **Tab Gare**, una PR per passo (piano approvato il 9/11/2026):
+   1. sincronizzazione offline ✅ (`apps/web/src/sync/`): database sul telefono con Dexie (`ArcoDb`: atleti,
+      gare, inviti, partecipazioni, classifiche, ranking + `meta` con i cursori). Si scaricano solo le righe
+      cambiate (`aggiornato_il`, margine di 2 minuti, pagine da 1000, ordine stabile data + chiave); le
+      eliminazioni arrivano dal registro `eliminazioni` (migrazione `20261109130000`, trigger su ogni tabella,
+      tracce tenute 60 giorni, ripulite da `pota_classifiche`); primo giro = tutto; telefono fermo da più di
+      45 giorni = riparte da zero. Solo dal server al telefono (dati condivisi). Parte all'apertura, al
+      ritorno della rete, quando l'app torna in primo piano e ogni 5 minuti; senza rete non fa niente.
+      `Sincronizzazione` (provider nei soli membri) espone `useSincronizzazione()` con `db`, stato e `aggiorna`;
+      Impostazioni → "Dati" mostra l'ultimo aggiornamento e il pulsante "Aggiorna ora". All'uscita
+      (`servizio.esci` e SIGNED_OUT) la copia si svuota. `remoto` è parte di `ServizioAccesso`
+      (finto nei test: `test/remotoFinto.ts`). Attenzione: non lanciare `prettier --write` sull'intera
+      `apps/web/src` (riformatta `tokens.css`, che è generato);
+   2. tab Gare: calendario e scheda gara (invito, "Aggiungi al calendario"), con le gare fuori regione dei
+      nostri atleti nella parte "Passate";
+   3. risultati nella scheda gara: classifica per categoria con gli Eugubini evidenziati, prove, 10/X,
+      provvisoria/definitiva, PDF originale;
+   4. promemoria iscrizioni e notifiche push (VAPID; su iPhone solo con l'app aggiunta alla Home).
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.

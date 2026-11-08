@@ -45,6 +45,30 @@ export const SENZA_ACCESSO_PROVA: AtletaProva = {
   utente_id: null,
 }
 
+/** Due gare di prova per la sincronizzazione (dati inventati). */
+export const GARE_PROVA = [
+  {
+    codice: 'R9900001',
+    dal: '2026-10-24',
+    al: '2026-10-25',
+    calendario: 'Interregionale',
+    localita: 'Gubbio (PG)',
+    tipologia: '18 m',
+    stato: 'omologata',
+    aggiornato_il: '2026-11-01T10:00:00+00:00',
+  },
+  {
+    codice: 'R9900002',
+    dal: '2026-12-12',
+    al: '2026-12-13',
+    calendario: 'Interregionale',
+    localita: 'Perugia (PG)',
+    tipologia: '18 m',
+    stato: 'invito',
+    aggiornato_il: '2026-11-02T10:00:00+00:00',
+  },
+]
+
 const base64url = (testo: string) =>
   Buffer.from(testo).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
 
@@ -150,6 +174,15 @@ export async function simulaSupabase(
       const righe = filtroUtente ? atleti.filter((a) => a.utente_id === filtroUtente) : atleti
       const oggetto = (richiesta.headers()['accept'] ?? '').includes('vnd.pgrst.object')
       return json(route, oggetto ? (righe[0] ?? null) : righe)
+    }
+
+    // Dati condivisi della sincronizzazione (gare, inviti, classifiche…) e registro delle eliminazioni.
+    const tabella = /^\/rest\/v1\/(\w+)$/.exec(url.pathname)?.[1]
+    if (tabella === 'gare') return json(route, GARE_PROVA)
+    if (
+      ['inviti', 'partecipazioni', 'classifiche', 'ranking', 'eliminazioni'].includes(tabella ?? '')
+    ) {
+      return json(route, [])
     }
 
     // Funzione del server crea-accesso.

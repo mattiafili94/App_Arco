@@ -7,6 +7,7 @@ import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { Impostazioni } from './pagine/Impostazioni'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
 import { Allenamento, Atleti, Classifica, Gare } from './pagine/Tab'
+import { Sincronizzazione } from './sync/Sincronizzazione'
 import { Shell } from './Shell'
 
 /**
@@ -28,19 +29,21 @@ export function App() {
   }
 
   return (
-    <Routes>
-      <Route element={<Shell />}>
-        <Route index element={<Navigate to="/gare" replace />} />
-        <Route path="gare" element={<Gare />} />
-        <Route path="atleti" element={<Atleti />} />
-        <Route path="classifica" element={<Classifica />} />
-        <Route path="allenamento" element={<Allenamento />} />
-        <Route path="impostazioni" element={<Impostazioni />} />
-        <Route path="amministrazione" element={<Amministrazione />} />
-        <Route path="amministrazione/atleti/:id" element={<DettaglioAtleta />} />
-        <Route path="accesso" element={<Benvenuto />} />
-        <Route path="*" element={<Navigate to="/gare" replace />} />
-      </Route>
-    </Routes>
+    <Sincronizzazione>
+      <Routes>
+        <Route element={<Shell />}>
+          <Route index element={<Navigate to="/gare" replace />} />
+          <Route path="gare" element={<Gare />} />
+          <Route path="atleti" element={<Atleti />} />
+          <Route path="classifica" element={<Classifica />} />
+          <Route path="allenamento" element={<Allenamento />} />
+          <Route path="impostazioni" element={<Impostazioni />} />
+          <Route path="amministrazione" element={<Amministrazione />} />
+          <Route path="amministrazione/atleti/:id" element={<DettaglioAtleta />} />
+          <Route path="accesso" element={<Benvenuto />} />
+          <Route path="*" element={<Navigate to="/gare" replace />} />
+        </Route>
+      </Routes>
+    </Sincronizzazione>
   )
 }
