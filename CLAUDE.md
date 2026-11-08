@@ -394,7 +394,15 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         contano; i **provvisori contano** con la scritta "provvisorio" (Mattia, 10/11/2026). Record a parità:
         il primo ottenuto. Indoor 25 m e outdoor 25 m (Giovanissimi) sono prove diverse (`indoor:25m` e
         `outdoor:25m`);
-   2. andamento (grafico per prova, tutta la carriera, medie): da fare.
+   2. andamento ✅ (`pagine/Andamento.tsx`, grafico in `componenti/GraficoAndamento.tsx`, logica in
+      `packages/shared/src/andamento.ts`): nella scheda atleta, tra record e storico. Una **serie = una prova
+      con un arco** (mai due prove o due archi nello stesso grafico: un solo asse, UI Top); si sceglie con i
+      pulsanti "Prova e arco" (compaiono solo con più serie); serve almeno **due punteggi**, altrimenti la
+      sezione non c'è. Tutta la carriera. Il punto si sceglie con tocco o tastiera e la sua descrizione
+      compare sotto il grafico (di base l'ultimo); i **provvisori** hanno il punto vuoto e la scritta;
+      "Mostra come tabella" dà gli stessi dati per chi non vede il grafico. "Media per anno" = anno
+      solare, un decimale. Colori: `chart-1` per la linea, `chart-grid` per la griglia, testo sempre nei
+      colori del testo (mai nel colore della serie).
 5. **Tab Classifica**.
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).

@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GraficoAndamento } from '../componenti/GraficoAndamento'
 import { RemotoFinto } from '../test/remotoFinto'
 import { renderApp } from '../test/render'
 import { ATLETA, servizioFinto } from '../test/servizioFinto'
@@ -238,5 +239,128 @@ describe('scheda atleta', () => {
     await screen.findByRole('region', { name: 'Record personali' })
     const indietro = screen.getAllByRole('link', { name: 'Atleti' })[0]!
     expect(indietro).toHaveAttribute('href', '/atleti')
+  })
+})
+
+describe('andamento nella scheda atleta', () => {
+  /** Come `remotoConAtleti`, più una seconda gara da 70 m: la serie dei 70 m ha due punteggi. */
+  function conDueSerie() {
+    const remoto = remotoConAtleti()
+    remoto.scrivi('gare', gara('G6', '2026-09-01', '70/60mt Round - 50mt Round'))
+    remoto.scrivi('partecipazioni', part(ATLETA.id, 'G6', { totale: 650, posizione: 1 }))
+    remoto.scrivi('classifiche', {
+      ...(remoto.righe.classifiche[2] as Record<string, unknown>),
+      gara_codice: 'G6',
+      totale: 650,
+      provvisoria: false,
+    })
+    return servizioFinto({ remoto }).servizio
+  }
+
+  const apriAndamento = async (servizio: ReturnType<typeof conAtleti>) => {
+    await renderApp('/atleti/id-bruno', { servizio })
+    const sezione = await screen.findByRole('region', { name: 'Andamento' })
+    return sezione
+  }
+
+  it('una sola serie: il grafico c’è, la scelta della prova no; media per anno', async () => {
+    const sezione = await apriAndamento(conAtleti())
+    // 18 m: 560 (2019), 540 (gen 2026), 570 (mar 2026, dal 25+18).
+    await waitFor(() =>
+      expect(within(sezione).getAllByRole('button', { name: /punti, /i })).toHaveLength(3),
+    )
+    expect(within(sezione).getByRole('group', { name: 'Andamento 18 m · Ricurvo' })).toBeVisible()
+    expect(within(sezione).queryByRole('radiogroup')).not.toBeInTheDocument()
+
+    const medie = screen.getByRole('region', { name: 'Media per anno' })
+    const righe = within(medie).getAllByText(/gar[ae]$/)
+    expect(righe.map((r) => r.textContent)).toEqual(['2 gare', '1 gara'])
+    expect(medie).toHaveTextContent('2026')
+    expect(medie).toHaveTextContent('555')
+    expect(medie).toHaveTextContent('2019')
+    expect(medie).toHaveTextContent('560')
+  })
+
+  it('di base è scelto l’ultimo punto; toccandone un altro la descrizione cambia', async () => {
+    const sezione = await apriAndamento(conAtleti())
+    await waitFor(() =>
+      expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3),
+    )
+    expect(sezione).toHaveTextContent('570 · Gubbio (PG) · 14 mar 2026')
+    await userEvent.click(within(sezione).getByRole('button', { name: /^560 punti/ }))
+    expect(sezione).toHaveTextContent('560 · Perugia (PG) · 2 feb 2019')
+    // Con la tastiera.
+    within(sezione)
+      .getByRole('button', { name: /^540 punti/ })
+      .focus()
+    await userEvent.keyboard('{Enter}')
+    expect(sezione).toHaveTextContent('540 · Gubbio (PG) · 10 gen 2026')
+    expect(within(sezione).getByRole('button', { name: /^540 punti/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('la tabella ha gli stessi punteggi del grafico', async () => {
+    const sezione = await apriAndamento(conAtleti())
+    await waitFor(() =>
+      expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3),
+    )
+    await userEvent.click(within(sezione).getByText('Mostra come tabella'))
+    const tabella = within(sezione).getByRole('table', { name: 'Punteggi 18 m · Ricurvo' })
+    const celle = within(tabella)
+      .getAllByRole('row')
+      .slice(1)
+      .map((r) => r.textContent)
+    expect(celle).toEqual([
+      '2 feb 2019Perugia (PG)560',
+      '10 gen 2026Gubbio (PG)540',
+      '14 mar 2026Gubbio (PG)570',
+    ])
+  })
+
+  it('più serie: si sceglie la prova e il punto provvisorio è segnalato', async () => {
+    const sezione = await apriAndamento(conDueSerie())
+    const scelte = await within(sezione).findByRole('radiogroup', { name: 'Prova e arco' })
+    const radio = within(scelte).getAllByRole('radio')
+    expect(radio.map((r) => r.textContent)).toEqual(['18 m · Ricurvo', '70 m · Ricurvo'])
+    expect(radio[0]).toHaveAttribute('aria-checked', 'true')
+
+    await userEvent.click(radio[1]!)
+    expect(radio[1]).toHaveAttribute('aria-checked', 'true')
+    const gruppo = within(sezione).getByRole('group', { name: 'Andamento 70 m · Ricurvo' })
+    expect(gruppo).toBeVisible()
+    await userEvent.click(within(sezione).getByRole('button', { name: /^640 punti.*provvisorio/ }))
+    expect(sezione).toHaveTextContent('640 · Gubbio (PG) · 31 ott 2026 · provvisorio')
+    const medie = screen.getByRole('region', { name: 'Media per anno' })
+    expect(medie).toHaveTextContent('645')
+  })
+
+  it('senza almeno due punteggi in una prova non compare', async () => {
+    await renderApp('/atleti/id-carla', { servizio: conAtleti() })
+    await screen.findByRole('region', { name: 'Storico gare' })
+    expect(screen.queryByRole('region', { name: 'Andamento' })).not.toBeInTheDocument()
+  })
+})
+
+describe('GraficoAndamento', () => {
+  it('due punteggi nello stesso giorno: il grafico si disegna lo stesso', () => {
+    render(
+      <GraficoAndamento
+        titolo="Prova"
+        punti={[
+          { id: 'a', data: '2026-01-10', valore: 540, descrizione: 'Gubbio', provvisorio: false },
+          {
+            id: 'b',
+            data: '2026-01-10',
+            valore: 540,
+            descrizione: 'Gubbio bis',
+            provvisorio: true,
+          },
+        ]}
+      />,
+    )
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.getByRole('group', { name: 'Prova' })).toBeInTheDocument()
   })
 })

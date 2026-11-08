@@ -10,6 +10,7 @@ import {
   storicoAtleta,
   type ProvaGara,
 } from '@arco/shared'
+import { Andamento } from './Andamento'
 import { nomeAtleta, useAtleta, useClassificheDi, usePartecipazioniDi } from '../atleti/dati'
 import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
@@ -52,7 +53,8 @@ export function SchedaAtleta() {
     )
   }
 
-  const record = recordPersonali(proveDiAtleta(id, partecipazioni, gare, classifiche))
+  const prove = proveDiAtleta(id, partecipazioni, gare, classifiche)
+  const record = recordPersonali(prove)
   const storico = storicoAtleta(id, partecipazioni, gare)
   const gareDelRecord = new Map(gare.map((g) => [g.codice, g]))
 
@@ -88,6 +90,8 @@ export function SchedaAtleta() {
             />
           )}
         </ListGroup>
+
+        <Andamento prove={prove} gare={gare} />
 
         <ListGroup title="Storico gare">
           {storico.length > 0 ? (
