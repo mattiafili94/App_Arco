@@ -128,6 +128,70 @@ describe('sincronizzazione con Supabase', () => {
     ).rejects.toThrow('Accesso non valido')
   })
 
+  it('salva una simulazione di gara con la funzione del server', async () => {
+    const simulazione = {
+      id: '20000000-0000-0000-0000-000000000001',
+      atleta_id: 'a1',
+      giorno: '2026-11-12',
+      formato: '70m' as const,
+      distanza: 60 as const,
+      bersaglio: '122' as const,
+      frecce: ['X', '10'] as ('X' | '10')[],
+      conclusa: false,
+      eliminata: false,
+      creata_il: '2026-11-12T08:00:00.000Z',
+      modificato_il: '2026-11-12T09:00:00.000Z',
+    }
+    const chiamate: [string, unknown][] = []
+    const cliente = {
+      rpc: async (nome: string, argomenti: unknown) => {
+        chiamate.push([nome, argomenti])
+        return { data: { ...simulazione, aggiornato_il: '2026-11-12T09:00:01+00:00' }, error: null }
+      },
+    } as unknown as SupabaseClient
+    const r = await creaRemotoSupabase(cliente).salvaSimulazione(simulazione)
+    expect(r.aggiornato_il).toBe('2026-11-12T09:00:01+00:00')
+    expect(chiamate).toEqual([
+      [
+        'salva_simulazione',
+        {
+          p_id: simulazione.id,
+          p_atleta: 'a1',
+          p_giorno: '2026-11-12',
+          p_formato: '70m',
+          p_distanza: 60,
+          p_bersaglio: '122',
+          p_frecce: ['X', '10'],
+          p_conclusa: false,
+          p_eliminata: false,
+          p_creata_il: '2026-11-12T08:00:00.000Z',
+          p_modificato_il: '2026-11-12T09:00:00.000Z',
+        },
+      ],
+    ])
+  })
+
+  it('un errore nel salvataggio della simulazione si segnala (la riga resta da inviare)', async () => {
+    const cliente = {
+      rpc: async () => ({ data: null, error: { message: 'Accesso non valido' } }),
+    } as unknown as SupabaseClient
+    await expect(
+      creaRemotoSupabase(cliente).salvaSimulazione({
+        id: 'x',
+        atleta_id: 'a1',
+        giorno: '2026-11-12',
+        formato: '18m',
+        distanza: null,
+        bersaglio: 'trispot',
+        frecce: [],
+        conclusa: false,
+        eliminata: false,
+        creata_il: '2026-11-12T08:00:00.000Z',
+        modificato_il: '2026-11-12T09:00:00.000Z',
+      }),
+    ).rejects.toThrow('Accesso non valido')
+  })
+
   it('un errore del server ferma la sincronizzazione', async () => {
     const { cliente } = clienteFinto({ data: null, error: { message: 'JWT scaduto' } })
     await expect(creaRemotoSupabase(cliente).cambiamenti('gare', null, 0, 10)).rejects.toThrow(

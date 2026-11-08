@@ -1,5 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { aggiungiGiorni, type GiornoAllenamento } from '@arco/shared'
+import {
+  aggiungiGiorni,
+  simulazioniVisibili,
+  type GiornoAllenamento,
+  type Simulazione,
+} from '@arco/shared'
 import { useAtletaCorrente } from '../accesso/contesto'
 import { useSincronizzazione } from '../sync/contesto'
 
@@ -33,4 +38,43 @@ export function useGiornoAllenamento(giorno: string): GiornoAllenamento | null |
 export function useModificheDaInviare(): number | undefined {
   const { db } = useSincronizzazione()
   return useLiveQuery(() => db.allenamento_giorni.where('da_inviare').equals(1).count(), [db])
+}
+
+/** Le simulazioni di un giorno (non cancellate), le più recenti per prime. */
+export function useSimulazioniGiorno(giorno: string): Simulazione[] | undefined {
+  const { db } = useSincronizzazione()
+  const { id } = useAtletaCorrente()
+  return useLiveQuery(
+    async () =>
+      simulazioniVisibili(
+        (await db.simulazioni.where('giorno').equals(giorno).toArray()) as unknown as Simulazione[],
+      ).filter((s) => s.atleta_id === id),
+    [db, id, giorno],
+  )
+}
+
+/** Le simulazioni di una settimana (non cancellate): servono alle frecce del riepilogo. */
+export function useSimulazioniSettimana(inizio: string): Simulazione[] | undefined {
+  const { db } = useSincronizzazione()
+  const { id } = useAtletaCorrente()
+  return useLiveQuery(
+    async () =>
+      simulazioniVisibili(
+        (await db.simulazioni
+          .where('giorno')
+          .between(inizio, aggiungiGiorni(inizio, 6), true, true)
+          .toArray()) as unknown as Simulazione[],
+      ).filter((s) => s.atleta_id === id),
+    [db, id, inizio],
+  )
+}
+
+/** Una simulazione: `null` se non esiste o è cancellata, `undefined` finché si legge. */
+export function useSimulazione(idSimulazione: string): Simulazione | null | undefined {
+  const { db } = useSincronizzazione()
+  const { id } = useAtletaCorrente()
+  return useLiveQuery(async () => {
+    const s = (await db.simulazioni.get(idSimulazione)) as unknown as Simulazione | undefined
+    return s && !s.eliminata && s.atleta_id === id ? s : null
+  }, [db, id, idSimulazione])
 }

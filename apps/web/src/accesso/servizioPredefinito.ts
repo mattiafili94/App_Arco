@@ -19,6 +19,9 @@ export const servizioPredefinito: ServizioAccesso =
           salvaAllenamento: async () => {
             throw new Error('App non collegata al server.')
           },
+          salvaSimulazione: async () => {
+            throw new Error('App non collegata al server.')
+          },
         },
         classifica: {
           miePosizioni: async () => [],

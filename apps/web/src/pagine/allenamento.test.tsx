@@ -205,7 +205,7 @@ describe('un giorno di allenamento', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Lunedì 9 nov' })).toBeInTheDocument()
     expect(screen.getByLabelText('Fatto')).toBeChecked()
     expect(screen.getByLabelText('Frecce tirate')).toHaveValue('60')
-    expect(screen.getByText('60 frecce')).toBeInTheDocument()
+    expect(screen.getByText('60 frecce in tutto')).toBeInTheDocument()
     expect(screen.getByLabelText('Note')).toHaveValue('')
   })
 

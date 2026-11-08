@@ -466,10 +466,34 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         ogni modifica si salva subito sul telefono e si invia dopo 1,5 s; "Salvato" / "Si invia appena c'è la rete");
         logica pura in `packages/shared/src/allenamento.ts` (`riepilogoSettimana` accetta già le frecce delle
         simulazioni: arriveranno con il segnapunti); nuovi componenti `Textarea` e `Checkbox`;
-   2. diario: una nota libera per giorno (già c'è il campo "Note" per giorno: valutare se basta o serve altro);
-   3. segnapunti, in due PR: 6.3a gare a bersaglio (tocco sul bersaglio + tastierino, gare composte in prove,
-      timer della volée, note, totale con 10 e X), 6.3b campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24)
-      e 3D (3 frecce a piazzola, punteggi 11/10/8/5/0), con confronto media allenamento/gara.
+   2. diario: **saltato** (Mattia, 11/11/2026): basta la nota libera facoltativa di ogni giorno;
+   3. segnapunti (simulazioni di gara), in tre PR:
+      - **6.3a-1 ✅** gare a bersaglio con tastierino. **Regole** (Mattia, 11/11/2026, solo formati ufficiali):
+        *indoor* (18 m, 25 m, 25+18) 3 frecce a volée, 20 volée = 60 frecce per prova, 2 parziali da 30, bersaglio
+        singolo (10…1, M) o trispot (10…6, M), **niente X**, in fondo si contano **10 e 9** (anche compound, nudo,
+        olimpico); *outdoor* (70, 60 o 50 m; doppio = due prove) 6 frecce a volée, 12 volée = 72 frecce per prova,
+        2 parziali da 36, 122 cm (X, 10…1, M) o 80 cm ridotto (X, 10…5, M), si contano **10+X e X**; X = 10 punti,
+        M = 0; 25+18 = prima 25 m poi 18 m. Logica pura in `packages/shared/src/segnapunti.ts`.
+        Tabella `simulazioni` (migrazione `20261112120000`): una riga per simulazione con **tutte le frecce**
+        (`'X','10'…'1','M'`), formato, distanza, bersaglio; volée, prove, parziali, totali e conteggi si
+        **ricalcolano** dalle frecce. Privata come l'allenamento (`allenamento_accessibile`), nessuna scrittura
+        diretta: `salva_simulazione` fa vincere la modifica più recente, una simulazione non passa mai da un atleta
+        a un altro; "cancellata" = `eliminata: true` (la riga resta, così lo sanno tutti i telefoni).
+        Sincronizzazione nei due sensi **generalizzata** (`SCRIVIBILI` in `sync/motore.ts`: allenamento_giorni e
+        simulazioni; Dexie versione 4); `conclusa` segue le frecce (vera a gara completa).
+        App: dal giorno "Nuova simulazione" (`/allenamento/:giorno/nuova`: gara, distanza, bersaglio) poi
+        `/allenamento/:giorno/simulazione/:id`: volée in corso, **tastierino** (tasti con i colori del bersaglio,
+        sempre col numero scritto), "Annulla ultima freccia", **correzione** di qualunque freccia (tocco sulla freccia,
+        poi il valore giusto), riepilogo (punteggio, parziali, conteggi, media) ed elenco delle volée con
+        progressivo, cancellazione con conferma. Le frecce delle simulazioni si **sommano da sole** al giorno e
+        alla settimana (libere + in gara, senza doppi conteggi). L'area sopra il tastierino ha sempre due righe:
+        il tastierino non si sposta mentre si tocca;
+      - **6.3a-2** tocco sul bersaglio con lente (e posizione della freccia), note per volée e **timer facoltativo**
+        della volée: 1 fischio all'inizio → 10 secondi per andare in linea (rosso) → 1 fischio e parte il tempo
+        (indoor 2 minuti, outdoor 4, verde) → a 30 secondi dalla fine giallo con un breve avviso sonoro (diverso dal
+        fischio) → a tempo scaduto 2 fischi. Sempre facoltativo, si può fermare prima, funziona offline;
+      - **6.3b** campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24) e 3D (3 frecce a piazzola, punteggi
+        11/10/8/5/0), con confronto media allenamento/gara.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

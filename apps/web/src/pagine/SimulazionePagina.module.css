@@ -1,0 +1,166 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.volee {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.nota {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Sempre lo spazio di due righe: il tastierino non si sposta mentre si tocca, qualunque sia il totale. */
+.volee .nota {
+  min-height: 2.8em;
+}
+
+.frecce {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+/* Le zone del bersaglio (token del progetto, uguali in tutti i temi): il numero resta sempre scritto. */
+.oro {
+  background: var(--target-gold);
+  color: var(--target-line-dark);
+}
+.rosso {
+  background: var(--target-red);
+  color: var(--target-line-dark);
+}
+.blu {
+  background: var(--target-blue);
+  color: var(--target-line-dark);
+}
+.nero {
+  background: var(--target-black);
+  color: var(--target-line-light);
+}
+.bianco {
+  background: var(--target-white);
+  color: var(--target-line-dark);
+}
+.mancata {
+  background: var(--background-surface);
+  color: var(--text-primary);
+}
+
+.casella {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-8);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.vuota {
+  background: var(--background-canvas);
+  color: var(--text-secondary);
+  border-style: dashed;
+  cursor: default;
+}
+
+/* La freccia da correggere: bordo spesso e rialzata, non solo il colore. */
+.scelta {
+  border: 4px solid var(--accent-default);
+  outline: 2px solid var(--background-surface);
+}
+
+.tastierino {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-8);
+}
+
+.tastierino[data-colonne='3'] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.tasto {
+  min-height: 64px;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.tasto:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.tasto:active:not(:disabled) {
+  transform: scale(var(--scale-press));
+}
+
+.azioni {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.elenco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.titolo {
+  color: var(--text-secondary);
+  padding-inline: var(--space-16);
+  margin: 0 0 var(--space-8);
+}
+
+.tabella {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-primary);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.tabella th,
+.tabella td {
+  padding: var(--space-8);
+  text-align: start;
+  border-bottom: 1px solid var(--border-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabella thead th {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.testo {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-default);
+  text-decoration: underline;
+  cursor: pointer;
+}

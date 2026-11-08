@@ -1,4 +1,4 @@
-import type { GiornoAllenamento } from '@arco/shared'
+import type { GiornoAllenamento, Simulazione } from '@arco/shared'
 import type { Remoto } from '../sync/remoto'
 import { chiaveDi, TABELLE, type Eliminazione, type NomeTabella, type Riga } from '../sync/tabelle'
 
@@ -15,6 +15,7 @@ export class RemotoFinto implements Remoto {
     classifiche: [],
     ranking: [],
     allenamento_giorni: [],
+    simulazioni: [],
   }
   registro: Eliminazione[] = []
   /** Le richieste ricevute, per controllare che non si scarichi più del necessario. */
@@ -76,26 +77,42 @@ export class RemotoFinto implements Remoto {
 
   /** Le richieste di salvataggio dell'allenamento ricevute, nell'ordine. */
   salvataggi: GiornoAllenamento[] = []
-  /** L'ora del server (per `aggiornato_il` dell'allenamento). */
+  /** Le richieste di salvataggio delle simulazioni ricevute, nell'ordine. */
+  salvataggiSimulazioni: Simulazione[] = []
+  /** L'ora del server (per `aggiornato_il` delle righe scritte dal telefono). */
   orologio: () => number = Date.now
 
   /** Come il server vero: vince la modifica più recente; a parità resta quella già salvata. */
-  async salvaAllenamento(giorno: GiornoAllenamento): Promise<Riga> {
-    this.controllaRete()
-    this.salvataggi.push({ ...giorno })
-    const def = TABELLE.find((t) => t.nome === 'allenamento_giorni')!
-    const chiave = JSON.stringify(chiaveDi(def, giorno as unknown as Riga))
-    const esistente = this.righe.allenamento_giorni.find(
-      (r) => JSON.stringify(chiaveDi(def, r)) === chiave,
-    )
+  private salvaPiuRecente(tabella: NomeTabella, riga: Riga & { modificato_il: string }): Riga {
+    const def = TABELLE.find((t) => t.nome === tabella)!
+    const chiave = JSON.stringify(chiaveDi(def, riga))
+    const esistente = this.righe[tabella].find((r) => JSON.stringify(chiaveDi(def, r)) === chiave)
     if (
       esistente &&
-      Date.parse(String(esistente.modificato_il)) >= Date.parse(giorno.modificato_il)
+      Date.parse(String(esistente.modificato_il)) >= Date.parse(riga.modificato_il)
     ) {
       return esistente
     }
-    const nuova: Riga = { ...giorno, aggiornato_il: new Date(this.orologio()).toISOString() }
-    this.scrivi('allenamento_giorni', nuova)
+    const nuova: Riga = { ...riga, aggiornato_il: new Date(this.orologio()).toISOString() }
+    this.scrivi(tabella, nuova)
     return nuova
+  }
+
+  async salvaAllenamento(giorno: GiornoAllenamento): Promise<Riga> {
+    this.controllaRete()
+    this.salvataggi.push({ ...giorno })
+    return this.salvaPiuRecente(
+      'allenamento_giorni',
+      giorno as unknown as Riga & { modificato_il: string },
+    )
+  }
+
+  async salvaSimulazione(simulazione: Simulazione): Promise<Riga> {
+    this.controllaRete()
+    this.salvataggiSimulazioni.push({ ...simulazione })
+    return this.salvaPiuRecente(
+      'simulazioni',
+      simulazione as unknown as Riga & { modificato_il: string },
+    )
   }
 }

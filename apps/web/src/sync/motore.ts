@@ -6,14 +6,14 @@
  * - Il primo giro scarica tutto. Un telefono fermo da troppo tempo riparte da zero: il registro delle
  *   eliminazioni non tiene tracce così vecchie.
  * Dati condivisi: solo dal server al telefono, mai il contrario.
- * Allenamento (privato): nei due sensi. Prima si mandano al server le modifiche fatte sul telefono, poi si
+ * Allenamento e simulazioni (privati): nei due sensi. Prima si mandano al server le modifiche fatte sul telefono, poi si
  *   scaricano le novità; una riga con modifiche non ancora inviate non si sovrascrive mai con quella del
  *   server (al giro dopo il server sceglie la più recente).
  */
-import type { GiornoAllenamento } from '@arco/shared'
+import type { GiornoAllenamento, Simulazione } from '@arco/shared'
 import { svuotaDb, type ArcoDb } from './db'
 import type { Remoto } from './remoto'
-import { chiaveDi, TABELLE, type DefinizioneTabella, type Riga } from './tabelle'
+import { chiaveDi, TABELLE, type DefinizioneTabella, type NomeTabella, type Riga } from './tabelle'
 
 export const DIMENSIONE_PAGINA = 1000
 /** Si rileggono le righe cambiate negli ultimi minuti prima dell'ultimo cursore (transazioni lente). */
@@ -44,9 +44,26 @@ export async function ultimaSincronizzazione(db: ArcoDb): Promise<number | null>
   return (await leggiMeta(db, CHIAVE_ULTIMA)) ?? null
 }
 
+/** Le tabelle che si scrivono anche dal telefono, e come si salva una riga sul server. */
+const SCRIVIBILI: {
+  nome: NomeTabella
+  salva: (remoto: Remoto, riga: Riga) => Promise<Riga>
+}[] = [
+  {
+    nome: 'allenamento_giorni',
+    salva: (remoto, riga) => remoto.salvaAllenamento(riga as unknown as GiornoAllenamento),
+  },
+  {
+    nome: 'simulazioni',
+    salva: (remoto, riga) => remoto.salvaSimulazione(riga as unknown as Simulazione),
+  },
+]
+
+const eScrivibile = (nome: string) => SCRIVIBILI.some((s) => s.nome === nome)
+
 /**
- * Manda al server le modifiche fatte sul telefono (allenamento): una riga alla volta. Il server fa
- * vincere la modifica più recente e restituisce la riga che vale: il telefono la tiene com'è. Se la riga
+ * Manda al server le modifiche fatte sul telefono (allenamento, simulazioni): una riga alla volta. Il server
+ * fa vincere la modifica più recente e restituisce la riga che vale: il telefono la tiene com'è. Se la riga
  * è stata modificata di nuovo mentre si inviava, resta quella locale (e si invia al giro dopo).
  * Se un invio fallisce si prosegue con gli altri e l'errore si segnala alla fine.
  */
@@ -54,27 +71,26 @@ async function inviaModifiche(
   remoto: Remoto,
   db: ArcoDb,
 ): Promise<{ inviate: number; errore: unknown }> {
-  const sporche = await db.allenamento_giorni.where('da_inviare').equals(1).toArray()
   let inviate = 0
   let errore: unknown = null
-  for (const riga of sporche) {
-    // Il server non riceve il segno interno "da_inviare".
-    const dati = { ...riga }
-    delete dati.da_inviare
-    try {
-      const vincente = await remoto.salvaAllenamento(dati as unknown as GiornoAllenamento)
-      await db.transaction('rw', db.allenamento_giorni, async () => {
-        const attuale = await db.allenamento_giorni.get([riga.atleta_id, riga.giorno] as [
-          string,
-          string,
-        ])
-        if (attuale && attuale.modificato_il === riga.modificato_il) {
-          await db.allenamento_giorni.put(vincente)
-        }
-      })
-      inviate++
-    } catch (e) {
-      errore ??= e
+  for (const { nome, salva } of SCRIVIBILI) {
+    const def = TABELLE.find((t) => t.nome === nome)!
+    const tabella = db.tabella(nome)
+    const sporche = await tabella.where('da_inviare').equals(1).toArray()
+    for (const riga of sporche) {
+      // Il server non riceve il segno interno "da_inviare".
+      const dati = { ...riga }
+      delete dati.da_inviare
+      try {
+        const vincente = await salva(remoto, dati)
+        await db.transaction('rw', tabella, async () => {
+          const attuale = await tabella.get(chiaveDi(def, riga) as string)
+          if (attuale && attuale.modificato_il === riga.modificato_il) await tabella.put(vincente)
+        })
+        inviate++
+      } catch (e) {
+        errore ??= e
+      }
     }
   }
   return { inviate, errore }
@@ -110,10 +126,8 @@ async function senzaModificheLocali(
   def: DefinizioneTabella,
   righe: Riga[],
 ): Promise<Riga[]> {
-  if (def.nome !== 'allenamento_giorni') return righe
-  const locali = await db.allenamento_giorni.bulkGet(
-    righe.map((r) => chiaveDi(def, r) as [string, string]),
-  )
+  if (!eScrivibile(def.nome)) return righe
+  const locali = await db.tabella(def.nome).bulkGet(righe.map((r) => chiaveDi(def, r) as string))
   return righe.filter((_, i) => !locali[i]?.da_inviare)
 }
 

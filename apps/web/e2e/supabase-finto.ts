@@ -295,6 +295,8 @@ export async function simulaSupabase(
   { collegato = ATLETA_PROVA as AtletaProva | null } = {},
 ) {
   const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({ ...a }))
+  /** Le simulazioni di gara salvate dal telefono di prova (vuote all'inizio). */
+  const simulazioni: Record<string, unknown>[] = []
   /** L'allenamento salvato dal telefono di prova (vuoto all'inizio). */
   const allenamento: {
     atleta_id: string
@@ -446,6 +448,36 @@ export async function simulaSupabase(
       return json(route, nuova)
     }
 
+    // Simulazioni di gara di Bruno (private): come sul server, vince la modifica più recente.
+    if (tabella === 'simulazioni') return json(route, simulazioni)
+    if (url.pathname === '/rest/v1/rpc/salva_simulazione') {
+      const p = richiesta.postDataJSON() as Record<string, unknown>
+      const riga = {
+        id: p.p_id,
+        atleta_id: p.p_atleta,
+        giorno: p.p_giorno,
+        formato: p.p_formato,
+        distanza: p.p_distanza,
+        bersaglio: p.p_bersaglio,
+        frecce: p.p_frecce,
+        conclusa: p.p_conclusa,
+        eliminata: p.p_eliminata,
+        creata_il: p.p_creata_il,
+        modificato_il: p.p_modificato_il,
+        aggiornato_il: new Date().toISOString(),
+      }
+      const esistente = simulazioni.find((r) => r.id === riga.id)
+      if (
+        esistente &&
+        Date.parse(String(esistente.modificato_il)) >= Date.parse(String(riga.modificato_il))
+      ) {
+        return json(route, esistente)
+      }
+      if (esistente) Object.assign(esistente, riga)
+      else simulazioni.push(riga)
+      return json(route, riga)
+    }
+
     // Funzione del server crea-accesso.
     if (url.pathname === '/functions/v1/crea-accesso') {
       const corpo = richiesta.postDataJSON() as { azione: string; atletaId: string }
@@ -465,5 +497,5 @@ export async function simulaSupabase(
     return json(route, { message: `Non simulato: ${url.pathname}` }, 404)
   })
 
-  return { atleti, richiesteFunzione, allenamento }
+  return { atleti, richiesteFunzione, allenamento, simulazioni }
 }

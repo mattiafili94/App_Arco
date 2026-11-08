@@ -49,3 +49,10 @@
   margin: 0;
   color: var(--text-secondary);
 }
+
+.simulazioni {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  margin-top: var(--space-24);
+}
