@@ -4,6 +4,7 @@
  */
 import type {
   Archivio,
+  FiltroClassifica,
   AtletaArchivio,
   Esito,
   GaraSalvata,
@@ -15,7 +16,7 @@ import type {
   StatoArchivio,
   TipoLettura,
 } from '../aggiornamento'
-import { PREFISSO_BLOCCO } from '../aggiornamento'
+import { chiaveClassifica, PREFISSO_BLOCCO } from '../aggiornamento'
 
 export interface LavoroInCoda {
   tipo: TipoLettura
@@ -47,7 +48,11 @@ export class ArchivioFinto implements Archivio {
     string,
     { righe: { atleta_id: string | null }[]; impronta: string; provvisoria: boolean }
   >()
-  ranking = new Map<string, unknown[]>()
+  /** Le classifiche (ranking) complete salvate, per chiave "tipo|divisione|classe|genere". */
+  classificheComplete = new Map<
+    string,
+    FiltroClassifica & { categoria: string; totale: number; righe: unknown[]; letta_il: string }
+  >()
   coda: LavoroInCoda[] = []
   diario: {
     tipo: TipoLettura
@@ -290,7 +295,31 @@ export class ArchivioFinto implements Archivio {
     this.gareSalvate.get(codice)!.impronta_risultati = impronta
   }
 
-  async salvaRanking(tipo: string, divisione: string, atleti: string[], righe: unknown[]) {
-    this.ranking.set(`${tipo}|${divisione}|${atleti.join(',')}`, righe)
+  async classificheRanking() {
+    return [...this.classificheComplete.values()].map((c) => ({
+      tipo: c.tipo,
+      divisione: c.divisione,
+      classe: c.classe,
+      genere: c.genere,
+      letta_il: c.letta_il,
+      totale: c.totale,
+    }))
+  }
+
+  async salvaClassificaRanking(
+    filtro: FiltroClassifica,
+    dati: { categoria: string; totale: number; righe: unknown[] },
+  ) {
+    this.classificheComplete.set(chiaveClassifica(filtro), {
+      ...filtro,
+      ...dati,
+      letta_il: new Date(this.adesso).toISOString(),
+    })
+  }
+
+  async lettureClassificheDa(da: Date) {
+    return this.diario.filter(
+      (d) => d.tipo === 'ranking' && d.richieste > 0 && (d.istante ?? 0) >= da.getTime(),
+    ).length
   }
 }

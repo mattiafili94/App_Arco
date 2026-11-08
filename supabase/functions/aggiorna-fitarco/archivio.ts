@@ -6,6 +6,7 @@ import type {
   Archivio,
   ArchivioNotifiche,
   AtletaArchivio,
+  ClassificaSalvata,
   GaraSalvata,
   RigaInvito,
   RigaPartecipazione,
@@ -258,16 +259,39 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       )
     },
 
-    async salvaRanking(tipo, divisione, atleti, righe) {
+    async classificheRanking() {
+      return controlla(
+        await db
+          .from('classifiche_ranking')
+          .select('tipo, divisione, classe, genere, totale, letta_il'),
+        'classifiche ranking',
+      ) as ClassificaSalvata[]
+    },
+
+    async salvaClassificaRanking(filtro, dati) {
       controlla(
-        await db.rpc('salva_ranking', {
-          p_tipo: tipo,
-          p_divisione: divisione,
-          p_atleti: atleti,
-          p_righe: righe,
+        await db.rpc('salva_classifica_ranking', {
+          p_tipo: filtro.tipo,
+          p_divisione: filtro.divisione,
+          p_classe: filtro.classe,
+          p_genere: filtro.genere,
+          p_categoria: dati.categoria,
+          p_totale: dati.totale,
+          p_righe: dati.righe,
         }),
-        'salva ranking',
+        'salva classifica ranking',
       )
+    },
+
+    async lettureClassificheDa(da) {
+      const { count, error } = await db
+        .from('letture')
+        .select('*', { count: 'exact', head: true })
+        .eq('tipo', 'ranking')
+        .gt('richieste', 0)
+        .gte('creato_il', da.toISOString())
+      if (error) throw new Error(`Database (letture classifiche): ${error.message}`)
+      return count ?? 0
     },
   }
 }

@@ -6,7 +6,7 @@ import {
   rigaGaraDaStorico,
   rigaInvito,
   righeClassifica,
-  righeRanking,
+  righeClassificaRanking,
   righeStorico,
 } from '../aggiornamento'
 import {
@@ -116,39 +116,35 @@ describe('dai lettori alle righe del database', () => {
     expect(righe[0]!.prove.map((p) => p.totale)).toEqual([272, 378])
   })
 
-  it('ranking: solo i nostri atleti, riconosciuti dalla matricola', () => {
-    const atleti = [
-      { id: 'a1', matricola: '900011', nome: 'X', cognome: 'Y' },
-      { id: 'a9', matricola: '123456', nome: 'Z', cognome: 'W' },
-    ]
-    expect(
-      righeRanking(leggiRanking(esempio('ranking')), { classe: 'S', genere: 'M' }, atleti),
-    ).toEqual([
-      {
-        atleta_id: 'a1',
-        classe: 'S',
-        genere: 'M',
-        categoria: 'Arco Ricurvo - Seniores Maschile',
-        posizione: 46,
-        punti: 1118,
-        gare: [
-          {
-            codice: 'R2611009',
-            punti: 564,
-            localita: 'Terni (TR)',
-            dal: '2026-03-14',
-            al: '2026-03-15',
-          },
-          {
-            codice: 'N2612008',
-            punti: 554,
-            localita: 'Roma (RM)',
-            dal: '2026-02-26',
-            al: '2026-03-01',
-          },
-        ],
-      },
-    ])
+  it('classifica ranking completa: tutte le righe, con società e le due gare', () => {
+    const c = righeClassificaRanking(leggiRanking(esempio('ranking')))
+    expect(c.categoria).toBe('Arco Ricurvo - Seniores Maschile')
+    expect(c.totale).toBe(13)
+    expect(c.righe).toHaveLength(6)
+    expect(c.righe[0]).toEqual({
+      posizione: 46,
+      matricola: '900011',
+      nome: 'Neri Chiara',
+      societa_codice: '11011',
+      societa_nome: 'A.S.D. ARCIERI ROCCA FLEA',
+      punti: 1118,
+      gare: [
+        {
+          codice: 'R2611009',
+          punti: 564,
+          localita: 'Terni (TR)',
+          dal: '2026-03-14',
+          al: '2026-03-15',
+        },
+        {
+          codice: 'N2612008',
+          punti: 554,
+          localita: 'Roma (RM)',
+          dal: '2026-02-26',
+          al: '2026-03-01',
+        },
+      ],
+    })
   })
 
   it('impronta di un file (SHA-256)', async () => {

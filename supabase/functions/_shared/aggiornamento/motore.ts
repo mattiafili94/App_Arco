@@ -23,7 +23,6 @@ import {
   type RichiestaFitarco,
   type RispostaFitarco,
   type StatoGara,
-  type TipoRanking,
 } from '../fitarco/index.ts'
 import { CODICE_SOCIETA, trovaAtleta, type AtletaNoto } from './atleti.ts'
 import {
@@ -35,6 +34,14 @@ import {
   type TipoLettura,
 } from './pianifica.ts'
 import { notificaInvito, vaNotificato, type NotificaInvito } from './notifiche.ts'
+import {
+  chiaveClassifica,
+  filtroDaChiave,
+  PRIORITA_CLASSIFICA,
+  pianificaClassifiche,
+  type ClassificaScaricata,
+  type FiltroClassifica,
+} from './classifica.ts'
 import { combinazioniRanking } from './ranking.ts'
 import {
   datiAtletaDaScheda,
@@ -43,13 +50,18 @@ import {
   rigaGaraDaStorico,
   rigaInvito,
   righeClassifica,
-  righeRanking,
+  righeClassificaRanking,
   righeStorico,
   type RigaGara,
   type RigaInvito,
   type RigaPartecipazione,
 } from './righe.ts'
-import { controllaCalendario, controllaClassifica, controllaStorico } from './sentinella.ts'
+import {
+  controllaCalendario,
+  controllaClassifica,
+  controllaRanking,
+  controllaStorico,
+} from './sentinella.ts'
 
 // --- Cosa serve dall'esterno ---------------------------------------------------------------------
 
@@ -154,12 +166,20 @@ export interface Archivio {
     impronta: string,
     provvisoria: boolean,
   ): Promise<void>
-  salvaRanking(
-    tipo: TipoRanking,
-    divisione: string,
-    atleti: string[],
-    righe: unknown[],
+  /** Le classifiche (ranking) complete già scaricate, con l'ultima lettura e quanti atleti avevano. */
+  classificheRanking(): Promise<ClassificaSalvata[]>
+  /** Salva una classifica completa (sostituisce la precedente). */
+  salvaClassificaRanking(
+    filtro: FiltroClassifica,
+    dati: { categoria: string; totale: number; righe: unknown[] },
   ): Promise<void>
+  /** Quante classifiche sono state lette da Fitarco da questo istante (diario delle letture). */
+  lettureClassificheDa(da: Date): Promise<number>
+}
+
+/** Una classifica scaricata, con quanti atleti conteneva. */
+export interface ClassificaSalvata extends ClassificaScaricata {
+  totale: number
 }
 
 export interface Fonte {
@@ -505,22 +525,44 @@ async function combinazioni(ctx: Contesto) {
   )
 }
 
-const chiaveRanking = (c: { tipo: string; divisione: string; classe: string; genere: string }) =>
-  `${c.tipo}|${c.divisione}|${c.classe}|${c.genere}`
+/** Esito della lettura di una classifica (ranking) da Fitarco. */
+export interface EsitoClassifica extends Esecuzione {
+  /** Quanti atleti ha la classifica salvata. */
+  atleti: number
+}
 
-async function ranking(ctx: Contesto, chiave: string): Promise<Esecuzione> {
-  const combinazione = (await combinazioni(ctx)).find((c) => chiaveRanking(c) === chiave)
-  if (!combinazione) return { esito: 'invariato', messaggio: 'Nessun atleta in questa classifica' }
-  const { tipo, divisione, classe, genere } = combinazione
-  const letta = leggiRanking(
-    await leggiHtml(ctx.fonte, richiestaRanking({ tipo, divisione, classe, genere })),
+/**
+ * Legge da Fitarco una classifica (ranking) nazionale completa e la salva. Una sola richiesta.
+ * Lo usano il controllo del lunedì e il pulsante "Aggiorna" dell'app. La sentinella evita di sostituire
+ * una classifica buona con una vuota o incompleta.
+ */
+export async function aggiornaClassifica(
+  ctx: Contesto,
+  filtro: FiltroClassifica,
+): Promise<EsitoClassifica> {
+  const html = await leggiHtml(ctx.fonte, richiestaRanking(filtro))
+  // Una combinazione senza atleti (es. un arco che non ha quella classe) non è un errore.
+  const letta = html.includes('no-results') ? { totale: 0, categorie: [] } : leggiRanking(html)
+  const dati = righeClassificaRanking(letta)
+  const salvata = (await ctx.archivio.classificheRanking()).find(
+    (c) => chiaveClassifica(c) === chiaveClassifica(filtro),
   )
-  const righe = righeRanking(letta, { classe, genere }, await ctx.archivio.atleti())
-  await ctx.archivio.salvaRanking(tipo, divisione, combinazione.atleti, righe)
+  const anomalia = controllaRanking(dati.righe.length, dati.totale, salvata?.totale ?? null)
+  if (anomalia) return { esito: 'anomalia', messaggio: anomalia, atleti: salvata?.totale ?? 0 }
+  await ctx.archivio.salvaClassificaRanking(filtro, dati)
+  const nostri = dati.righe.filter((r) => r.societa_codice === CODICE_SOCIETA).length
   return {
     esito: 'ok',
-    messaggio: `${righe.length} dei nostri su ${combinazione.atleti.length} in classifica`,
+    messaggio: `${dati.righe.length} atleti, ${nostri} dei nostri`,
+    atleti: dati.righe.length,
   }
+}
+
+async function ranking(ctx: Contesto, chiave: string): Promise<Esecuzione> {
+  const filtro = filtroDaChiave(chiave)
+  if (!filtro) return { esito: 'invariato', messaggio: 'Classifica non valida: lettura tolta' }
+  const { esito, messaggio } = await aggiornaClassifica(ctx, filtro)
+  return { esito, messaggio }
 }
 
 const ESECUTORI: Record<TipoLettura, (ctx: Contesto, chiave: string) => Promise<Esecuzione>> = {
@@ -532,19 +574,22 @@ const ESECUTORI: Record<TipoLettura, (ctx: Contesto, chiave: string) => Promise<
   ranking,
 }
 
-/** Letture che richiedono molto calcolo (PDF, calendari): poche per chiamata. */
-const PESANTI = new Set<TipoLettura>(['risultati', 'calendario'])
+/**
+ * Letture che richiedono molto calcolo (PDF, calendari, classifiche di centinaia di atleti): poche per
+ * chiamata. Le classifiche del lunedì partono così una per giro, cioè ogni 15 minuti.
+ */
+const PESANTI = new Set<TipoLettura>(['risultati', 'calendario', 'ranking'])
 
-export const PRIORITA_RANKING = 25
+export const PRIORITA_RANKING = PRIORITA_CLASSIFICA
 
 /** Quante letture in lista si guardano a ogni giro. */
 export const LAVORI_DA_GUARDARE = 200
 
-/** Mette in lista le classifiche (ranking) di tutti i nostri atleti: pulsante "Aggiorna". */
+/** Mette in lista le classifiche (ranking) dei nostri atleti, a mano (azione "ranking"). */
 export async function accodaRanking(ctx: Contesto): Promise<number> {
   const lista = (await combinazioni(ctx)).map((c) => ({
     tipo: 'ranking' as const,
-    chiave: chiaveRanking(c),
+    chiave: chiaveClassifica(c),
     priorita: PRIORITA_RANKING,
   }))
   await ctx.archivio.accoda(lista)
@@ -614,7 +659,15 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
     })
   }
 
-  const piano = pianificaLetture(statoPianificazione(await ctx.archivio.stato(), ctx.oggi))
+  const piano = [
+    ...pianificaLetture(statoPianificazione(await ctx.archivio.stato(), ctx.oggi)),
+    // Classifiche: le nostre se mancano, e il lunedì dalle 10 quelle già scaricate.
+    ...pianificaClassifiche(
+      new Date(adesso()),
+      await combinazioni(ctx),
+      await ctx.archivio.classificheRanking(),
+    ),
+  ]
   await ctx.archivio.accoda(piano)
 
   const riepilogo: Riepilogo = { pianificate: piano.length, eseguite: [], fermato: null }

@@ -72,8 +72,10 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 1. **Gare**: calendario Umbria (tutte le tipologie) con stato delle iscrizioni. Scheda gara: invito completo,
    risultati (classifica come schermata con gli Eugubini evidenziati + PDF originale), "Aggiungi al calendario".
 2. **Atleti**: elenco membri (l'utente in cima). Scheda atleta: record personali, andamento, storico gare.
-3. **Classifica**: posizione di ognuno nella ranking per l'ammissione ai Campionati Italiani, pulsante "Aggiorna"
-   con data dell'ultimo aggiornamento.
+3. **Classifica**: la ranking per l'ammissione ai Campionati Italiani, **completa** come sul sito Fitarco (tutti gli
+   atleti, punti totali e le due gare che contano), con filtri (tipo di gara, arco, classe, genere, regione). In
+   primo piano **solo la tua posizione**; gli altri si cercano con i filtri. Pulsante "Aggiorna" con data
+   dell'ultimo aggiornamento (Mattia, 10/11/2026). Soglia di ammissione: più avanti.
 4. **Allenamento** (privato, visibile solo all'atleta): settimana con il programma dettato dall'allenatore e
    scritto dall'atleta, attività da segnare come fatte, "copia la settimana scorsa", diario, segnapunti.
 - **Impostazioni** (icona in alto): tema, interruttore "Notifiche nuovi inviti", stato sincronizzazione.
@@ -86,7 +88,7 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Storico gare | scheda atleta (dalla matricola) | una volta, poi in automatico |
 | Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
 | Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
-| Classifica Campionati Italiani | ranking | pulsante "Aggiorna" |
+| Classifica Campionati Italiani | ranking (nazionale completa) | **lunedì alle 10:00** (una classifica ogni 15 minuti) e pulsante "Aggiorna" (stessa classifica al massimo ogni 6 ore); cercare con i filtri legge solo il nostro database |
 | Calendario Umbria | calendario | **solo l'anno in corso** (da ottobre anche il provvisorio del prossimo), ogni settimana; gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
 | Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
 
@@ -123,8 +125,10 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 - **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
   ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
   Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.
-- **Classifica**: il server ricava dai membri le combinazioni necessarie (tipo × divisione × classe × genere) e fa
-  solo quelle chiamate, senza doppioni.
+- **Classifica**: il server scarica solo le classifiche necessarie (tipo × divisione × classe × genere), senza
+  doppioni: quelle dei nostri atleti (se mancano, subito; poi ogni lunedì dalle 10) e quelle che qualcuno ha
+  scaricato col pulsante "Aggiorna" (anche queste si rileggono il lunedì). Una classifica nazionale ha centinaia
+  di atleti (421 per Ricurvo Senior M indoor, ~150 KB salvata): una richiesta ciascuna.
 
 ### Regole di record e statistiche
 Le gare composte si dividono in **prove**; record, andamento e medie si calcolano per prova.
@@ -171,8 +175,10 @@ La risposta è `{"status":"OK","content":"<html…>"}`.
 - **Elenchi** → `https://www.fitarco.it/index.php?option=com_tesseramentofiv&view=risultati&format=json`
   - Ranking: `call=ranking_gare`, `render=lista_ranking_gare_results` (oppure `lista_ranking_gare_excel`: righe JSON
     pronte). Params: `idRankingTipo` (I indoor, T targa, C campagna, 3 3D), `idDivisione` (OL, CO, AN, AI, LB),
-    `idClasse` (M, S, J, A, R), `idGenere` (M, F), `idTipoSquadra` (0, 1), `idComitato` (11 Umbria, 00 tutte).
-    La posizione restituita è quella nazionale anche filtrando per regione.
+    `idClasse` (M, S, J, A, R), `idGenere` (M, F), `idTipoSquadra` (0, 1), `idComitato` (11 Umbria; **vuoto = tutta Italia**: "00" non
+    dà risultati, verificato il 10/11/2026). La posizione restituita è quella nazionale anche filtrando per regione.
+    Con comitato vuoto ogni riga ha la sua società e le due gare con i punti (Ricurvo Senior M indoor: 421 atleti).
+    Nessun risultato = `<div class="no-results">`.
   - Calendario: `call=calendario`, `render=lista_calendario_results`, params `idPeriodo` (anno), `idComitato`,
     `mese`, `idClasseEvento`, `idsTipoGare`, `idMatchRound`. Esiste già il "Calendario provvisorio 2027".
   - Tesserati: `call=tesserati`, `render=lista_tesserati_results`, params `tesserato_nome`, `tesserato_cognome`,
@@ -403,7 +409,21 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       "Mostra come tabella" dà gli stessi dati per chi non vede il grafico. "Media per anno" = anno
       solare, un decimale. Colori: `chart-1` per la linea, `chart-grid` per la griglia, testo sempre nei
       colori del testo (mai nel colore della serie).
-5. **Tab Classifica**.
+5. **Tab Classifica**, due PR (piano approvato il 10/11/2026):
+   1. server ✅: tabella `classifiche_ranking` (una riga per classifica, con tutte le righe in `righe`, `letta_il` e
+      `aggiornato_il`; i membri leggono, scrive solo `salva_classifica_ranking`), migrazione `20261110140000`.
+      Lettura nazionale (`richiestaRanking` senza comitato); `ranking` è ora una lettura **pesante** (una per
+      giro, cioè ogni 15 minuti: il lunedì le classifiche partono una alla volta); pianificazione in
+      `_shared/aggiornamento/classifica.ts` (nostre mancanti subito, lunedì dalle 10 anche quelle già scaricate);
+      sentinella `controllaRanking` (i conti devono tornare con "Numero totale", niente classifica vuota o
+      dimezzata); funzione `aggiorna-classifica` per il pulsante (solo membri, **6 ore** per la stessa classifica,
+      tetto di 10 letture all'ora per tutti, pausa se Fitarco non risponde; risposte 200/400/403/429/502/503
+      con `riprovaDopo`). Una combinazione senza atleti si salva vuota. Pubblicazione:
+      `npx supabase functions deploy aggiorna-classifica --use-api` e `… aggiorna-fitarco …`.
+      **La tabella `ranking` e `salva_ranking` restano** (vuote, inutilizzate): i telefoni con la versione vecchia
+      dell'app le chiedono ancora; si tolgono in una migrazione successiva, insieme alla sincronizzazione
+      di `ranking` nell'app;
+   2. app: da fare (scheda "La tua posizione", filtri, classifica completa, offline).
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 

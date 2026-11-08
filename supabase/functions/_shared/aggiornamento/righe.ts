@@ -150,31 +150,40 @@ export function righeClassifica(r: RisultatiGara, atleti: readonly AtletaNoto[])
   )
 }
 
-/** Le righe del ranking per `salva_ranking`: solo i nostri atleti, riconosciuti dalla matricola. */
-export function righeRanking(
-  r: Ranking,
-  combinazione: { classe: string; genere: 'M' | 'F' },
-  atleti: readonly AtletaNoto[],
-) {
-  const perMatricola = new Map(atleti.map((a) => [a.matricola, a.id]))
-  return r.categorie.flatMap((c) =>
-    c.righe.flatMap((riga) => {
-      const id = perMatricola.get(riga.matricola)
-      return id
-        ? [
-            {
-              atleta_id: id,
-              classe: combinazione.classe,
-              genere: combinazione.genere,
-              categoria: c.nome,
-              posizione: riga.posizione,
-              punti: riga.punti,
-              gare: riga.gare,
-            },
-          ]
-        : []
-    }),
-  )
+/** Una riga della classifica completa, com'è salvata in `classifiche_ranking.righe`. */
+export interface RigaClassificaRanking {
+  posizione: number
+  matricola: string
+  /** Come la scrive Fitarco ("ROSSI Mario"). */
+  nome: string
+  societa_codice: string
+  societa_nome: string
+  punti: number
+  /** Le gare che contano (di solito due), con i loro punti. */
+  gare: { codice: string; punti: number; localita: string; dal: string; al: string }[]
+}
+
+/** La classifica letta da Fitarco, pronta per `salva_classifica_ranking` (una categoria per richiesta). */
+export function righeClassificaRanking(r: Ranking): {
+  categoria: string
+  totale: number
+  righe: RigaClassificaRanking[]
+} {
+  return {
+    categoria: r.categorie.map((c) => c.nome).join(' + '),
+    totale: r.totale,
+    righe: r.categorie.flatMap((c) =>
+      c.righe.map((riga) => ({
+        posizione: riga.posizione,
+        matricola: riga.matricola,
+        nome: riga.nomeCompleto,
+        societa_codice: riga.societa.codice,
+        societa_nome: riga.societa.nome,
+        punti: riga.punti,
+        gare: riga.gare,
+      })),
+    ),
+  }
 }
 
 /** Impronta (SHA-256 in esadecimale) di un file: se non cambia, non si riscrive niente. */
