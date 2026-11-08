@@ -147,6 +147,8 @@ describe('tab Allenamento: la settimana', () => {
   it('"Copia la settimana scorsa" copia i programmi e li manda al server', async () => {
     const { servizio, remoto } = conAllenamento()
     await renderApp('/allenamento', { servizio })
+    // Prima i dati devono essere arrivati sul telefono con la sincronizzazione (4 giorni in tutto).
+    await waitFor(async () => expect(await dbPredefinito().allenamento_giorni.count()).toBe(4))
     // Lunedì 9 e martedì 10 hanno già un programma; la settimana scorsa ne ha due (3 e 5 nov).
     await userEvent.click(await screen.findByRole('button', { name: 'Copia la settimana scorsa' }))
     expect(await screen.findByText('Copiato 1 programma.')).toBeInTheDocument()
