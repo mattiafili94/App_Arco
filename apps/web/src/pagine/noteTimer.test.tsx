@@ -84,7 +84,7 @@ describe('note per volée', () => {
         '1': 'vento da destra',
       }),
     )
-    expect(screen.getByText('Nota della volée 2: vento da destra')).toBeInTheDocument()
+    expect(await screen.findByText('Nota della volée 2: vento da destra')).toBeInTheDocument()
   })
 
   it('cancellando il testo la nota sparisce', async () => {
