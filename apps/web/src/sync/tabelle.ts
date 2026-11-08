@@ -19,8 +19,9 @@ export const TABELLE: readonly DefinizioneTabella[] = [
   {
     nome: 'atleti',
     chiave: ['id'],
-    // Niente `utente_id`: il collegamento con l'accesso non serve nell'app.
-    colonne: 'id, matricola, nome, cognome, ruolo, attivo, classe, genere, aggiornato_il',
+    // Niente `utente_id`: il collegamento con l'accesso non serve nell'app (basta `ha_accesso`).
+    colonne:
+      'id, matricola, nome, cognome, ruolo, attivo, ha_accesso, classe, genere, aggiornato_il',
   },
   { nome: 'gare', chiave: ['codice'], colonne: '*' },
   { nome: 'inviti', chiave: ['gara_codice'], colonne: '*' },

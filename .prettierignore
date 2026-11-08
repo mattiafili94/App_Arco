@@ -7,3 +7,4 @@ apps/web/src/styles/tokens.css
 playwright-report
 test-results
 packages/shared/src/fitarco/esempi/
+.claude

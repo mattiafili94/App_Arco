@@ -6,17 +6,6 @@ import { PaginaTab } from './PaginaTab'
  * Nessun pulsante finché l'azione non esiste davvero (UI Top: ogni controllo ha un effetto).
  */
 
-export function Atleti() {
-  return (
-    <PaginaTab title="Atleti">
-      <EmptyState
-        title="Nessun atleta per ora"
-        description="Qui troverai gli atleti della compagnia con storico, record e andamento. Ognuno comparirà dopo il suo primo accesso."
-      />
-    </PaginaTab>
-  )
-}
-
 export function Classifica() {
   return (
     <PaginaTab title="Classifica">

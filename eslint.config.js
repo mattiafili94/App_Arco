@@ -14,6 +14,8 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '**/dev-dist/**',
+      // Copie di lavoro delle sessioni parallele di Claude: non sono codice di questa cartella.
+      '.claude/**',
     ],
   },
   js.configs.recommended,
