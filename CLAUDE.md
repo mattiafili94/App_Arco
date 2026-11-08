@@ -338,8 +338,17 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       (`servizio.esci` e SIGNED_OUT) la copia si svuota. `remoto` è parte di `ServizioAccesso`
       (finto nei test: `test/remotoFinto.ts`). Attenzione: non lanciare `prettier --write` sull'intera
       `apps/web/src` (riformatta `tokens.css`, che è generato);
-   2. tab Gare: calendario e scheda gara (invito, "Aggiungi al calendario"), con le gare fuori regione dei
-      nostri atleti nella parte "Passate";
+   2. tab Gare ✅: calendario e scheda gara (invito, "Aggiungi al calendario"), con le gare fuori regione dei
+      nostri atleti nella parte "Passate". Elenco (`pagine/Gare.tsx`): "Prossime" (la più vicina per prima) e
+      "Passate" (la più recente per prima), riga = tipologia · luogo, date, e sotto stato / "Fuori regione" /
+      "Hai partecipato". Scheda (`pagine/DettaglioGara.tsx`, `/gare/:codice`): dettagli, "Aggiungi al
+      calendario" solo per le gare future non annullate (file `.ics` per iPhone e Android con avviso alle 9:00
+      del giorno prima + link Google Calendar), contatti e testo completo dell'invito (a capo rispettati),
+      link al PDF dei risultati. Logica pura in `packages/shared/src/gare.ts` (date italiane, stato,
+      `creaIcs` con righe piegate a 75 byte, `linkGoogleCalendar`). Dati dal telefono con `useLiveQuery`
+      (`gare/dati.ts`), quindi anche offline. `ListRow` ha ora `description` (seconda riga) ed `esterno`
+      (link fuori dall'app). Nei test del browser le date delle gare sono relative a oggi e le pagine lunghe
+      si controllano con viewport alto (la barra dei tab coprirebbe un pezzo e axe lo segnala);
    3. risultati nella scheda gara: classifica per categoria con gli Eugubini evidenziati, prove, 10/X,
       provvisoria/definitiva, PDF originale;
    4. promemoria iscrizioni e notifiche push (VAPID; su iPhone solo con l'app aggiunta alla Home).

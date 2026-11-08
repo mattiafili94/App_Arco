@@ -4,9 +4,11 @@ import { Accedi } from './pagine/Accedi'
 import { Amministrazione } from './pagine/Amministrazione'
 import { Benvenuto } from './pagine/Benvenuto'
 import { DettaglioAtleta } from './pagine/DettaglioAtleta'
+import { DettaglioGara } from './pagine/DettaglioGara'
+import { Gare } from './pagine/Gare'
 import { Impostazioni } from './pagine/Impostazioni'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
-import { Allenamento, Atleti, Classifica, Gare } from './pagine/Tab'
+import { Allenamento, Atleti, Classifica } from './pagine/Tab'
 import { Sincronizzazione } from './sync/Sincronizzazione'
 import { Shell } from './Shell'
 
@@ -34,6 +36,7 @@ export function App() {
         <Route element={<Shell />}>
           <Route index element={<Navigate to="/gare" replace />} />
           <Route path="gare" element={<Gare />} />
+          <Route path="gare/:codice" element={<DettaglioGara />} />
           <Route path="atleti" element={<Atleti />} />
           <Route path="classifica" element={<Classifica />} />
           <Route path="allenamento" element={<Allenamento />} />

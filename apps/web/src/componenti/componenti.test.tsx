@@ -136,6 +136,20 @@ describe('ListGroup e ListRow', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('una riga può avere una descrizione sotto il nome', () => {
+    render(<ListRow label="18 m · Perugia" description="Invito disponibile" value="12–13 dic" />)
+    expect(screen.getByText('Invito disponibile')).toBeInTheDocument()
+    expect(screen.getByText('12–13 dic')).toBeInTheDocument()
+  })
+
+  it('una riga con un indirizzo fuori dall’app si apre a parte', () => {
+    render(<ListRow label="PDF dei risultati" href="https://esempio.invalid/r.pdf" esterno />)
+    const link = screen.getByRole('link', { name: 'PDF dei risultati' })
+    expect(link).toHaveAttribute('href', 'https://esempio.invalid/r.pdf')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   it('le righe di scelta formano un gruppo di opzioni con la scelta attuale', async () => {
     const scegli = vi.fn()
     render(

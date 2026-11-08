@@ -74,3 +74,8 @@
 [role='radio'] .trailing {
   color: var(--accent-default);
 }
+
+.description {
+  display: block;
+  color: var(--text-secondary);
+}

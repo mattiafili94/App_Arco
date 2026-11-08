@@ -45,29 +45,62 @@ export const SENZA_ACCESSO_PROVA: AtletaProva = {
   utente_id: null,
 }
 
-/** Due gare di prova per la sincronizzazione (dati inventati). */
+/** "AAAA-MM-GG" di un giorno a `giorni` da oggi (negativo = nel passato): le gare di prova non invecchiano. */
+const giornoRelativo = (giorni: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() + giorni)
+  const due = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${due(d.getMonth() + 1)}-${due(d.getDate())}`
+}
+
+/** Due gare di prova (una passata, una futura con invito) per sincronizzazione e tab Gare (dati inventati). */
 export const GARE_PROVA = [
   {
     codice: 'R9900001',
-    dal: '2026-10-24',
-    al: '2026-10-25',
+    dal: giornoRelativo(-20),
+    al: giornoRelativo(-19),
     calendario: 'Interregionale',
+    regione: 'Umbria',
     localita: 'Gubbio (PG)',
     tipologia: '18 m',
+    dettaglio: null,
+    societa_codice: '11003',
+    societa_nome: 'Arcieri Eugubini',
     stato: 'omologata',
+    in_calendario_umbria: true,
+    ha_invito: false,
+    url_risultati: 'https://www.fitarco-italia.org/upload_2026/r9900001.pdf',
     aggiornato_il: '2026-11-01T10:00:00+00:00',
   },
   {
     codice: 'R9900002',
-    dal: '2026-12-12',
-    al: '2026-12-13',
+    dal: giornoRelativo(30),
+    al: giornoRelativo(31),
     calendario: 'Interregionale',
+    regione: 'Umbria',
     localita: 'Perugia (PG)',
     tipologia: '18 m',
+    dettaglio: 'competizione interregionale',
+    societa_codice: '11018',
+    societa_nome: 'ASD Arcieri Augusta Perusia',
     stato: 'invito',
+    in_calendario_umbria: true,
+    ha_invito: true,
+    url_risultati: null,
     aggiornato_il: '2026-11-02T10:00:00+00:00',
   },
 ]
+
+export const INVITO_PROVA = {
+  gara_codice: 'R9900002',
+  testo: 'PROGRAMMA\n\nSABATO\n9,30 Accreditamento\n\nISCRIZIONI dal 3 ottobre al 2 novembre',
+  luogo: 'CVA - Piazza della Torre, Perugia',
+  riferimento: 'Mario Rossi 3330000000',
+  email: 'societa@example.com',
+  web: null,
+  verificato: true,
+  aggiornato_il: '2026-11-02T10:00:00+00:00',
+}
 
 const base64url = (testo: string) =>
   Buffer.from(testo).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
@@ -179,9 +212,8 @@ export async function simulaSupabase(
     // Dati condivisi della sincronizzazione (gare, inviti, classifiche…) e registro delle eliminazioni.
     const tabella = /^\/rest\/v1\/(\w+)$/.exec(url.pathname)?.[1]
     if (tabella === 'gare') return json(route, GARE_PROVA)
-    if (
-      ['inviti', 'partecipazioni', 'classifiche', 'ranking', 'eliminazioni'].includes(tabella ?? '')
-    ) {
+    if (tabella === 'inviti') return json(route, [INVITO_PROVA])
+    if (['partecipazioni', 'classifiche', 'ranking', 'eliminazioni'].includes(tabella ?? '')) {
       return json(route, [])
     }
 
