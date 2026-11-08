@@ -25,6 +25,14 @@ export function Sincronizzazione({
   const [fase, setFase] = useState<FaseSincronizzazione>('ferma')
   const [ultima, setUltima] = useState<number | null>(null)
   const inCorso = useRef(false)
+  // Dopo l'uscita dalla schermata una sincronizzazione ancora in corso non deve più toccare lo stato.
+  const montato = useRef(true)
+  useEffect(() => {
+    montato.current = true
+    return () => {
+      montato.current = false
+    }
+  }, [])
 
   const aggiorna = useCallback(async () => {
     // Una alla volta, e solo con la rete (altrimenti si resta com'è).
@@ -33,10 +41,13 @@ export function Sincronizzazione({
     setFase('in-corso')
     try {
       await sincronizza(servizio.remoto, db)
-      setUltima(await ultimaSincronizzazione(db))
-      setFase('ferma')
+      const quando = await ultimaSincronizzazione(db)
+      if (montato.current) {
+        setUltima(quando)
+        setFase('ferma')
+      }
     } catch {
-      setFase('errore')
+      if (montato.current) setFase('errore')
     } finally {
       inCorso.current = false
     }

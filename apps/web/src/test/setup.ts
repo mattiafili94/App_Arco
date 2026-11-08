@@ -5,9 +5,9 @@ import { afterEach } from 'vitest'
 import { dbPredefinito, svuotaDb } from '../sync/db'
 
 afterEach(async () => {
-  // La copia dei dati sul telefono non passa da un test all'altro.
-  await svuotaDb(dbPredefinito())
+  // Prima si chiude lo schermo (si ferma la sincronizzazione), poi si toglie la copia dei dati.
   cleanup()
+  await svuotaDb(dbPredefinito())
   localStorage.clear()
   document.documentElement.removeAttribute('data-theme')
 })
