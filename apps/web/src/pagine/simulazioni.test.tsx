@@ -253,13 +253,13 @@ describe('volée, prove e riepilogo', () => {
 
   it('l’elenco delle volée con totale e progressivo', async () => {
     await apri(await preparaSimulazione({ frecce: ['10', '10', '9', '8', 'M', '10'] }))
-    const tabella = screen.getByRole('table')
-    const righe = within(tabella).getAllByRole('row').slice(1)
+    const elenco = screen.getByRole('list', { name: 'Volée' })
+    const righe = within(elenco).getAllByRole('listitem')
     expect(righe).toHaveLength(2)
-    expect(righe[0]).toHaveTextContent('1')
-    expect(righe[0]).toHaveTextContent('29') // 10+10+9
-    expect(righe[1]).toHaveTextContent('18') // 8+0+10, progressivo 47
-    expect(righe[1]).toHaveTextContent('47')
+    expect(righe[0]).toHaveTextContent('Volée 1')
+    expect(righe[0]).toHaveTextContent('Volée 29 · Totale 29') // 10+10+9
+    expect(righe[1]).toHaveTextContent('Volée 2')
+    expect(righe[1]).toHaveTextContent('Volée 18 · Totale 47') // 8+0+10, progressivo 47
   })
 
   it('outdoor: X e 10 si contano insieme (10+X) e gli X da soli; volée da 6', async () => {

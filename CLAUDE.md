@@ -503,8 +503,23 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           `salva_simulazione` ha il parametro `p_note` (se manca o è null le note restano: le versioni vecchie
           dell'app non le cancellano). Nella pagina: "Nota della volée N" per quella in corso e, nell'elenco,
           "Aggiungi/Modifica" per ogni volée;
-      - **6.3a-2b** tocco sul bersaglio con lente (e posizione della freccia, anche per il compound all'indoor dove
-        il 10 è solo l'anello interno);
+      - **6.3a-2b ✅** **tocco sul bersaglio con lente** (`componenti/BersaglioTocco.tsx`, geometria pura in
+        `packages/shared/src/bersaglio.ts`). Scelta "Come segni le frecce": **Tastierino** o **Bersaglio** (il
+        telefono si ricorda l'ultima, `localStorage` `arco.segnapunti.modo`); si possono mischiare. Sul bersaglio si
+        **tiene premuto e si trascina**: la **lente d'ingrandimento** sopra il bersaglio (area sempre riservata, il
+        bersaglio non si sposta sotto il dito) mostra dove cade la freccia e che valore ha; alzando il dito si
+        segna; un tocco veloce segna subito. Le **posizioni** sono normalizzate ([x, y]: centro 0,0, bordo
+        esterno 1, y verso il basso; massimo 2 dal centro) e si salvano insieme alle frecce (`simulazioni.posizioni`,
+        una per freccia, `null` col tastierino; migrazione `20261114120000`). **Anelli** tutti della stessa
+        larghezza: singolo 10 anelli; trispot 5 (10…6); 122 cm 10 anelli + X (metà del 10); 80 cm 6 anelli (10…5)
+        + X. **Compound indoor** (`simulazioni.compound`, casella in "Nuova simulazione"): il 10 vale solo la metà
+        interna dell'anello, il resto vale 9 (conta solo toccando il bersaglio; col tastierino si segna il valore
+        a mano). Si corregge una freccia toccandola e poi toccando di nuovo il bersaglio (cambia anche la
+        posizione). Nel riepilogo, "Dove sono arrivate le frecce": bersaglio di sola lettura con tutti i punti (uno
+        per prova nel 25+18 e nel doppio), solo se c'è almeno una posizione. `salva_simulazione` ha `p_posizioni` e
+        `p_compound` (null = restano com'erano). **Elenco delle volée**: da tabella a elenco (`ol`) perché su
+        telefono la colonna delle frecce si spezzava in verticale. Alternativa da tastiera: il tastierino (il
+        bersaglio è `role="img"`);
       - **6.3b** campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24) e 3D (3 frecce a piazzola, punteggi
         11/10/8/5/0), con confronto media allenamento/gara.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).

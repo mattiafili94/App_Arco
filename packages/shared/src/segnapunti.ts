@@ -13,6 +13,8 @@
  * Solo i formati ufficiali.
  */
 
+import type { Posizione } from './bersaglio'
+
 export type FormatoSimulazione = '18m' | '25m' | '25+18m' | '70m' | 'doppio70m'
 export type Bersaglio = 'singolo' | 'trispot' | '122' | '80'
 export type ValoreFreccia = 'X' | '10' | '9' | '8' | '7' | '6' | '5' | '4' | '3' | '2' | '1' | 'M'
@@ -32,6 +34,10 @@ export interface Simulazione {
   bersaglio: Bersaglio
   /** Tutte le frecce segnate, nell'ordine in cui sono state tirate. */
   frecce: ValoreFreccia[]
+  /** Solo indoor: arco compound (il 10 vale solo l'anello piccolo al centro). Conta quando si tocca il bersaglio. */
+  compound?: boolean
+  /** Dove è arrivata ogni freccia, se si è toccato il bersaglio (una per freccia, `null` per il tastierino). */
+  posizioni?: (Posizione | null)[]
   /** Note facoltative per volée (vedi `notaVolee`). Le simulazioni vecchie non le hanno. */
   note?: Record<string, string>
   conclusa: boolean
@@ -318,3 +324,49 @@ export function impostaNotaVolee(
   else nuove[String(indice)] = pulita
   return nuove
 }
+
+/** Le frecce con la posizione in cui sono arrivate (quando si segna toccando il bersaglio). */
+export interface FrecceEPosizioni {
+  frecce: ValoreFreccia[]
+  /** Una per freccia: il punto toccato, o `null` se la freccia è stata segnata con il tastierino. */
+  posizioni: (Posizione | null)[]
+}
+
+/** Le posizioni portate alla stessa lunghezza delle frecce (le mancanti sono `null`). */
+export const allineaPosizioni = (
+  posizioni: readonly (Posizione | null)[] | undefined,
+  quante: number,
+): (Posizione | null)[] => Array.from({ length: quante }, (_, i) => posizioni?.[i] ?? null)
+
+type ConPosizioni = FormaSimulazione & Pick<Simulazione, 'posizioni'>
+
+/** Come `aggiungiFreccia`, tenendo anche la posizione toccata (`null` con il tastierino). */
+export function aggiungiFrecciaConPosizione(
+  s: ConPosizioni,
+  valore: ValoreFreccia,
+  posizione: Posizione | null,
+): FrecceEPosizioni | null {
+  const frecce = aggiungiFreccia(s, valore)
+  if (frecce === null) return null
+  return { frecce, posizioni: [...allineaPosizioni(s.posizioni, s.frecce.length), posizione] }
+}
+
+/** Come `correggiFreccia`, cambiando anche la posizione (`null` se si corregge con il tastierino). */
+export function correggiFrecciaConPosizione(
+  s: ConPosizioni,
+  indice: number,
+  valore: ValoreFreccia,
+  posizione: Posizione | null,
+): FrecceEPosizioni | null {
+  const frecce = correggiFreccia(s, indice, valore)
+  if (frecce === null) return null
+  const posizioni = allineaPosizioni(s.posizioni, s.frecce.length)
+  posizioni[indice] = posizione
+  return { frecce, posizioni }
+}
+
+/** Toglie l'ultima freccia e la sua posizione. */
+export const togliUltimaConPosizione = (s: ConPosizioni): FrecceEPosizioni => ({
+  frecce: togliUltimaFreccia(s),
+  posizioni: allineaPosizioni(s.posizioni, s.frecce.length).slice(0, -1),
+})
