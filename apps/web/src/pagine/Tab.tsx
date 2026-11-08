@@ -6,17 +6,6 @@ import { PaginaTab } from './PaginaTab'
  * Nessun pulsante finché l'azione non esiste davvero (UI Top: ogni controllo ha un effetto).
  */
 
-export function Gare() {
-  return (
-    <PaginaTab title="Gare">
-      <EmptyState
-        title="Calendario non ancora importato"
-        description="Qui troverai le gare dell'Umbria con le date delle iscrizioni. Il calendario sarà importato dall'amministratore della compagnia."
-      />
-    </PaginaTab>
-  )
-}
-
 export function Atleti() {
   return (
     <PaginaTab title="Atleti">

@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 import { Icon } from './Icon'
 import styles from './List.module.css'
@@ -30,8 +30,12 @@ export interface ListRowProps {
   label: string
   /** Valore attuale, a destra (es. "Chiaro"). */
   value?: string
+  /** Una riga di testo più piccola sotto il nome (es. lo stato di una gara). */
+  description?: string
   /** Riga che porta a un'altra pagina: mostra la freccia. */
   href?: string
+  /** Con `href`: l'indirizzo è fuori dall'app (sito, email, file): si apre a parte, con l'icona dedicata. */
+  esterno?: boolean
   /** Riga di scelta: `selected` indica la scelta attuale, `onSelect` la cambia. */
   selected?: boolean
   onSelect?: () => void
@@ -41,18 +45,41 @@ export interface ListRowProps {
  * Riga di elenco (UI Top, ListRows). Tre usi, mai mescolati:
  * destinazione (con freccia), nome-valore, scelta (con segno di spunta).
  */
-export function ListRow({ label, value, href, selected, onSelect }: ListRowProps) {
+export function ListRow({
+  label,
+  value,
+  description,
+  href,
+  esterno,
+  selected,
+  onSelect,
+}: ListRowProps) {
   const contenuto = (
     <>
-      <span className={styles.label}>{label}</span>
+      <span className={styles.label}>
+        {label}
+        {description && <span className={`type-caption ${styles.description}`}>{description}</span>}
+      </span>
       {value && <span className={styles.value}>{value}</span>}
-      {href && <Icon icon={ChevronRight} className={styles.trailing} />}
+      {href && <Icon icon={esterno ? ExternalLink : ChevronRight} className={styles.trailing} />}
       {selected !== undefined && (
         <span className={styles.trailing}>{selected && <Icon icon={Check} />}</span>
       )}
     </>
   )
 
+  if (href && esterno) {
+    return (
+      <a
+        className={`${styles.row} ${styles.interactive}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {contenuto}
+      </a>
+    )
+  }
   if (href) {
     return (
       <Link className={`${styles.row} ${styles.interactive}`} to={href}>
