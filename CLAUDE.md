@@ -305,9 +305,16 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           Da allora: se Fitarco non risponde, TUTTE le letture si fermano per 6 ore (`PAUSA_DOPO_BLOCCO_MS`,
           diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
           distanzia (Fase 2.5);
-   5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
-      (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
-      classifica solo con "Aggiorna").
+   5. controllo automatico ✅ (9/11/2026): Worker Cloudflare `arcieri-eugubini-controllo` in
+      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `0,30 5-22 * * *` (UTC) e
+      controllo dell'ora italiana nel codice: **ogni 30 minuti dalle 7:00 alle 22:30** (scelta di Mattia).
+      Ogni chiamata = un giro di `aggiorna-fitarco` (al massimo 6 letture, 1 pesante; zero richieste se non
+      c'è niente da fare); tiene anche sveglio Supabase. La chiave è il segreto `AGGIORNA_CHIAVE` del
+      Worker (uguale a quello della funzione). Pubblicazione dalla cartella del Worker:
+      `npx wrangler@4.152.0 deploy` (serve `npx wrangler@4.152.0 login` di Mattia, già fatto); log in
+      Cloudflare → Workers → arcieri-eugubini-controllo → Logs. Wrangler non è una dipendenza della repo
+      (scarica parecchio): si usa con `npx` alla versione indicata. La classifica (ranking) resta solo su
+      richiesta (`{"azione":"ranking"}`, poi pulsante "Aggiorna" nel tab Classifica).
 3. **Tab Gare**: calendario, inviti, promemoria, risultati delle gare.
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.

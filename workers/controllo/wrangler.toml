@@ -1,0 +1,19 @@
+# Controllo automatico (Fase 2.5): a orari fissi chiama la funzione Supabase aggiorna-fitarco.
+# Pubblicazione: dalla cartella workers/controllo, `npx wrangler@4.152.0 deploy`.
+# La chiave si imposta una volta sola, senza scriverla da nessuna parte:
+#   npx wrangler@4.152.0 secret put AGGIORNA_CHIAVE
+name = "arcieri-eugubini-controllo"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[triggers]
+# Ogni 30 minuti tra le 5 e le 22 UTC: copre 7:00–22:30 in Italia sia d'inverno sia d'estate.
+# Il controllo dell'orario preciso (ora italiana) è nel codice: fuori orario non fa niente.
+crons = ["0,30 5-22 * * *"]
+
+[vars]
+# Indirizzo pubblico della funzione (non è un segreto: senza chiave risponde "Non autorizzato").
+URL_FUNZIONE = "https://flsdchsfdqurwjzpfmtr.supabase.co/functions/v1/aggiorna-fitarco"
+
+[observability]
+enabled = true
