@@ -1,20 +1,35 @@
 import { Calendar } from 'lucide-react'
 import { useParams } from 'react-router'
 import {
+  CODICE_SOCIETA,
   creaIcs,
   descriviStato,
+  eNostro,
   etichettaTipologia,
   formattaDate,
   garaPassata,
   linkGoogleCalendar,
   nomeFileIcs,
+  type RigaClassifica,
 } from '@arco/shared'
 import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
 import { PageHeader } from '../componenti/PageHeader'
-import { oggi as oggiIn, useGara, useInvito } from '../gare/dati'
+import { oggi as oggiIn, useClassifica, useGara, useInvito } from '../gare/dati'
 import { scaricaTesto } from '../gare/scarica'
 import styles from './Gare.module.css'
+
+/** "93 atleti · 9 dei nostri · provvisori" */
+function descriviRisultati(classifica: RigaClassifica[]): string {
+  const nostri = classifica.filter((r) => eNostro(r, CODICE_SOCIETA)).length
+  return [
+    `${classifica.length} atleti`,
+    nostri > 0 ? `${nostri} dei nostri` : null,
+    classifica.some((r) => r.provvisoria) ? 'provvisori' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
 
 const INDIETRO = { label: 'Gare', href: '/gare' }
 
@@ -26,9 +41,10 @@ export function DettaglioGara() {
   const { codice = '' } = useParams()
   const gara = useGara(codice)
   const invito = useInvito(codice)
+  const classifica = useClassifica(codice)
   const oggi = oggiIn()
 
-  if (gara === undefined || invito === undefined) {
+  if (gara === undefined || invito === undefined || classifica === undefined) {
     return <PageHeader title="Gara" back={INDIETRO} />
   }
   if (gara === null) {
@@ -115,9 +131,18 @@ export function DettaglioGara() {
           </ListGroup>
         )}
 
-        {gara.url_risultati && (
+        {(classifica.length > 0 || gara.url_risultati) && (
           <ListGroup title="Risultati">
-            <ListRow label="PDF dei risultati" href={gara.url_risultati} esterno />
+            {classifica.length > 0 && (
+              <ListRow
+                label="Classifica"
+                description={descriviRisultati(classifica)}
+                href={`/gare/${gara.codice}/risultati`}
+              />
+            )}
+            {gara.url_risultati && (
+              <ListRow label="PDF dei risultati" href={gara.url_risultati} esterno />
+            )}
           </ListGroup>
         )}
       </div>

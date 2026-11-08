@@ -11,8 +11,14 @@ export function renderConRouter(
   ui: ReactElement,
   { percorso = '/', stato, hash = '' }: { percorso?: string; stato?: unknown; hash?: string } = {},
 ) {
+  // "/gare/R1/risultati?categoria=X": l'indirizzo e i suoi parametri si separano.
+  const [pathname = '/', ricerca = ''] = percorso.split('?')
   return render(
-    <MemoryRouter initialEntries={[{ pathname: percorso, state: stato, hash }]}>{ui}</MemoryRouter>,
+    <MemoryRouter
+      initialEntries={[{ pathname, search: ricerca ? `?${ricerca}` : '', state: stato, hash }]}
+    >
+      {ui}
+    </MemoryRouter>,
   )
 }
 

@@ -79,3 +79,8 @@
   display: block;
   color: var(--text-secondary);
 }
+
+.evidenziata {
+  border-inline-start: 4px solid var(--accent-default);
+  font-weight: 600;
+}

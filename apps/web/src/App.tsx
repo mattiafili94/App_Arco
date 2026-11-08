@@ -5,6 +5,7 @@ import { Amministrazione } from './pagine/Amministrazione'
 import { Benvenuto } from './pagine/Benvenuto'
 import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { DettaglioGara } from './pagine/DettaglioGara'
+import { Risultati } from './pagine/Risultati'
 import { Gare } from './pagine/Gare'
 import { Impostazioni } from './pagine/Impostazioni'
 import { PaginaSemplice } from './pagine/PaginaSemplice'
@@ -37,6 +38,7 @@ export function App() {
           <Route index element={<Navigate to="/gare" replace />} />
           <Route path="gare" element={<Gare />} />
           <Route path="gare/:codice" element={<DettaglioGara />} />
+          <Route path="gare/:codice/risultati" element={<Risultati />} />
           <Route path="atleti" element={<Atleti />} />
           <Route path="classifica" element={<Classifica />} />
           <Route path="allenamento" element={<Allenamento />} />
