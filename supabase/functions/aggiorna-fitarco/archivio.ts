@@ -4,6 +4,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3'
 import { PREFISSO_BLOCCO } from '../_shared/aggiornamento/index.ts'
 import type {
   Archivio,
+  ArchivioNotifiche,
   AtletaArchivio,
   GaraSalvata,
   RigaInvito,
@@ -115,6 +116,15 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
 
     async salvaInvito(riga) {
       controlla(await db.from('inviti').upsert(riga, { onConflict: 'gara_codice' }), 'salva invito')
+    },
+
+    async accodaNotifica(notifica) {
+      controlla(
+        await db
+          .from('notifiche')
+          .upsert(notifica, { onConflict: 'gara_codice', ignoreDuplicates: true }),
+        'accoda notifica',
+      )
     },
 
     async atleti() {
@@ -257,6 +267,43 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
           p_righe: righe,
         }),
         'salva ranking',
+      )
+    },
+  }
+}
+
+/** Coda delle notifiche push e telefoni registrati (chiave di servizio: l'app non li legge). */
+export function archivioNotificheSupabase(db: SupabaseClient): ArchivioNotifiche {
+  return {
+    async daInviare() {
+      return controlla(
+        await db
+          .from('notifiche')
+          .select('id, gara_codice, titolo, testo, creata_il')
+          .is('inviata_il', null)
+          .order('id'),
+        'notifiche da inviare',
+      )
+    },
+
+    async iscrizioni() {
+      return controlla(
+        await db.from('iscrizioni_push').select('endpoint, p256dh, auth'),
+        'iscrizioni push',
+      )
+    },
+
+    async segnaInviata(id) {
+      controlla(
+        await db.from('notifiche').update({ inviata_il: new Date().toISOString() }).eq('id', id),
+        'segna notifica inviata',
+      )
+    },
+
+    async togliIscrizioni(endpoint) {
+      controlla(
+        await db.from('iscrizioni_push').delete().in('endpoint', endpoint),
+        'toglie iscrizioni push',
       )
     },
   }

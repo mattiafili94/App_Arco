@@ -35,6 +35,8 @@ export default defineConfig({
       workbox: {
         // Ogni indirizzo dell'app si apre anche offline.
         navigateFallback: '/index.html',
+        // Notifiche push (public/push.js): il motore offline le mostra e apre la gara al tocco.
+        importScripts: ['push.js'],
         // Il manifest lo aggiunge già il plugin: elencarlo qui lo duplicherebbe e il motore
         // offline non si installerebbe ("add-to-cache-list-conflicting-entries").
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],

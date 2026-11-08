@@ -65,6 +65,8 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
     },
 
     async esci() {
+      // Chi esce non deve più ricevere le notifiche su questo telefono (se non c'è rete, pazienza).
+      await togliNotifichePush(supabase)
       await supabase.auth.signOut({ scope: 'local' })
       await svuotaCopia()
     },
@@ -115,6 +117,33 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
     async revocaAccesso(atletaId) {
       await chiamaCreaAccesso(supabase, { azione: 'revoca', atletaId })
     },
+
+    async registraPush(i) {
+      const { error } = await supabase.rpc('registra_push', {
+        p_endpoint: i.endpoint,
+        p_p256dh: i.p256dh,
+        p_auth: i.auth,
+      })
+      if (error) throw new Error(error.message)
+    },
+
+    async rimuoviPush(endpoint) {
+      const { error } = await supabase.rpc('rimuovi_push', { p_endpoint: endpoint })
+      if (error) throw new Error(error.message)
+    },
+  }
+}
+
+/** Toglie la registrazione push di questo telefono, sul server e nel browser. Non lancia mai errori. */
+async function togliNotifichePush(supabase: SupabaseClient) {
+  try {
+    const registrazione = await navigator.serviceWorker?.getRegistration()
+    const iscrizione = await registrazione?.pushManager?.getSubscription()
+    if (!iscrizione) return
+    if (!senzaRete()) await supabase.rpc('rimuovi_push', { p_endpoint: iscrizione.endpoint })
+    await iscrizione.unsubscribe()
+  } catch {
+    // L'uscita deve riuscire comunque.
   }
 }
 

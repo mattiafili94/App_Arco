@@ -34,6 +34,7 @@ import {
   type StatoPianificazione,
   type TipoLettura,
 } from './pianifica.ts'
+import { notificaInvito, vaNotificato, type NotificaInvito } from './notifiche.ts'
 import { combinazioniRanking } from './ranking.ts'
 import {
   datiAtletaDaScheda,
@@ -111,6 +112,8 @@ export interface Archivio {
   aggiornaGara(codice: string, campi: Partial<GaraSalvata>): Promise<void>
   invito(codice: string): Promise<RigaInvito | null>
   salvaInvito(riga: RigaInvito): Promise<void>
+  /** Mette in coda la notifica push "nuovo invito" (una sola per gara: se c'è già, non fa niente). */
+  accodaNotifica(notifica: NotificaInvito): Promise<void>
   /** Solo gli atleti attivi. */
   atleti(): Promise<AtletaArchivio[]>
   aggiornaAtleta(id: string, campi: Record<string, unknown>): Promise<void>
@@ -360,6 +363,10 @@ async function invito(ctx: Contesto, codice: string): Promise<Esecuzione> {
   await ctx.archivio.salvaInvito(riga)
   const [gara] = await ctx.archivio.gare([codice])
   if (gara && !gara.ha_invito) await ctx.archivio.aggiornaGara(codice, { ha_invito: true })
+  // Notifica solo l'invito nuovo di una gara futura: mai quelli già salvati o modificati.
+  if (gara && vaNotificato(gara, salvato !== null, ctx.oggi)) {
+    await ctx.archivio.accodaNotifica(notificaInvito(gara))
+  }
   return { esito: 'ok', messaggio: salvato ? 'Invito cambiato' : 'Invito nuovo' }
 }
 

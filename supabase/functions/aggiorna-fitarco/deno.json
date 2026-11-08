@@ -1,6 +1,7 @@
 {
   "imports": {
     "node-html-parser": "npm:node-html-parser@9.0.5",
-    "unpdf": "npm:unpdf@1.9.1"
+    "unpdf": "npm:unpdf@1.9.1",
+    "web-push": "npm:web-push@3.6.7"
   }
 }

@@ -9,6 +9,7 @@ import type {
   GaraSalvata,
   Lettura,
   RigaGara,
+  NotificaInvito,
   RigaInvito,
   RigaPartecipazione,
   StatoArchivio,
@@ -39,6 +40,7 @@ const riga = (r: { atleta_id: string | null }) => r as RigaSalvata
 export class ArchivioFinto implements Archivio {
   gareSalvate = new Map<string, GaraSalvata>()
   inviti = new Map<string, RigaInvito>()
+  notifiche: NotificaInvito[] = []
   atletiSalvati: (AtletaArchivio & { attivo: boolean; campi?: Record<string, unknown> })[] = []
   storici = new Map<string, RigaPartecipazione[]>()
   classifiche = new Map<
@@ -177,6 +179,11 @@ export class ArchivioFinto implements Archivio {
 
   async salvaInvito(riga: RigaInvito) {
     this.inviti.set(riga.gara_codice, riga)
+  }
+
+  async accodaNotifica(n: NotificaInvito) {
+    // Come il database vero: una sola notifica per gara.
+    if (!this.notifiche.some((x) => x.gara_codice === n.gara_codice)) this.notifiche.push(n)
   }
 
   async atleti() {

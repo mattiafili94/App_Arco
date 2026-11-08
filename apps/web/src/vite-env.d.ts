@@ -9,4 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string
   /** Chiave pubblica di Supabase: è fatta per stare nell'app, non è un segreto. */
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+  /** Chiave pubblica VAPID per le notifiche push: è fatta per stare nell'app, non è un segreto. */
+  readonly VITE_VAPID_PUBLIC_KEY?: string
 }

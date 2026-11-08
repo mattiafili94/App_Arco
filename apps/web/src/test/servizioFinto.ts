@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { Atleta, ServizioAccesso } from '../accesso/servizio'
+import type { Atleta, IscrizionePush, ServizioAccesso } from '../accesso/servizio'
 import { RemotoFinto } from './remotoFinto'
 
 /** Atleti inventati per i test (nessun dato vero). */
@@ -97,6 +97,8 @@ export function servizioFinto({
     revocaAccesso: vi.fn(async (atletaId: string) => {
       elenco.find((x) => x.id === atletaId)!.haAccesso = false
     }),
+    registraPush: vi.fn<(i: IscrizionePush) => Promise<void>>(async () => {}),
+    rimuoviPush: vi.fn<(endpoint: string) => Promise<void>>(async () => {}),
   } satisfies ServizioAccesso
 
   return {

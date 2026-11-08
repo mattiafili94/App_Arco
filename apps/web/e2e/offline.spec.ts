@@ -20,6 +20,14 @@ test.describe('app installabile e offline', () => {
     expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true)
   })
 
+  test('il motore offline gestisce le notifiche push (push.js)', async ({ request }) => {
+    const motore = await (await request.get('/sw.js')).text()
+    expect(motore).toContain('push.js')
+    const push = await request.get('/push.js')
+    expect(push.ok()).toBe(true)
+    expect(await push.text()).toContain('showNotification')
+  })
+
   test('senza rete l app si apre lo stesso e lo dice', async ({ page, context }) => {
     await page.goto('/gare')
     await aspettaMotoreOffline(page)
