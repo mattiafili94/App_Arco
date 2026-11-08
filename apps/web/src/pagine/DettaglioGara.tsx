@@ -5,6 +5,7 @@ import {
   creaIcs,
   descriviStato,
   eNostro,
+  inizioClassificheComplete,
   etichettaTipologia,
   formattaDate,
   garaPassata,
@@ -63,6 +64,10 @@ export function DettaglioGara() {
   const passata = garaPassata(gara, oggi)
   const stato = descriviStato(gara, oggi)
   const daAggiungere = !passata && gara.stato !== 'annullata'
+  // Il PDF c'è ma la classifica non è ancora arrivata (il server la scarica un po' alla volta). Le gare
+  // fuori dalla finestra delle classifiche complete non la avranno mai: lì non si promette niente.
+  const classificaInArrivo =
+    passata && !!gara.url_risultati && gara.dal >= inizioClassificheComplete(oggi)
   const invitoAttesa = !passata && !invito && (gara.ha_invito || gara.stato === 'invito')
 
   return (
@@ -138,6 +143,12 @@ export function DettaglioGara() {
                 label="Classifica"
                 description={descriviRisultati(classifica)}
                 href={`/gare/${gara.codice}/risultati`}
+              />
+            )}
+            {classifica.length === 0 && classificaInArrivo && (
+              <ListRow
+                label="Classifica in arrivo"
+                description="Il server la sta scaricando da Fitarco: comparirà qui entro qualche ora."
               />
             )}
             {gara.url_risultati && (

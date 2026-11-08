@@ -219,6 +219,22 @@ describe('risultati di una gara', () => {
     expect(await screen.findByText('Categoria non trovata')).toBeInTheDocument()
   })
 
+  it('con il PDF ma senza classifica ancora scaricata dice che arriverà (se la gara è nella finestra)', async () => {
+    const remoto = new RemotoFinto()
+    remoto.scrivi('gare', gara('R2611039'))
+    remoto.scrivi('gare', gara('R2311001', { dal: '2023-03-04', al: '2023-03-04' }))
+    await apri(remoto, '/gare/R2611039')
+    expect(await screen.findByText('Classifica in arrivo')).toBeInTheDocument()
+  })
+
+  it('una gara vecchia, fuori dalla finestra, non avrà mai la classifica: non si promette niente', async () => {
+    const remoto = new RemotoFinto()
+    remoto.scrivi('gare', gara('R2311001', { dal: '2023-03-04', al: '2023-03-04' }))
+    await apri(remoto, '/gare/R2311001')
+    await screen.findByRole('link', { name: /PDF dei risultati/ })
+    expect(screen.queryByText('Classifica in arrivo')).not.toBeInTheDocument()
+  })
+
   it('la scheda gara senza classifica salvata mostra solo il PDF', async () => {
     const remoto = new RemotoFinto()
     remoto.scrivi('gare', gara('R2611039'))
