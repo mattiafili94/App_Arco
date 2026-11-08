@@ -102,6 +102,11 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   dell'anno in corso e dei **due anni interi precedenti** (oggi 2024–2026); per le gare più vecchie si tengono
   solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
   da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
+  **Per risparmiare richieste** (Mattia, 8/11/2026): le gare più vecchie della finestra si conoscono SOLO dallo
+  storico della scheda atleta (una richiesta per atleta): niente calendari, schede gara né PDF per loro (un
+  arciere che tira dal 2009 non costa ~500 richieste). Compromesso: per quelle gare ci sono totale e posizione
+  ma non parziali, prove e conteggi 10/X, quindi i 25+18 e i doppi 70 m vecchi non si dividono in prove per i
+  record. Le gare lette mentre erano nella finestra tengono invece i dettagli dei nostri atleti per sempre.
 - **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
   ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
   Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.

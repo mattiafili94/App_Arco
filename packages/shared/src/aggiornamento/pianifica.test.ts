@@ -238,11 +238,29 @@ describe('classifiche complete e gare vecchie', () => {
     expect(inizioClassificheComplete('2027-01-01')).toBe('2025-01-01')
   })
 
-  it('gara vecchia senza nostre righe salvate: basta la prima lettura del PDF', () => {
-    const g = gara({ dal: '2023-05-01', al: '2023-05-01', stato: 'omologata', urlRisultati: 'x' })
+  it('gare di più di due stagioni fa: niente scheda gara né PDF (basta lo storico dell’atleta)', () => {
     const base = new Map([['calendario|2027', '2027-02-28']])
-    expect(letture(stato({ gare: [g], ultimeLetture: base }))).toEqual(['risultati R2711001'])
-    const letta = new Map([...base, ['risultati|R2711001', '2027-01-01']])
-    expect(letture(stato({ gare: [g], ultimeLetture: letta }))).toEqual([])
+    const senzaPdf = gara({
+      codice: 'R1511001',
+      dal: '2015-05-01',
+      al: '2015-05-01',
+      stato: 'sconosciuto',
+      inCalendarioUmbria: false,
+    })
+    const conPdf = gara({
+      codice: 'R2411001',
+      dal: '2024-12-31',
+      al: '2024-12-31',
+      stato: 'omologata',
+      urlRisultati: 'x',
+    })
+    expect(letture(stato({ gare: [senzaPdf, conPdf], ultimeLetture: base }))).toEqual([])
+  })
+
+  it('calendari degli anni vecchi: mai (le loro gare arrivano dallo storico)', () => {
+    const base = new Map([['calendario|2027', '2027-02-28']])
+    expect(letture(stato({ anniStorico: [2009, 2015, 2024, 2025], ultimeLetture: base }))).toEqual([
+      'calendario 2025',
+    ])
   })
 })

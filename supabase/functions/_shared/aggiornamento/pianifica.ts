@@ -102,10 +102,15 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   const aggiungi = (tipo: TipoLettura, chiave: string, priorita: number) =>
     lista.push({ tipo, chiave, priorita })
 
+  // Le gare più vecchie della finestra delle classifiche complete si conoscono solo dallo storico
+  // degli atleti (una richiesta per atleta): niente calendari, schede gara né PDF per loro.
+  const inizio = inizioClassificheComplete(s.oggi)
+  const annoInizio = Number(inizio.slice(0, 4))
+
   // Calendari: l'anno in corso, il prossimo da ottobre (calendario provvisorio), e gli anni degli
-  // storici finché hanno gare dell'Umbria non ancora definitive.
+  // storici (dentro la finestra) finché hanno gare dell'Umbria non ancora definitive.
   const anno = Number(s.oggi.slice(0, 4))
-  const anni = new Set([anno, ...s.anniStorico])
+  const anni = new Set([anno, ...s.anniStorico.filter((a) => a >= annoInizio)])
   if (Number(s.oggi.slice(5, 7)) >= 10) anni.add(anno + 1)
   for (const a of [...anni].sort()) {
     const inSospeso = s.gare.some(
@@ -122,7 +127,7 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   }
 
   for (const g of s.gare) {
-    if (!g.rilevante || g.stato === 'annullata') continue
+    if (!g.rilevante || g.stato === 'annullata' || g.dal < inizio) continue
     const futura = g.dal >= s.oggi
     const finita = g.al < s.oggi
 
