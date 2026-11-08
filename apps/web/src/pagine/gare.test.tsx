@@ -131,7 +131,8 @@ describe('tab Gare', () => {
     expect(screen.getByRole('link', { name: /Terni/ })).toHaveTextContent('Annullata')
     const gubbio = screen.getByRole('link', { name: /Gubbio/ })
     expect(gubbio).toHaveTextContent('Risultati definitivi')
-    expect(gubbio).toHaveTextContent('Hai partecipato')
+    // Le partecipazioni arrivano con la sincronizzazione, un po' dopo le gare.
+    await waitFor(() => expect(gubbio).toHaveTextContent('Hai partecipato'))
     const roma = screen.getByRole('link', { name: /Roma/ })
     expect(roma).toHaveTextContent('Doppio 70 m')
     expect(roma).toHaveTextContent('15 giu 2025')
