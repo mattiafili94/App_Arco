@@ -143,13 +143,18 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
 
     async storicoConTipologia() {
       const righe = controlla(
-        await db.from('partecipazioni').select('atleta_id, divisione, gare(tipologia)'),
+        await db.from('partecipazioni').select('atleta_id, divisione, gare(tipologia, dal)'),
         'storico con tipologia',
-      ) as unknown as { atleta_id: string; divisione: string; gare: { tipologia: string } | null }[]
+      ) as unknown as {
+        atleta_id: string
+        divisione: string
+        gare: { tipologia: string; dal: string } | null
+      }[]
       return righe.map((r) => ({
         atleta_id: r.atleta_id,
         divisione: r.divisione,
         tipologia: r.gare?.tipologia ?? '',
+        dal: r.gare?.dal ?? '',
       }))
     },
 
@@ -162,13 +167,24 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
 
     async partecipanti(codiceGara) {
       const righe = controlla(
-        await db.from('partecipazioni').select('atleta_id, totale').eq('gara_codice', codiceGara),
+        await db
+          .from('partecipazioni')
+          .select('atleta_id, divisione, totale')
+          .eq('gara_codice', codiceGara),
         'partecipanti',
       )
       return righe.map((r) => ({
         atletaId: r.atleta_id as string,
+        divisione: r.divisione as string,
         totale: r.totale as number | null,
       }))
+    },
+
+    async potaClassifiche(primaDel) {
+      return controlla(
+        await db.rpc('pota_classifiche', { p_prima_del: primaDel }),
+        'pota classifiche',
+      ) as number
     },
 
     async ultimoBlocco() {

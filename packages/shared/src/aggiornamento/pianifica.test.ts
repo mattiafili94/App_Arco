@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   pianificaLetture,
   PRIORITA,
+  inizioClassificheComplete,
   risultatiProvvisori,
   type StatoPianificazione,
 } from '../aggiornamento'
@@ -228,5 +229,20 @@ describe('gare fuori Umbria (stato sconosciuto)', () => {
     expect(letture(stato({ gare: [g], ultimeLetture: controllata, anniStorico: [2025] }))).toEqual(
       [],
     )
+  })
+})
+
+describe('classifiche complete e gare vecchie', () => {
+  it('complete per l’anno in corso e i due precedenti', () => {
+    expect(inizioClassificheComplete('2026-11-08')).toBe('2024-01-01')
+    expect(inizioClassificheComplete('2027-01-01')).toBe('2025-01-01')
+  })
+
+  it('gara vecchia senza nostre righe salvate: basta la prima lettura del PDF', () => {
+    const g = gara({ dal: '2023-05-01', al: '2023-05-01', stato: 'omologata', urlRisultati: 'x' })
+    const base = new Map([['calendario|2027', '2027-02-28']])
+    expect(letture(stato({ gare: [g], ultimeLetture: base }))).toEqual(['risultati R2711001'])
+    const letta = new Map([...base, ['risultati|R2711001', '2027-01-01']])
+    expect(letture(stato({ gare: [g], ultimeLetture: letta }))).toEqual([])
   })
 })

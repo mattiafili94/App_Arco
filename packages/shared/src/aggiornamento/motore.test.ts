@@ -469,7 +469,7 @@ describe('le singole letture', () => {
       fonte.pdf = { ok: true, dati: pdfConRighe(righePdf(530)) }
       const r = await esegui('risultati', 'R2611039')
       expect(r.esito).toBe('anomalia')
-      expect(r.messaggio).toContain('Mario Rossi: totale diverso dallo storico')
+      expect(r.messaggio).toContain('Mario Rossi (OL): totale diverso dallo storico')
       // I dati del PDF si salvano comunque (il PDF è la fonte ufficiale).
       expect(archivio.classifiche.has('R2611039')).toBe(true)
     })
@@ -487,7 +487,7 @@ describe('le singole letture', () => {
     it('sentinella: un nostro atleta che manca dal PDF', async () => {
       fonte.pdf = { ok: true, dati: pdfConRighe(righePdf().slice(0, -1)) }
       expect((await esegui('risultati', 'R2611039')).messaggio).toContain(
-        'Mario Rossi: non trovato nel PDF',
+        'Mario Rossi (OL): non trovato nel PDF',
       )
     })
 
@@ -542,5 +542,136 @@ describe('le singole letture', () => {
     expect(fonte.chiamate.at(-1)).toContain('"idRankingTipo":"I"')
     expect(archivio.ranking.get('I|OL|a1')).toHaveLength(1)
     expect(await esegui('ranking', 'T|OL|S|M')).toMatchObject({ esito: 'invariato' })
+  })
+})
+
+describe('più archi e gare vecchie', () => {
+  beforeEach(async () => {
+    archivio.diario = [
+      {
+        tipo: 'scheda-atleta',
+        chiave: 'a1',
+        esito: 'ok',
+        messaggio: '',
+        richieste: 1,
+        giorno: OGGI,
+      },
+    ]
+    await esegui('calendario', '2026')
+    await esegui('scheda-atleta', 'a1')
+    await esegui('scheda-gara', 'R2611039')
+  })
+
+  /** Mario Rossi nella stessa gara con due archi: ricurvo (534) e nudo (480). */
+  const dueArchi = () =>
+    pdfConRighe([
+      ...righePdf(),
+      'Arco Nudo - Senior Maschile',
+      'Pos. Atleta Cat. Società 18m-1 18m-2 Totale 10 9',
+      '1 1- 3A ROSSI Mario 02 11003 Arcieri Eugubini 240/ 1 240/ 1 480 5 9',
+    ])
+
+  it('stesso arciere, stessa gara, due archi: due righe collegate, nessuna anomalia', async () => {
+    const storico = archivio.storici.get('a1')!
+    archivio.storici.set('a1', [
+      ...storico,
+      {
+        gara_codice: 'R2611039',
+        divisione: 'AN',
+        classe: 'SM',
+        rank: 'SM',
+        posizione: 1,
+        totale: 480,
+      },
+    ])
+    fonte.pdf = { ok: true, dati: dueArchi() }
+    expect(await esegui('risultati', 'R2611039')).toMatchObject({
+      esito: 'ok',
+      messaggio: '3 atleti, 2 dei nostri, provvisoria',
+    })
+    const nostre = archivio.classifiche
+      .get('R2611039')!
+      .righe.filter((r) => r.atleta_id === 'a1') as unknown as {
+      divisione: string
+      totale: number
+    }[]
+    expect(nostre.map((r) => [r.divisione, r.totale])).toEqual([
+      ['OL', 534],
+      ['AN', 480],
+    ])
+  })
+
+  it('se il secondo arco manca dal PDF, la sentinella lo dice', async () => {
+    archivio.storici.set('a1', [
+      ...archivio.storici.get('a1')!,
+      {
+        gara_codice: 'R2611039',
+        divisione: 'AN',
+        classe: 'SM',
+        rank: 'SM',
+        posizione: 1,
+        totale: 480,
+      },
+    ])
+    const r = await esegui('risultati', 'R2611039')
+    expect(r.esito).toBe('anomalia')
+    expect(r.messaggio).toContain('Mario Rossi (AN): non trovato nel PDF')
+  })
+
+  it('gara di più di due stagioni fa: si salvano solo le righe dei nostri', async () => {
+    archivio.gareSalvate.get('R2611039')!.dal = '2023-10-24'
+    archivio.gareSalvate.get('R2611039')!.al = '2023-10-25'
+    expect(await esegui('risultati', 'R2611039')).toMatchObject({
+      esito: 'ok',
+      messaggio: '2 atleti, salvati solo i 1 dei nostri (gara vecchia)',
+    })
+    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
+  })
+
+  it('a inizio anno la stagione più vecchia si riduce ai nostri atleti', async () => {
+    await esegui('risultati', 'R2611039')
+    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
+
+    // Nel 2028 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
+    archivio.oggi = '2028-01-02'
+    ctx.oggi = '2028-01-02'
+    await giro(ctx, { ...OPZIONI, massimo: 0 })
+    expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
+
+    // Nel 2029 partono dal 2027: della gara del 2026 restano solo i nostri, e il diario lo dice.
+    archivio.oggi = '2029-01-02'
+    ctx.oggi = '2029-01-02'
+    await giro(ctx, { ...OPZIONI, massimo: 0 })
+    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
+    expect(archivio.diario.at(-1)).toMatchObject({
+      chiave: 'potatura 2027-01-01',
+      messaggio: 'Tolte 1 righe di altri atleti dalle classifiche delle gare vecchie',
+    })
+  })
+
+  it('ranking: solo gli archi usati nelle ultime stagioni', async () => {
+    archivio.atletiSalvati[0]!.classi_ranking = { Indoor: 'SM' }
+    // Un nudo tirato nel 2022 (arco lasciato) e il ricurvo di adesso.
+    archivio.gareSalvate.set('R2211001', {
+      ...archivio.gareSalvate.get('R2611039')!,
+      codice: 'R2211001',
+      dal: '2022-02-01',
+      al: '2022-02-01',
+    })
+    archivio.storici.set('a1', [
+      ...archivio.storici.get('a1')!,
+      {
+        gara_codice: 'R2211001',
+        divisione: 'AN',
+        classe: 'SM',
+        rank: 'SM',
+        posizione: 1,
+        totale: 450,
+      },
+    ])
+    expect(await accodaRanking(ctx)).toBe(1)
+    expect(archivio.coda.filter((c) => c.tipo === 'ranking').map((c) => c.chiave)).toEqual([
+      'I|OL|S|M',
+    ])
   })
 })

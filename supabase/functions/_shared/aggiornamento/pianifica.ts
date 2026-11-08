@@ -73,6 +73,18 @@ export const giorni = (da: string, a: string) =>
  * (omologata o no). Per quelle fuori regione lo stato non si conosce (il calendario "00" ha solo le
  * gare nazionali): si considerano definitivi dopo GIORNI_DEFINITIVI_FUORI_UMBRIA giorni.
  */
+/** Anni interi, prima di quello in corso, con le classifiche complete (scelta di Mattia, 8/11/2026). */
+export const ANNI_CLASSIFICHE_COMPLETE = 2
+
+/**
+ * Dal giorno restituito ("AAAA-01-01") le classifiche si tengono complete (tutti gli atleti); per le
+ * gare più vecchie solo le righe dei nostri atleti (con parziali e prove, per record e statistiche).
+ * Novembre 2026 → "2024-01-01": 2026, 2025 e 2024 complete.
+ */
+export function inizioClassificheComplete(oggi: string): string {
+  return `${Number(oggi.slice(0, 4)) - ANNI_CLASSIFICHE_COMPLETE}-01-01`
+}
+
 export function risultatiProvvisori(g: { stato: StatoGara; al: string }, oggi: string): boolean {
   if (g.stato === 'omologata') return false
   if (g.stato === 'sconosciuto') return giorni(g.al, oggi) <= GIORNI_DEFINITIVI_FUORI_UMBRIA
@@ -136,9 +148,13 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
     // PDF dei risultati: la prima volta, poi finché sono provvisori (subito quando diventano definitivi).
     // Un PDF letto ma non salvato (anomalia della sentinella) si riprova ogni 3 giorni.
     if (g.urlRisultati) {
+      // Senza classifica salvata (anomalia, o gara vecchia senza nostri atleti riconosciuti): si
+      // riprova ogni 3 giorni, ma per le gare finite da più di 90 giorni basta la prima lettura.
+      const recente = giorni(g.al, s.oggi) <= GIORNI_MASSIMI_ATTESA_PDF
       const daLeggere =
         g.risultati === null
-          ? scaduta('risultati', g.codice, OGNI.risultatiProvvisori)
+          ? ultima('risultati', g.codice) === undefined ||
+            (recente && scaduta('risultati', g.codice, OGNI.risultatiProvvisori))
           : g.risultati.provvisoria &&
             (!risultatiProvvisori(g, s.oggi) ||
               scaduta('risultati', g.codice, OGNI.risultatiProvvisori))

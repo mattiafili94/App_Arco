@@ -98,6 +98,10 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
     "Aggiungi a Google Calendar" (Android).
   - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
+- **Quanti dati tenere** (deciso l'8/11/2026): classifiche **complete** (tutti gli atleti) solo per le gare
+  dell'anno in corso e dei **due anni interi precedenti** (oggi 2024–2026); per le gare più vecchie si tengono
+  solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
+  da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
 - **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
   ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
   Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.
@@ -112,6 +116,10 @@ Nello storico la gara resta una sola, con totale e posizione.
 - **Campagna** (su Fitarco si chiama Hunter & Field): **12+12** e **24+24** con record separati; il 24+24 **non** si divide.
 - **3D**: un record.
 - Record divisi anche per **divisione** (ricurvo, compound, nudo, istintivo, longbow).
+- **Un arciere può cambiare arco** nella carriera (detto da Mattia l'8/11/2026): può avere record e ranking su più
+  divisioni e perfino tirare **nella stessa gara due sessioni con due archi diversi**. In quel caso ha due righe
+  nello storico (una per divisione) e due nella classifica del PDF; la sentinella confronta atleta + divisione.
+  Le ranking da chiedere usano solo gli archi delle ultime stagioni.
 - Il numero di 10 / X / 9 nei PDF c'è solo sul totale della gara, non per prova.
 
 ### Segnapunti (simulazioni di gara, nel tab Allenamento, privato)

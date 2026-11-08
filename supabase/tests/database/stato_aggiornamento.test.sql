@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(14);
 
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b2', 'atleta2@test.invalid');
 insert into public.atleti (id, matricola, nome, cognome, attivo, utente_id) values
@@ -69,6 +69,40 @@ reset role;
 set local role anon;
 select throws_ok(
   $$ select public.stato_aggiornamento() $$, '42501', null, 'senza accesso nemmeno'
+);
+reset role;
+
+-- Potatura: le gare prima della data tengono solo le righe dei nostri atleti -------------------------
+set local role service_role;
+select public.salva_classifica('R0000102', '[
+  {"categoria": "C", "ordine": 1, "divisione": "OL", "classe": "S", "esito": "1", "nome_completo": "ALTRO Tizio",
+   "cognome": "ALTRO", "nome": "Tizio", "societa_codice": "11004", "societa_nome": "S", "totale": 550,
+   "conteggi": [0, 0], "colonne_conteggi": ["10", "9"]},
+  {"categoria": "C", "ordine": 2, "divisione": "OL", "classe": "S", "esito": "2", "nome_completo": "PROVA Bruno",
+   "cognome": "PROVA", "nome": "Bruno", "societa_codice": "11003", "societa_nome": "S", "totale": 540,
+   "conteggi": [0, 0], "colonne_conteggi": ["10", "9"], "atleta_id": "10000000-0000-0000-0000-0000000000b2"}
+]'::jsonb, 'i2', false);
+update public.gare set risultati_aggiornati_il = '2020-01-01' where codice = 'R0000102';
+
+select is(public.pota_classifiche('2026-01-01'), 1, 'toglie solo le righe degli altri atleti delle gare vecchie');
+select is(
+  (select array_agg(nome_completo) from public.classifiche where gara_codice = 'R0000102'),
+  array['PROVA Bruno'], 'della gara del 2025 resta solo il nostro atleta'
+);
+select is(
+  (select count(*)::int from public.classifiche where gara_codice = 'R0000101'), 1,
+  'la gara del 2026 resta completa'
+);
+select ok(
+  (select risultati_aggiornati_il > '2020-01-01' from public.gare where codice = 'R0000102'),
+  'la gara potata risulta aggiornata (i telefoni riscaricano la classifica)'
+);
+reset role;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b2", "role": "authenticated"}';
+select throws_ok(
+  $$ select public.pota_classifiche('2030-01-01') $$, '42501', null, 'un atleta non può potare le classifiche'
 );
 reset role;
 

@@ -195,6 +195,7 @@ export class ArchivioFinto implements Archivio {
         atleta_id,
         tipologia: this.gareSalvate.get(r.gara_codice)?.tipologia ?? '',
         divisione: r.divisione,
+        dal: this.gareSalvate.get(r.gara_codice)?.dal ?? '',
       })),
     )
   }
@@ -207,8 +208,19 @@ export class ArchivioFinto implements Archivio {
     return [...this.storici.entries()].flatMap(([atletaId, righe]) =>
       righe
         .filter((r) => r.gara_codice === codiceGara)
-        .map((r) => ({ atletaId, totale: r.totale })),
+        .map((r) => ({ atletaId, divisione: r.divisione, totale: r.totale })),
     )
+  }
+
+  async potaClassifiche(primaDel: string) {
+    let tolte = 0
+    for (const [codice, c] of this.classifiche) {
+      if ((this.gareSalvate.get(codice)?.dal ?? '') >= primaDel) continue
+      const nostre = c.righe.filter((r) => r.atleta_id !== null)
+      tolte += c.righe.length - nostre.length
+      c.righe = nostre
+    }
+    return tolte
   }
 
   async classificaProvvisoria(codiceGara: string) {

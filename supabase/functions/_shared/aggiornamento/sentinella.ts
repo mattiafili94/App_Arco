@@ -24,22 +24,26 @@ export function controllaStorico(gareSalvate: number, gareLette: number): string
 
 export interface AnomaliaClassifica {
   atletaId: string
+  divisione: string
   motivo: 'non-trovato' | 'totale-diverso'
 }
 
 /**
  * Gli atleti che secondo il loro storico hanno fatto la gara devono comparire nel PDF, con lo stesso
  * totale. Se no, il riconoscimento per nome ha sbagliato (o Fitarco ha corretto qualcosa).
+ * Il confronto è per atleta E arco (divisione): nella stessa gara un arciere può tirare in due
+ * sessioni con due archi diversi, e allora ha due righe nel PDF e due nello storico.
  */
 export function controllaClassifica(
-  righe: readonly { atleta_id: string | null; totale: number }[],
-  attesi: readonly { atletaId: string; totale: number | null }[],
+  righe: readonly { atleta_id: string | null; divisione: string; totale: number }[],
+  attesi: readonly { atletaId: string; divisione: string; totale: number | null }[],
 ): AnomaliaClassifica[] {
   return attesi.flatMap((a): AnomaliaClassifica[] => {
-    const trovate = righe.filter((r) => r.atleta_id === a.atletaId)
-    if (trovate.length === 0) return [{ atletaId: a.atletaId, motivo: 'non-trovato' }]
+    const trovate = righe.filter((r) => r.atleta_id === a.atletaId && r.divisione === a.divisione)
+    const { atletaId, divisione } = a
+    if (trovate.length === 0) return [{ atletaId, divisione, motivo: 'non-trovato' }]
     if (a.totale !== null && !trovate.some((r) => r.totale === a.totale)) {
-      return [{ atletaId: a.atletaId, motivo: 'totale-diverso' }]
+      return [{ atletaId, divisione, motivo: 'totale-diverso' }]
     }
     return []
   })

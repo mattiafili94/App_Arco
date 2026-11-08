@@ -28,6 +28,7 @@ import {
 import type { AtletaNoto } from './atleti.ts'
 import {
   pianificaLetture,
+  inizioClassificheComplete,
   risultatiProvvisori,
   type Lettura,
   type StatoPianificazione,
@@ -116,9 +117,19 @@ export interface Archivio {
   aggiornaAtleta(id: string, campi: Record<string, unknown>): Promise<void>
   storico(atletaId: string): Promise<RigaPartecipazione[]>
   /** Storico di tutti con la tipologia della gara (per le combinazioni di ranking). */
-  storicoConTipologia(): Promise<{ atleta_id: string; tipologia: string; divisione: string }[]>
+  storicoConTipologia(): Promise<
+    { atleta_id: string; tipologia: string; divisione: string; dal: string }[]
+  >
   salvaStorico(atletaId: string, righe: RigaPartecipazione[]): Promise<void>
-  partecipanti(codiceGara: string): Promise<{ atletaId: string; totale: number | null }[]>
+  /** I nostri atleti nello storico di una gara: uno per arco (divisione). */
+  partecipanti(
+    codiceGara: string,
+  ): Promise<{ atletaId: string; divisione: string; totale: number | null }[]>
+  /**
+   * Toglie dalle classifiche delle gare iniziate prima di `primaDel` le righe degli altri atleti
+   * (restano i nostri). Restituisce quante righe ha tolto.
+   */
+  potaClassifiche(primaDel: string): Promise<number>
   /** Istante (ms) dell'ultima lettura fallita perché Fitarco non rispondeva, o null. */
   ultimoBlocco(): Promise<number | null>
   /** La classifica salvata è provvisoria? null se non c'è. */
@@ -369,23 +380,29 @@ async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   if (righe.length === 0) {
     return { esito: 'anomalia', messaggio: 'Nessun atleta trovato nel PDF: non salvo niente' }
   }
-  await ctx.archivio.salvaClassifica(codice, righe, impr, provvisoria)
+  // Gare più vecchie di due stagioni intere: si tengono solo le righe dei nostri atleti.
+  const completa = gara.dal >= inizioClassificheComplete(ctx.oggi)
+  const nostre = righe.filter((r) => r.atleta_id !== null)
+  await ctx.archivio.salvaClassifica(codice, completa ? righe : nostre, impr, provvisoria)
 
-  const eugubini = righe.filter((r) => r.atleta_id !== null).length
-  const riepilogo = `${righe.length} atleti, ${eugubini} dei nostri${provvisoria ? ', provvisoria' : ''}`
+  const riepilogo = completa
+    ? `${righe.length} atleti, ${nostre.length} dei nostri${provvisoria ? ', provvisoria' : ''}`
+    : `${righe.length} atleti, salvati solo i ${nostre.length} dei nostri (gara vecchia)`
   const anomalie = controllaClassifica(righe, await ctx.archivio.partecipanti(codice))
   if (anomalie.length === 0) return { esito: 'ok', messaggio: riepilogo }
   const nomi = new Map(atleti.map((a) => [a.id, `${a.nome} ${a.cognome}`]))
   const dettagli = anomalie.map(
     (a) =>
-      `${nomi.get(a.atletaId) ?? a.atletaId}: ${a.motivo === 'non-trovato' ? 'non trovato nel PDF' : 'totale diverso dallo storico'}`,
+      `${nomi.get(a.atletaId) ?? a.atletaId} (${a.divisione}): ${a.motivo === 'non-trovato' ? 'non trovato nel PDF' : 'totale diverso dallo storico'}`,
   )
   return { esito: 'anomalia', messaggio: `${riepilogo}. Controllare: ${dettagli.join('; ')}` }
 }
 
 async function combinazioni(ctx: Contesto) {
   const atleti = await ctx.archivio.atleti()
-  const storico = await ctx.archivio.storicoConTipologia()
+  // Solo gli archi usati nelle ultime stagioni: un arco lasciato anni fa non ha più una ranking.
+  const dal = inizioClassificheComplete(ctx.oggi)
+  const storico = (await ctx.archivio.storicoConTipologia()).filter((s) => s.dal >= dal)
   return combinazioniRanking(
     atleti.map((a) => ({
       id: a.id,
@@ -477,6 +494,18 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
       eseguite: [],
       fermato: `In pausa: Fitarco non ha risposto, si riprova dopo ${ripresa.toISOString()}`,
     }
+  }
+
+  // A inizio anno la stagione più vecchia esce dalle "classifiche complete": restano i nostri atleti.
+  const potate = await ctx.archivio.potaClassifiche(inizioClassificheComplete(ctx.oggi))
+  if (potate > 0) {
+    await ctx.archivio.registra({
+      tipo: 'risultati',
+      chiave: `potatura ${inizioClassificheComplete(ctx.oggi)}`,
+      esito: 'ok',
+      messaggio: `Tolte ${potate} righe di altri atleti dalle classifiche delle gare vecchie`,
+      richieste: 0,
+    })
   }
 
   const piano = pianificaLetture(statoPianificazione(await ctx.archivio.stato(), ctx.oggi))
