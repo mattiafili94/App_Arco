@@ -21,6 +21,13 @@ export type EsitoAccedi =
 
 export type EsitoAggiungi = { esito: 'ok' } | { esito: 'duplicato' | 'errore' }
 
+/** Un telefono che riceve le notifiche push: indirizzo del servizio push e chiavi di cifratura. */
+export interface IscrizionePush {
+  endpoint: string
+  p256dh: string
+  auth: string
+}
+
 export interface ServizioAccesso {
   /** I dati condivisi (gare, risultati…) da tenere in copia sul telefono. */
   remoto: Remoto
@@ -37,6 +44,10 @@ export interface ServizioAccesso {
   /** Genera il link personale di un atleta. Lancia un errore con un messaggio da mostrare. */
   generaLink(atletaId: string): Promise<{ link: string; codice: string }>
   revocaAccesso(atletaId: string): Promise<void>
+  /** Registra questo telefono per le notifiche (a nome di chi è collegato). Lancia un errore se non riesce. */
+  registraPush(iscrizione: IscrizionePush): Promise<void>
+  /** Toglie la registrazione di questo telefono. */
+  rimuoviPush(endpoint: string): Promise<void>
 }
 
 export const nomeCompleto = (a: Pick<Atleta, 'nome' | 'cognome'>) => `${a.nome} ${a.cognome}`

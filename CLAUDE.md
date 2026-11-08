@@ -8,7 +8,7 @@ Claude Code: spiegare le cose in modo semplice.
 ## Obiettivo
 
 Un'app privata per i 10-12 atleti attivi della compagnia che:
-1. mostra **calendario gare dell'Umbria** e iscrizioni, con promemoria;
+1. mostra **calendario gare dell'Umbria** e iscrizioni, con avviso quando esce un invito;
 2. mostra **risultati, storico, record personali e posizione in classifica** (ammissione ai Campionati Italiani)
    di tutti, presi in automatico dal sito pubblico Fitarco;
 3. offre un'area **allenamento** personale: programma settimanale, diario, segnapunti per le simulazioni di gara.
@@ -76,7 +76,7 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
    con data dell'ultimo aggiornamento.
 4. **Allenamento** (privato, visibile solo all'atleta): settimana con il programma dettato dall'allenatore e
    scritto dall'atleta, attività da segnare come fatte, "copia la settimana scorsa", diario, segnapunti.
-- **Impostazioni** (icona in alto): tema, interruttore "Promemoria iscrizioni", stato sincronizzazione.
+- **Impostazioni** (icona in alto): tema, interruttore "Notifiche nuovi inviti", stato sincronizzazione.
   **Area amministratore** (solo Mattia): membri e link di accesso, importazione calendario, primo caricamento storico.
 
 ### Dati Fitarco: cosa, da dove, quando
@@ -90,14 +90,17 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Calendario Umbria | calendario | **solo l'anno in corso** (da ottobre anche il provvisorio del prossimo), ogni settimana; gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
 | Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
 
-- **Inviti**: niente estrazione automatica delle date. Quando esce un invito nuovo l'app avvisa Mattia e mostra il
-  testo completo; il promemoria lo crea lui (in app + calendario del telefono). Promemoria facoltativi (interruttore).
-- **Come funzionano i promemoria** (una web app **non** può programmare da sola notifiche future sul telefono):
-  - **notifiche push dal server** (Web Push, gratis): il server le invia il giorno giusto a chi ha attivato
-    l'interruttore. Android sì; iPhone da iOS 16.4 e solo con l'app aggiunta alla schermata Home;
-  - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
-    "Aggiungi a Google Calendar" (Android).
-  - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
+- **Inviti** (decisione di Mattia, 10/11/2026, sostituisce i promemoria gestiti dall'app): niente estrazione
+  automatica delle date e **nessun promemoria creato nell'app**. Quando esce l'invito NUOVO di una gara
+  **futura**, a tutti i telefoni con l'interruttore "Notifiche → Nuovi inviti" acceso arriva una notifica push
+  ("È arrivato l'invito di 18 m · Perugia (12 dic 2026). Tocca per leggerlo."); toccandola si apre la scheda
+  gara, dove c'è il testo completo e "Aggiungi al calendario": gli orari li legge ognuno e si crea il suo
+  promemoria. Niente notifica per inviti già salvati, modificati, di gare passate o annullate.
+- **Come funzionano le notifiche** (una web app non può programmare da sola notifiche future sul telefono):
+  **Web Push dal server** (gratis, chiavi VAPID). Android sì; iPhone da iOS 16.4 e solo con l'app aggiunta
+  alla schermata Home (l'interruttore lo spiega). Il telefono deve aver dato il permesso almeno una volta.
+  Il "Aggiungi al calendario" (file `.ics` per iPhone, link Google Calendar per Android) resta il modo più
+  affidabile per avere l'allarme.
 - **Quanti dati tenere** (deciso l'8/11/2026, finestra ridotta il 9/11/2026): classifiche **complete** (tutti
   gli atleti) solo per le gare dell'anno in corso e dell'**anno scorso** (oggi 2025–2026,
   `ANNI_CLASSIFICHE_COMPLETE = 1`); le letture rimaste in lista per gare più vecchie escono senza richieste.
@@ -358,7 +361,21 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       gara ("10: 21 · 9: 26", "10+X: 13 · X: 3"). Gli atleti della compagnia sono evidenziati con bordo e
       grassetto e con "Della compagnia:" per i lettori di schermo (non solo il colore). Avviso "Risultati
       provvisori" finché la gara non è omologata. Logica pura in `packages/shared/src/risultati.ts`;
-   4. promemoria iscrizioni e notifiche push (VAPID; su iPhone solo con l'app aggiunta alla Home).
+   4. notifiche push "nuovo invito" ✅ (migrazione `20261110120000_notifiche_push.sql`). Note:
+      - tabelle `iscrizioni_push` (un telefono per riga, chiave = `endpoint`) e `notifiche` (coda, una per
+        gara); nessun permesso diretto a chi usa l'app: il telefono si registra o si toglie con le funzioni
+        `registra_push` e `rimuovi_push` (se sul telefono entra un'altra persona la registrazione passa a
+        lei; all'uscita dall'app il telefono viene tolto);
+      - il motore (`invito()`) accoda la notifica con `vaNotificato`; l'invio (`inviaNotifiche`, in
+        `_shared/aggiornamento/notifiche.ts`) parte alla fine di ogni giro di `aggiorna-fitarco`: nessun cron
+        nuovo, il Worker dei 15 minuti basta. Nessun telefono registrato → la notifica si chiude; consegna
+        fallita per tutti → riprova (per 2 giorni); telefono scaduto (404/410) → registrazione cancellata;
+      - invio con `web-push` (`aggiorna-fitarco/push.ts`): segreti `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` su
+        Supabase, `VITE_VAPID_PUBLIC_KEY` su Cloudflare Pages (vedi `supabase/README.md`). Senza chiavi le
+        notifiche restano in coda e l'interruttore dice "non può ricevere";
+      - app: `apps/web/src/notifiche/` (regole in `servizio.ts`, browser vero in `browser.ts`), interruttore
+        in Impostazioni; il service worker carica `apps/web/public/push.js` (`importScripts`), che mostra la
+        notifica e apre la gara al tocco. Il test dei permessi (pgTAP) gira solo su GitHub (serve Docker).
 4. **Tab Atleti**: storico, record, andamento.
 5. **Tab Classifica**.
 6. **Tab Allenamento**: settimana, diario, poi segnapunti.

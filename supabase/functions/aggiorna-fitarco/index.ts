@@ -8,10 +8,16 @@
 // Corpo della richiesta (JSON, facoltativo):
 //   {}                      → un giro: pianifica e fa qualche lettura dalla lista;
 //   { "azione": "ranking" } → mette in lista le classifiche (ranking) dei nostri atleti.
-import { createClient } from 'npm:@supabase/supabase-js@2.117.3'
-import { accodaRanking, giornoItaliano, giro } from '../_shared/aggiornamento/index.ts'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3'
+import {
+  accodaRanking,
+  giornoItaliano,
+  giro,
+  inviaNotifiche,
+} from '../_shared/aggiornamento/index.ts'
 import { creaClientFitarco } from '../_shared/fitarco/index.ts'
-import { archivioSupabase } from './archivio.ts'
+import { archivioNotificheSupabase, archivioSupabase } from './archivio.ts'
+import { creaInviatorePush } from './push.ts'
 
 /** Limiti di ogni chiamata: il piano gratuito dà poco tempo di calcolo, e Fitarco va trattato bene. */
 const LETTURE_PER_CHIAMATA = 6
@@ -48,7 +54,13 @@ Deno.serve(async (req) => {
       massimoPesanti: LETTURE_PESANTI_PER_CHIAMATA,
       scadenza: Date.now() + TEMPO_MASSIMO_MS,
     })
-    return Response.json({ ...riepilogo, richiesteFitarco: ctx.fonte.richiesteFatte })
+    // Le notifiche partono dopo la lettura; se falliscono, la lettura resta valida.
+    const notifiche = await mandaNotifiche(db)
+    return Response.json({
+      ...riepilogo,
+      richiesteFitarco: ctx.fonte.richiesteFatte,
+      notifiche,
+    })
   } catch (errore) {
     return Response.json(
       { errore: errore instanceof Error ? errore.message : String(errore) },
@@ -56,3 +68,14 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+/** Manda le notifiche in coda. Senza chiavi VAPID non fa niente (restano in coda). */
+async function mandaNotifiche(db: SupabaseClient) {
+  try {
+    const invia = creaInviatorePush()
+    if (!invia) return 'chiavi VAPID mancanti'
+    return await inviaNotifiche(archivioNotificheSupabase(db), invia, new Date())
+  } catch (errore) {
+    return { errore: errore instanceof Error ? errore.message : String(errore) }
+  }
+}

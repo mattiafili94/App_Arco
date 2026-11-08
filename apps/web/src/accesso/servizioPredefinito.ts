@@ -30,4 +30,8 @@ export const servizioPredefinito: ServizioAccesso =
         revocaAccesso: async () => {
           throw new Error('App non collegata al server.')
         },
+        registraPush: async () => {
+          throw new Error('App non collegata al server.')
+        },
+        rimuoviPush: async () => {},
       }

@@ -7,6 +7,7 @@ import {
   statoPianificazione,
   type Contesto,
   type Fonte,
+  type GaraSalvata,
 } from '../aggiornamento'
 import type { FileScaricato, RichiestaFitarco, RispostaFitarco } from '../fitarco'
 import { esempio, type Esempio } from '../fitarco/esempi'
@@ -397,6 +398,54 @@ describe('le singole letture', () => {
     expect(await esegui('invito', 'R2611040')).toMatchObject({
       esito: 'ok',
       messaggio: 'Invito cambiato',
+    })
+  })
+
+  describe('notifica del nuovo invito', () => {
+    const imposta = (campi: Partial<GaraSalvata>) =>
+      Object.assign(archivio.gareSalvate.get('R2611040')!, { ha_invito: false }, campi)
+
+    it('invito nuovo di una gara futura: una notifica, che dice quale gara', async () => {
+      imposta({ dal: '2026-12-12', al: '2026-12-13', tipologia: '18 m', localita: 'Perugia (PG)' })
+      await esegui('invito', 'R2611040')
+      expect(archivio.notifiche).toEqual([
+        {
+          gara_codice: 'R2611040',
+          titolo: 'Nuovo invito',
+          testo: "È arrivato l'invito di 18 m · Perugia (PG) (12–13 dic 2026). Tocca per leggerlo.",
+        },
+      ])
+    })
+
+    it('la gara di oggi è ancora futura: notifica', async () => {
+      imposta({ dal: OGGI, al: OGGI })
+      await esegui('invito', 'R2611040')
+      expect(archivio.notifiche).toHaveLength(1)
+    })
+
+    it('gara già passata (es. atleta nuovo con tante gare vecchie): nessuna notifica', async () => {
+      imposta({ dal: '2026-11-01', al: '2026-11-02' })
+      expect(await esegui('invito', 'R2611040')).toMatchObject({ messaggio: 'Invito nuovo' })
+      expect(archivio.notifiche).toEqual([])
+    })
+
+    it('gara annullata: nessuna notifica', async () => {
+      imposta({ dal: '2026-12-12', al: '2026-12-12', stato: 'annullata' })
+      await esegui('invito', 'R2611040')
+      expect(archivio.notifiche).toEqual([])
+    })
+
+    it('invito già salvato o solo modificato: nessuna notifica', async () => {
+      imposta({ dal: '2026-12-12', al: '2026-12-12' })
+      await esegui('invito', 'R2611040')
+      archivio.notifiche = []
+      await esegui('invito', 'R2611040')
+      fonte.risposte.scheda_invito_result = {
+        ok: true,
+        html: esempio('invito').replace('28 posti', '30 posti'),
+      }
+      expect(await esegui('invito', 'R2611040')).toMatchObject({ messaggio: 'Invito cambiato' })
+      expect(archivio.notifiche).toEqual([])
     })
   })
 

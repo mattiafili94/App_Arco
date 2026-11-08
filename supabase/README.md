@@ -74,6 +74,21 @@ e scrive com'è andata nella tabella `letture` (il "diario", lo vede l'amministr
   `select creato_il, tipo, chiave, esito, messaggio from letture order by creato_il desc limit 50;`
 - Lista di lavoro: `select * from coda_letture order by priorita desc, da_fare_dal;`
 
+## Notifiche push "nuovo invito" (una volta sola)
+
+1. Crea le chiavi VAPID con `npx web-push generate-vapid-keys`: escono una chiave **pubblica** e una
+   **privata**. La privata non va in chat né nella repo.
+2. Mettile su Supabase (sostituisci i due segnaposto):
+   `npx supabase secrets set VAPID_PRIVATE_KEY=<chiave privata> VAPID_PUBLIC_KEY=<chiave pubblica>`
+3. Applica la migrazione e pubblica la funzione:
+   `npx supabase db push` e `npx supabase functions deploy aggiorna-fitarco --use-api --no-verify-jwt`.
+4. Metti la chiave pubblica su Cloudflare Pages come variabile `VITE_VAPID_PUBLIC_KEY` (Production e
+   Preview: non è un segreto) e ripubblica l'app.
+5. Prova: dal telefono accendi "Notifiche → Nuovi inviti" nelle Impostazioni, poi controlla la riga con
+   `select endpoint, creato_il from iscrizioni_push;`. Coda delle notifiche:
+   `select * from notifiche order by id desc limit 20;` (la risposta di un giro a mano dice anche quante
+   ne sono partite).
+
 ## Prova di lettura di Fitarco dal cloud
 
 `functions/prova-fitarco/` fa **una** richiesta al calendario Fitarco dal server e dice se il sito risponde

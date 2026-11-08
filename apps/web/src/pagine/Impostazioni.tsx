@@ -6,6 +6,8 @@ import { Button } from '../componenti/Button'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
+import type { StatoNotifiche } from '../notifiche/servizio'
+import { useNotifiche } from '../notifiche/useNotifiche'
 import { useSincronizzazione } from '../sync/contesto'
 import { descriviUltima } from '../sync/formato'
 import { useOnline } from '../stato/useOnline'
@@ -13,6 +15,24 @@ import { DESTINAZIONI, destinazioneDi } from '../navigazione'
 import { SCELTE_TEMA } from '../tema/tema'
 import { useTema } from '../tema/useTema'
 import styles from './Impostazioni.module.css'
+
+/** La frase sotto "Nuovi inviti": spiega cosa fare o perché non si può. */
+function descrizioneNotifiche(stato: StatoNotifiche): string {
+  switch (stato) {
+    case 'accese':
+      return "Ti avvisiamo quando esce l'invito di una gara. Tocca per spegnerle."
+    case 'spente':
+      return "Ricevi un avviso quando esce l'invito di una gara. Tocca per accenderle."
+    case 'serve-home':
+      return 'Su iPhone prima aggiungi l’app alla schermata Home, poi aprila da lì.'
+    case 'bloccate':
+      return 'Hai negato il permesso: riattivalo dalle impostazioni del telefono.'
+    case 'non-supportate':
+      return 'Questo telefono o browser non può ricevere le notifiche.'
+    case 'caricamento':
+      return 'Controllo in corso…'
+  }
+}
 
 /** Impostazioni: accesso, tema e informazioni. Si torna al tab da cui si è arrivati. */
 export function Impostazioni() {
@@ -22,6 +42,9 @@ export function Impostazioni() {
   const [confermaUscita, setConfermaUscita] = useState(false)
   const online = useOnline()
   const { stato: sync, aggiorna } = useSincronizzazione()
+  const notifiche = useNotifiche()
+  const interruttoreUtilizzabile =
+    !notifiche.occupato && (notifiche.stato === 'spente' || notifiche.stato === 'accese')
   const stato = useLocation().state as { da?: string } | null
   const provenienza = destinazioneDi(stato?.da ?? '') ?? DESTINAZIONI[0]!
 
@@ -56,6 +79,24 @@ export function Impostazioni() {
             onSelect={() => void aggiorna()}
           />
         </ListGroup>
+
+        <ListGroup title="Notifiche">
+          <ListRow
+            label="Nuovi inviti"
+            value={notifiche.stato === 'accese' ? 'Accese' : 'Spente'}
+            description={descrizioneNotifiche(notifiche.stato)}
+            onSelect={interruttoreUtilizzabile ? () => void notifiche.cambia() : undefined}
+          />
+        </ListGroup>
+        {notifiche.errore === 'negato' && (
+          <Notice status="warning">
+            Senza il permesso del telefono le notifiche non possono partire. Riprova e tocca
+            “Consenti”.
+          </Notice>
+        )}
+        {notifiche.errore === 'errore' && (
+          <Notice status="error">Non è stato possibile accenderle. Riprova tra poco.</Notice>
+        )}
 
         <ListGroup title="Tema" role="radiogroup">
           {SCELTE_TEMA.map((s) => (

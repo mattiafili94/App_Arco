@@ -19,6 +19,11 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Il service worker (motore offline) gira in un ambiente diverso dalle pagine.
+    files: ['apps/web/public/**/*.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
