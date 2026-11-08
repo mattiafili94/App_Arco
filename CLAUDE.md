@@ -280,6 +280,14 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         - pdf.js consuma il file che riceve: `estraiRighe` gli passa una copia;
         - il database finto dei test (`archivio-finto.ts`) imita i vincoli di quello vero (colonne del
           diario, campi obbligatori delle gare): se si aggiunge un vincolo, aggiungerlo anche lì;
+        - nei PDF ci sono categorie paralimpiche: "Compound W1" → divisione `W1`, "Visually Impaired 1" →
+          `V1` (codice divisione `^[A-Z][A-Z0-9]$`). Altre categorie nuove fermano la lettura: aggiungerle
+          a `DIVISIONI_PDF` dopo aver visto il PDF;
+        - un PDF senza atleti è un'anomalia (non si salva, si riprova ogni 3 giorni);
+        - **dopo circa 100 richieste in mezz'ora (giri lanciati uno dopo l'altro) Fitarco ha risposto 503.**
+          Da allora: se Fitarco non risponde, TUTTE le letture si fermano per 6 ore (`PAUSA_DOPO_BLOCCO_MS`,
+          diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
+          distanzia (Fase 2.5);
    5. controllo giornaliero (Cloudflare Worker con cron): tiene sveglio Supabase e avvia le letture
       (calendario settimanale, inviti delle gare future ogni giorno, risultati dopo la gara finché escono,
       classifica solo con "Aggiorna").

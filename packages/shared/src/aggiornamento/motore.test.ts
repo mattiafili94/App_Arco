@@ -261,8 +261,28 @@ describe('un giro di lavoro', () => {
     fonte.risposte.scheda_tesserato_result = { ok: false, motivo: 'http', dettaglio: '503' }
     const r = await giro(ctx, OPZIONI)
     expect(r.eseguite).toHaveLength(1)
-    expect(r.fermato).toContain('Fitarco non risponde (http: 503)')
+    expect(r.fermato).toBe('Fitarco non risponde: risposta http 503')
     expect(fonte.richiesteFatte).toBe(1)
+  })
+
+  it('dopo un "Fitarco non risponde" tutte le letture si fermano per 6 ore', async () => {
+    fonte.risposte.scheda_tesserato_result = { ok: false, motivo: 'http', dettaglio: '503' }
+    await giro(ctx, OPZIONI)
+    delete fonte.risposte.scheda_tesserato_result
+
+    archivio.adesso += 5 * 3_600_000
+    const inPausa = await giro(ctx, OPZIONI)
+    expect(inPausa).toEqual({
+      pianificate: 0,
+      eseguite: [],
+      fermato: expect.stringContaining('In pausa'),
+    })
+    expect(fonte.richiesteFatte).toBe(1)
+
+    archivio.adesso += 2 * 3_600_000
+    const ripartito = await giro(ctx, OPZIONI)
+    expect(ripartito.eseguite.length).toBeGreaterThan(0)
+    expect(ripartito.fermato).toBeNull()
   })
 })
 

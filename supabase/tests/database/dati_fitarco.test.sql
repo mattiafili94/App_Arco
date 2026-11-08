@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(30);
+select plan(32);
 
 -- Utenti e atleti di prova -------------------------------------------------------------------------
 insert into auth.users (id, email) values
@@ -44,6 +44,18 @@ select throws_ok(
      values ('R0000009', '2027-01-02', '2027-01-01', 'I', 'L', '18 m', 'omologata') $$,
   '23514', null, 'la gara non finisce prima di iniziare'
 );
+
+select lives_ok(
+  $$ insert into public.partecipazioni (atleta_id, gara_codice, divisione, classe, rank)
+     values ('10000000-0000-0000-0000-0000000000a1', 'R0000001', 'W1', 'SM', 'SM') $$,
+  'le divisioni paralimpiche (W1, V1) sono ammesse'
+);
+select throws_ok(
+  $$ insert into public.partecipazioni (atleta_id, gara_codice, divisione, classe, rank)
+     values ('10000000-0000-0000-0000-0000000000a1', 'R0000002', '1W', 'SM', 'SM') $$,
+  '23514', null, 'il codice divisione inizia con una lettera'
+);
+delete from public.partecipazioni where atleta_id = '10000000-0000-0000-0000-0000000000a1';
 
 -- Chi non ha fatto l'accesso ---------------------------------------------------------------------------
 set local role anon;

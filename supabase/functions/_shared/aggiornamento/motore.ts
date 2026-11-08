@@ -119,6 +119,8 @@ export interface Archivio {
   storicoConTipologia(): Promise<{ atleta_id: string; tipologia: string; divisione: string }[]>
   salvaStorico(atletaId: string, righe: RigaPartecipazione[]): Promise<void>
   partecipanti(codiceGara: string): Promise<{ atletaId: string; totale: number | null }[]>
+  /** Istante (ms) dell'ultima lettura fallita perché Fitarco non rispondeva, o null. */
+  ultimoBlocco(): Promise<number | null>
   /** La classifica salvata è provvisoria? null se non c'è. */
   classificaProvvisoria(codiceGara: string): Promise<boolean | null>
   salvaClassifica(
@@ -147,6 +149,12 @@ export interface Contesto {
   /** Data italiana di oggi, "AAAA-MM-GG". */
   oggi: string
 }
+
+/** Nel diario, l'inizio del messaggio di una lettura fallita perché Fitarco non rispondeva. */
+export const PREFISSO_BLOCCO = 'Fitarco non risponde: '
+
+/** Dopo un "Fitarco non risponde", tutte le letture si fermano per questo tempo. */
+export const PAUSA_DOPO_BLOCCO_MS = 6 * 3_600_000
 
 /** Il sito Fitarco non risponde o ci blocca: ci si ferma subito e si riprova un'altra volta. */
 export class FitarcoNonRisponde extends Error {
@@ -198,7 +206,7 @@ async function leggiHtml(fonte: Fonte, richiesta: RichiestaFitarco): Promise<str
   if (r.motivo === 'stato' || r.motivo === 'vuota') {
     throw new ErroreFormatoFitarco(`Risposta Fitarco senza dati (${r.motivo})`)
   }
-  throw new FitarcoNonRisponde(`Fitarco non risponde (${r.motivo}: ${r.dettaglio})`)
+  throw new FitarcoNonRisponde(`risposta ${r.motivo} ${r.dettaglio}`)
 }
 
 /** Codice gara definitivo Fitarco: una lettera e 7 cifre (R2611039). */
@@ -459,6 +467,18 @@ export function ritardoNuovoTentativo(tentativi: number): number {
 
 export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilogo> {
   const adesso = opzioni.adesso ?? Date.now
+
+  // Se di recente Fitarco non ha risposto, non si legge niente: lo si lascia riposare.
+  const blocco = await ctx.archivio.ultimoBlocco()
+  if (blocco !== null && adesso() - blocco < PAUSA_DOPO_BLOCCO_MS) {
+    const ripresa = new Date(blocco + PAUSA_DOPO_BLOCCO_MS)
+    return {
+      pianificate: 0,
+      eseguite: [],
+      fermato: `In pausa: Fitarco non ha risposto, si riprova dopo ${ripresa.toISOString()}`,
+    }
+  }
+
   const piano = pianificaLetture(statoPianificazione(await ctx.archivio.stato(), ctx.oggi))
   await ctx.archivio.accoda(piano)
 
@@ -491,7 +511,9 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
       })
       riepilogo.eseguite.push({ tipo: lavoro.tipo, chiave: lavoro.chiave, ...r })
     } catch (errore) {
-      const messaggio = errore instanceof Error ? errore.message : String(errore)
+      const testo = errore instanceof Error ? errore.message : String(errore)
+      // Il prefisso segna nel diario i "blocchi": servono per la pausa generale.
+      const messaggio = errore instanceof FitarcoNonRisponde ? `${PREFISSO_BLOCCO}${testo}` : testo
       const tentativi = lavoro.tentativi + 1
       const quando = new Date(adesso() + ritardoNuovoTentativo(tentativi))
       await ctx.archivio.rimanda(lavoro.tipo, lavoro.chiave, tentativi, messaggio, quando)

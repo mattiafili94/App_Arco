@@ -14,6 +14,7 @@ import type {
   StatoArchivio,
   TipoLettura,
 } from '../aggiornamento'
+import { PREFISSO_BLOCCO } from '../aggiornamento'
 
 export interface LavoroInCoda {
   tipo: TipoLettura
@@ -42,6 +43,8 @@ export class ArchivioFinto implements Archivio {
     messaggio: string
     richieste: number
     giorno: string
+    /** Istante della lettura (per la pausa dopo un blocco). */
+    istante?: number
   }[] = []
   /** Giorno "di oggi" usato per le ultime letture del diario. */
   oggi = '2027-03-01'
@@ -122,7 +125,14 @@ export class ArchivioFinto implements Archivio {
     if (colonne !== 'chiave,esito,messaggio,richieste,tipo') {
       throw new Error(`Database (diario): colonne sconosciute in ${colonne}`)
     }
-    this.diario.push({ ...r, giorno: this.oggi })
+    this.diario.push({ ...r, giorno: this.oggi, istante: this.adesso })
+  }
+
+  async ultimoBlocco() {
+    const blocchi = this.diario.filter(
+      (d) => d.esito === 'errore' && d.messaggio.startsWith(PREFISSO_BLOCCO),
+    )
+    return blocchi.length > 0 ? (blocchi.at(-1)!.istante ?? 0) : null
   }
 
   async gare(codici: string[]) {

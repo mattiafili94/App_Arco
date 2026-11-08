@@ -1,6 +1,7 @@
 // Il database vero per il motore dell'aggiornamento (interfaccia `Archivio` in
 // _shared/aggiornamento/motore.ts). Usa la chiave di servizio: scrive dove l'app non può.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3'
+import { PREFISSO_BLOCCO } from '../_shared/aggiornamento/index.ts'
 import type {
   Archivio,
   AtletaArchivio,
@@ -168,6 +169,20 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
         atletaId: r.atleta_id as string,
         totale: r.totale as number | null,
       }))
+    },
+
+    async ultimoBlocco() {
+      const righe = controlla(
+        await db
+          .from('letture')
+          .select('creato_il')
+          .eq('esito', 'errore')
+          .like('messaggio', `${PREFISSO_BLOCCO}%`)
+          .order('creato_il', { ascending: false })
+          .limit(1),
+        'ultimo blocco',
+      )
+      return righe.length === 0 ? null : Date.parse(righe[0]!.creato_il as string)
     },
 
     async classificaProvvisoria(codiceGara) {
