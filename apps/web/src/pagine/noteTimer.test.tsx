@@ -112,7 +112,7 @@ describe('note per volée', () => {
     )
     // Si chiude: la nota resta scritta sotto la volée.
     await userEvent.click(
-      within(tabella).getByRole('button', { name: /Nota della volée 1:\s*Modifica/ }),
+      await within(tabella).findByRole('button', { name: /Nota della volée 1:\s*Modifica/ }),
     )
     expect(within(tabella).queryByLabelText('Nota della volée 1')).not.toBeInTheDocument()
     expect(within(tabella).getByText('primo bersaglio')).toBeInTheDocument()
