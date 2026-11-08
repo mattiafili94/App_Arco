@@ -620,29 +620,33 @@ describe('più archi e gare vecchie', () => {
     expect(r.messaggio).toContain('Mario Rossi (AN): non trovato nel PDF')
   })
 
-  it('gara di più di due stagioni fa: si salvano solo le righe dei nostri', async () => {
-    archivio.gareSalvate.get('R2611039')!.dal = '2023-10-24'
-    archivio.gareSalvate.get('R2611039')!.al = '2023-10-25'
-    expect(await esegui('risultati', 'R2611039')).toMatchObject({
-      esito: 'ok',
-      messaggio: '2 atleti, salvati solo i 1 dei nostri (gara vecchia)',
-    })
-    expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
+  it('gara prima dell’anno scorso rimasta in lista: esce senza richieste (basta lo storico)', async () => {
+    archivio.gareSalvate.get('R2611039')!.dal = '2024-10-24'
+    archivio.gareSalvate.get('R2611039')!.al = '2024-10-25'
+    const prima = fonte.richiesteFatte
+    for (const tipo of ['scheda-gara', 'risultati'] as const) {
+      expect(await esegui(tipo, 'R2611039')).toMatchObject({
+        esito: 'invariato',
+        messaggio: 'Gara prima dell’anno scorso: basta lo storico degli atleti',
+      })
+    }
+    expect(fonte.richiesteFatte).toBe(prima)
+    expect(archivio.classifiche.has('R2611039')).toBe(false)
   })
 
   it('a inizio anno la stagione più vecchia si riduce ai nostri atleti', async () => {
     await esegui('risultati', 'R2611039')
     expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
 
-    // Nel 2028 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
-    archivio.oggi = '2028-01-02'
-    ctx.oggi = '2028-01-02'
+    // Nel 2027 le classifiche complete partono dal 2026: la gara del 2026 resta completa.
+    archivio.oggi = '2027-01-02'
+    ctx.oggi = '2027-01-02'
     await giro(ctx, { ...OPZIONI, massimo: 0 })
     expect(archivio.classifiche.get('R2611039')!.righe).toHaveLength(2)
 
-    // Nel 2029 partono dal 2027: della gara del 2026 restano solo i nostri, e il diario lo dice.
-    archivio.oggi = '2029-01-02'
-    ctx.oggi = '2029-01-02'
+    // Nel 2028 partono dal 2027: della gara del 2026 restano solo i nostri, e il diario lo dice.
+    archivio.oggi = '2028-01-02'
+    ctx.oggi = '2028-01-02'
     await giro(ctx, { ...OPZIONI, massimo: 0 })
     expect(archivio.classifiche.get('R2611039')!.righe.map((r) => r.atleta_id)).toEqual(['a1'])
     expect(archivio.diario.at(-1)).toMatchObject({

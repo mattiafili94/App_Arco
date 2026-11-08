@@ -98,8 +98,11 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   - **evento nel calendario del telefono** con allarme (il più affidabile): file `.ics` (iPhone) e link
     "Aggiungi a Google Calendar" (Android).
   - Anche l'avviso "nuovo invito" a Mattia è una notifica push dal server.
-- **Quanti dati tenere** (deciso l'8/11/2026): classifiche **complete** (tutti gli atleti) solo per le gare
-  dell'anno in corso e dei **due anni interi precedenti** (oggi 2024–2026); per le gare più vecchie si tengono
+- **Quanti dati tenere** (deciso l'8/11/2026, finestra ridotta il 9/11/2026): classifiche **complete** (tutti
+  gli atleti) solo per le gare dell'anno in corso e dell'**anno scorso** (oggi 2025–2026,
+  `ANNI_CLASSIFICHE_COMPLETE = 1`); le letture rimaste in lista per gare più vecchie escono senza richieste.
+  **Inviti**: solo per le gare future dell'Umbria (promemoria iscrizioni); per le gare passate si legge solo la
+  scheda, una volta, per il link al PDF. Per le gare più vecchie della finestra si tengono
   solo le righe degli Eugubini (con parziali e prove, per record e statistiche). A inizio anno il server riduce
   da solo la stagione uscita dalla finestra (`pota_classifiche`). Lo storico dalla scheda atleta resta intero.
   **Per risparmiare richieste** (Mattia, 8/11/2026): le gare più vecchie della finestra si conoscono SOLO dallo

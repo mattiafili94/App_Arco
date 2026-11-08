@@ -229,6 +229,15 @@ const GARA_TOLTA: Esecuzione = {
   messaggio: 'Gara non più nel database: lettura tolta dalla lista',
 }
 
+/**
+ * Una lettura rimasta in lista per una gara uscita dalla finestra delle classifiche complete (es. a
+ * gennaio, o dopo un cambio della finestra): per quelle basta lo storico degli atleti, niente richieste.
+ */
+const GARA_FUORI_FINESTRA: Esecuzione = {
+  esito: 'invariato',
+  messaggio: 'Gara prima dell’anno scorso: basta lo storico degli atleti',
+}
+
 /** Codice gara definitivo Fitarco: una lettera e 7 cifre (R2611039). */
 const CODICE_DEFINITIVO = /^[A-Z]\d{7}$/
 
@@ -281,6 +290,7 @@ const PDF_INDIVIDUALE = /\/[a-z]\d{7}\.pdf$/i
 async function schedaGara(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [salvata] = await ctx.archivio.gare([codice])
   if (!salvata) return GARA_TOLTA
+  if (salvata.dal < inizioClassificheComplete(ctx.oggi)) return GARA_FUORI_FINESTRA
   const scheda = leggiSchedaGara(await leggiHtml(ctx.fonte, richiestaSchedaGara(codice)))
   const pdf = scheda.risultati.find((d) => PDF_INDIVIDUALE.test(d.url))?.url ?? null
 
@@ -366,6 +376,7 @@ async function schedaAtleta(ctx: Contesto, id: string): Promise<Esecuzione> {
 async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   const [gara] = await ctx.archivio.gare([codice])
   if (!gara) return GARA_TOLTA
+  if (gara.dal < inizioClassificheComplete(ctx.oggi)) return GARA_FUORI_FINESTRA
   if (!gara.url_risultati) throw new Error(`Manca il link al PDF della gara ${codice}`)
   const file = await ctx.fonte.scarica(gara.url_risultati)
   if (!file.ok) {
@@ -391,14 +402,10 @@ async function risultati(ctx: Contesto, codice: string): Promise<Esecuzione> {
   if (righe.length === 0) {
     return { esito: 'anomalia', messaggio: 'Nessun atleta trovato nel PDF: non salvo niente' }
   }
-  // Gare più vecchie di due stagioni intere: si tengono solo le righe dei nostri atleti.
-  const completa = gara.dal >= inizioClassificheComplete(ctx.oggi)
-  const nostre = righe.filter((r) => r.atleta_id !== null)
-  await ctx.archivio.salvaClassifica(codice, completa ? righe : nostre, impr, provvisoria)
+  await ctx.archivio.salvaClassifica(codice, righe, impr, provvisoria)
 
-  const riepilogo = completa
-    ? `${righe.length} atleti, ${nostre.length} dei nostri${provvisoria ? ', provvisoria' : ''}`
-    : `${righe.length} atleti, salvati solo i ${nostre.length} dei nostri (gara vecchia)`
+  const nostre = righe.filter((r) => r.atleta_id !== null).length
+  const riepilogo = `${righe.length} atleti, ${nostre} dei nostri${provvisoria ? ', provvisoria' : ''}`
   const anomalie = controllaClassifica(righe, await ctx.archivio.partecipanti(codice))
   if (anomalie.length === 0) return { esito: 'ok', messaggio: riepilogo }
   const nomi = new Map(atleti.map((a) => [a.id, `${a.nome} ${a.cognome}`]))
