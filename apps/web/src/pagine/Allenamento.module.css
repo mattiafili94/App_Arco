@@ -1,0 +1,51 @@
+.gruppi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.navigazione {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.settimana {
+  margin: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.centro {
+  display: flex;
+  justify-content: center;
+}
+
+.oggi {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-touch);
+  color: var(--accent-default);
+}
+
+.azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.modulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+}
+
+.stato {
+  margin: 0;
+  color: var(--text-secondary);
+}

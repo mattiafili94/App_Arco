@@ -1,3 +1,4 @@
+import type { GiornoAllenamento } from '@arco/shared'
 import type { Remoto } from '../sync/remoto'
 import { chiaveDi, TABELLE, type Eliminazione, type NomeTabella, type Riga } from '../sync/tabelle'
 
@@ -13,6 +14,7 @@ export class RemotoFinto implements Remoto {
     partecipazioni: [],
     classifiche: [],
     ranking: [],
+    allenamento_giorni: [],
   }
   registro: Eliminazione[] = []
   /** Le richieste ricevute, per controllare che non si scarichi più del necessario. */
@@ -70,5 +72,30 @@ export class RemotoFinto implements Remoto {
     this.controllaRete()
     this.richieste.push('ultima eliminazione')
     return this.registro.at(-1)?.id ?? 0
+  }
+
+  /** Le richieste di salvataggio dell'allenamento ricevute, nell'ordine. */
+  salvataggi: GiornoAllenamento[] = []
+  /** L'ora del server (per `aggiornato_il` dell'allenamento). */
+  orologio: () => number = Date.now
+
+  /** Come il server vero: vince la modifica più recente; a parità resta quella già salvata. */
+  async salvaAllenamento(giorno: GiornoAllenamento): Promise<Riga> {
+    this.controllaRete()
+    this.salvataggi.push({ ...giorno })
+    const def = TABELLE.find((t) => t.nome === 'allenamento_giorni')!
+    const chiave = JSON.stringify(chiaveDi(def, giorno as unknown as Riga))
+    const esistente = this.righe.allenamento_giorni.find(
+      (r) => JSON.stringify(chiaveDi(def, r)) === chiave,
+    )
+    if (
+      esistente &&
+      Date.parse(String(esistente.modificato_il)) >= Date.parse(giorno.modificato_il)
+    ) {
+      return esistente
+    }
+    const nuova: Riga = { ...giorno, aggiornato_il: new Date(this.orologio()).toISOString() }
+    this.scrivi('allenamento_giorni', nuova)
+    return nuova
   }
 }

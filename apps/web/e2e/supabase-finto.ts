@@ -295,6 +295,17 @@ export async function simulaSupabase(
   { collegato = ATLETA_PROVA as AtletaProva | null } = {},
 ) {
   const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({ ...a }))
+  /** L'allenamento salvato dal telefono di prova (vuoto all'inizio). */
+  const allenamento: {
+    atleta_id: string
+    giorno: string
+    programma: string
+    fatto: boolean
+    frecce_libere: number
+    nota: string
+    modificato_il: string
+    aggiornato_il: string
+  }[] = []
   const richiesteFunzione: unknown[] = []
 
   if (collegato?.utente_id) {
@@ -404,6 +415,37 @@ export async function simulaSupabase(
       )
     }
 
+    // Allenamento di Bruno (privato): si legge e si salva come sul server, vince la modifica più recente.
+    if (tabella === 'allenamento_giorni') return json(route, allenamento)
+    if (url.pathname === '/rest/v1/rpc/salva_allenamento_giorno') {
+      const p = richiesta.postDataJSON() as {
+        p_atleta: string
+        p_giorno: string
+        p_programma: string
+        p_fatto: boolean
+        p_frecce_libere: number
+        p_nota: string
+        p_modificato_il: string
+      }
+      const esistente = allenamento.find((r) => r.giorno === p.p_giorno)
+      if (esistente && Date.parse(esistente.modificato_il) >= Date.parse(p.p_modificato_il)) {
+        return json(route, esistente)
+      }
+      const nuova = {
+        atleta_id: p.p_atleta,
+        giorno: p.p_giorno,
+        programma: p.p_programma,
+        fatto: p.p_fatto,
+        frecce_libere: p.p_frecce_libere,
+        nota: p.p_nota,
+        modificato_il: p.p_modificato_il,
+        aggiornato_il: new Date().toISOString(),
+      }
+      if (esistente) Object.assign(esistente, nuova)
+      else allenamento.push(nuova)
+      return json(route, nuova)
+    }
+
     // Funzione del server crea-accesso.
     if (url.pathname === '/functions/v1/crea-accesso') {
       const corpo = richiesta.postDataJSON() as { azione: string; atletaId: string }
@@ -423,5 +465,5 @@ export async function simulaSupabase(
     return json(route, { message: `Non simulato: ${url.pathname}` }, 404)
   })
 
-  return { atleti, richiesteFunzione }
+  return { atleti, richiesteFunzione, allenamento }
 }

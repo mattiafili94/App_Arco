@@ -18,6 +18,8 @@ export class ArcoDb extends Dexie {
   partecipazioni!: Table<Riga>
   classifiche!: Table<Riga>
   ranking!: Table<Riga>
+  /** Allenamento dell'atleta (privato). Le righe con `da_inviare: 1` hanno modifiche non ancora sul server. */
+  allenamento_giorni!: Table<Riga>
   /** Le classifiche (ranking) complete già aperte: restano disponibili offline. */
   classifiche_ranking!: Table<Riga>
   /** La tua riga di ogni classifica in cui compari ("La tua posizione"). */
@@ -39,6 +41,10 @@ export class ArcoDb extends Dexie {
     this.version(2).stores({
       classifiche_ranking: '[tipo+divisione+classe+genere]',
       mie_posizioni: '[tipo+divisione+classe+genere]',
+    })
+    // Fase 6: l'allenamento si scrive anche sul telefono; `da_inviare` (1) segna le righe da mandare al server.
+    this.version(3).stores({
+      allenamento_giorni: '[atleta_id+giorno], atleta_id, giorno, da_inviare',
     })
   }
 

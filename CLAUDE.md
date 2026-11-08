@@ -78,6 +78,10 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
    dell'ultimo aggiornamento (Mattia, 10/11/2026). Soglia di ammissione: più avanti.
 4. **Allenamento** (privato, visibile solo all'atleta): settimana con il programma dettato dall'allenatore e
    scritto dall'atleta, attività da segnare come fatte, "copia la settimana scorsa", diario, segnapunti.
+   Ogni giorno (lunedì–domenica): programma (testo libero), spunta "fatto", **frecce tirate liberamente** e nota
+   facoltativa; le simulazioni di gara del giorno contano le loro frecce da sole (senza doppi conteggi) e la
+   settimana ha un riepilogo (frecce libere, in gara, totali, giorni allenati). Privacy: solo l'atleta; in futuro
+   un ruolo **allenatore**, separato dall'amministratore, potrà modificarlo (Mattia, 11/11/2026).
 - **Impostazioni** (icona in alto): tema, interruttore "Notifiche nuovi inviti", stato sincronizzazione.
   **Area amministratore** (solo Mattia): membri e link di accesso, importazione calendario, primo caricamento storico.
 
@@ -442,7 +446,30 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         simulato anche per classifiche, `mie_classifiche` e `aggiorna-classifica`.
       Per la versione vecchia dell'app: dopo l'aggiornamento di tutti i telefoni si può togliere la tabella
       `ranking` (vedi 5.1).
-6. **Tab Allenamento**: settimana, diario, poi segnapunti.
+6. **Tab Allenamento**, una PR per passo (piano approvato l'11/11/2026):
+   1. settimana e sincronizzazione nei due sensi ✅. Note:
+      - tabella `allenamento_giorni` (una riga per atleta e giorno: `programma`, `fatto`, `frecce_libere`, `nota`,
+        `modificato_il`, `aggiornato_il`), migrazione `20261111120000`. **Privata**: la legge solo l'atleta, nemmeno
+        l'amministratore; chi può accedere lo decide `allenamento_accessibile(atleta)` (oggi solo l'atleta: il futuro
+        allenatore si aggiunge lì, senza toccare tabelle e app). Nessuna scrittura diretta: si salva con
+        `salva_allenamento_giorno`, che fa **vincere la modifica più recente** (`modificato_il`, ora del telefono;
+        a parità resta quella del server) e restituisce la riga che vale;
+      - sincronizzazione **nei due sensi** (`sync/motore.ts`): prima `inviaModifiche` (le righe con `da_inviare: 1`
+        nel database del telefono, una alla volta; la risposta del server sostituisce la copia, salvo modifiche
+        arrivate nel frattempo), poi lo scarico delle novità. Una riga con modifiche non inviate non si
+        sovrascrive mai con quella del server; un invio fallito non ferma gli altri e l'errore si segnala dopo lo
+        scarico; il telefono fermo da molto con modifiche in sospeso non riparte da zero. Dexie versione 3.
+        `Sincronizzazione.modificato()` fa partire la sincronizzazione dopo una modifica (o appena finito il giro
+        in corso). All'uscita dall'app, con modifiche non inviate, Impostazioni avvisa che si perdono;
+      - app: `pagine/Allenamento.tsx` (settimana: scorri avanti e indietro, riepilogo, "Copia la settimana
+        scorsa" = solo i programmi, senza sovrascrivere) e `pagine/GiornoAllenamento.tsx` (`/allenamento/AAAA-MM-GG`:
+        ogni modifica si salva subito sul telefono e si invia dopo 1,5 s; "Salvato" / "Si invia appena c'è la rete");
+        logica pura in `packages/shared/src/allenamento.ts` (`riepilogoSettimana` accetta già le frecce delle
+        simulazioni: arriveranno con il segnapunti); nuovi componenti `Textarea` e `Checkbox`;
+   2. diario: una nota libera per giorno (già c'è il campo "Note" per giorno: valutare se basta o serve altro);
+   3. segnapunti, in due PR: 6.3a gare a bersaglio (tocco sul bersaglio + tastierino, gare composte in prove,
+      timer della volée, note, totale con 10 e X), 6.3b campagna (3 frecce a piazzola, punteggi 6–1, 12+12 e 24+24)
+      e 3D (3 frecce a piazzola, punteggi 11/10/8/5/0), con confronto media allenamento/gara.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

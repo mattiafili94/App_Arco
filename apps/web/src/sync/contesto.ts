@@ -15,6 +15,11 @@ export interface ValoreSincronizzazione {
   db: ArcoDb
   /** Scarica le novità adesso (pulsante "Aggiorna"). Non fa niente se è già in corso o senza rete. */
   aggiorna(): Promise<void>
+  /**
+   * Segnala che sul telefono c'è una modifica da inviare (allenamento): la sincronizzazione parte subito,
+   * oppure appena finito il giro già in corso.
+   */
+  modificato(): void
 }
 
 export const Contesto = createContext<ValoreSincronizzazione | null>(null)

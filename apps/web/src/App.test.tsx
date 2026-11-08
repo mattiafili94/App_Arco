@@ -41,14 +41,6 @@ describe('navigazione', () => {
     expect(titolo('Classifica')).toHaveFocus()
   })
 
-  it('ogni tab spiega cosa conterrà, senza pulsanti senza effetto', async () => {
-    await renderApp('/allenamento')
-    expect(
-      screen.getByRole('heading', { name: 'Nessun allenamento registrato' }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
-  })
-
   it('riconosce il tab di un indirizzo e il titolo della finestra', () => {
     expect(destinazioneDi('/classifica')?.id).toBe('classifica')
     expect(destinazioneDi('/classifica/OL')?.id).toBe('classifica')

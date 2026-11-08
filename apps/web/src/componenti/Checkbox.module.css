@@ -1,0 +1,16 @@
+.riga {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--control-touch);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.casella {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--accent-default);
+  cursor: pointer;
+}
