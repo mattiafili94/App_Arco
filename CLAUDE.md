@@ -93,7 +93,7 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
 | Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
 | Classifica Campionati Italiani | ranking (nazionale completa) | **lunedì alle 10:00** (una classifica ogni 15 minuti) e pulsante "Aggiorna" (stessa classifica al massimo ogni 6 ore); cercare con i filtri legge solo il nostro database |
-| Calendario Umbria | calendario | **solo l'anno in corso**, tutto ogni settimana; **ogni giorno** solo i mesi con gare future dell'Umbria ancora senza invito (`mese` nella richiesta, chiave `AAAA-MM`); il **prossimo anno** solo a dicembre, ogni settimana, e si salva solo quando non è più "provvisorio" (Mattia, 10/11/2026); gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
+| Calendario Umbria | calendario | **solo l'anno in corso**, tutto ogni settimana; **ogni giorno** solo i mesi con gare dell'Umbria dei **prossimi 60 giorni** ancora senza invito (`GIORNI_CONTROLLO_INVITI`) (`mese` nella richiesta, chiave `AAAA-MM`); il **prossimo anno** solo a dicembre, ogni settimana, e si salva solo quando non è più "provvisorio" (Mattia, 10/11/2026); gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
 | Inviti (date iscrizioni) | scheda gara → invito | quando il calendario dice che c'è l'invito (entro un giorno), poi ogni settimana per le gare future |
 
 - **Inviti** (decisione di Mattia, 10/11/2026, sostituisce i promemoria gestiti dall'app): niente estrazione
@@ -296,7 +296,7 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         Regole pure in `supabase/functions/_shared/aggiornamento/`: riconoscere gli Eugubini nei PDF
         (cognome + nome + società 11003, senza accenti; omonimi → nessun collegamento), righe per il
         database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, i mesi
-        con gare future senza invito ogni giorno, il prossimo anno solo a dicembre — dal 10/11/2026 —, mai gli
+        con gare dei prossimi 60 giorni senza invito ogni giorno, il prossimo anno solo a dicembre — dal 10/11/2026 —, mai gli
         anni passati; inviti delle gare future
         dell'Umbria ogni 7 giorni; scheda gara ogni giorno per un mese dopo la gara, poi ogni settimana,
         finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata o compie
