@@ -432,6 +432,19 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       "Mostra come tabella" dà gli stessi dati per chi non vede il grafico. "Media per anno" = anno
       solare, un decimale. Colori: `chart-1` per la linea, `chart-grid` per la griglia, testo sempre nei
       colori del testo (mai nel colore della serie).
+   3. scheda per prova ✅ (Mattia, 10/11/2026): la scheda (`/atleti/:id`) ha solo i **pulsanti delle prove**
+      (una prova con il suo arco, ordine dei record: `serieAtleta`, almeno un punteggio) e **"Tutte le gare"**
+      (`/atleti/:id/gare`, lo storico completo anno per anno, anche le gare che non stanno in una prova). Ogni
+      pulsante apre `/atleti/:id/prova/:serie` (`serie` = `idSerie` codificato, es. `indoor:18m|OL`): **record
+      personale**, **andamento** (solo con almeno due punteggi) con la **tendina a scelta multipla degli anni**
+      (`componenti/SceltaMultipla.tsx`: "Tutta la carriera" + un anno per riga; di base l'anno in corso o, se
+      quest'anno non ci sono punteggi, il più recente; togliendo tutto si torna a tutta la carriera; il filtro vale
+      solo per grafico e tabella), **media per anno** e **storico della prova anno per anno** (le gare composte
+      con il punteggio della prova e "gara 25+18 m"). Logica in `packages/shared/src/andamento.ts`.
+      **Freccia indietro**: chi apre una scheda gara le passa `state: { indietro: { label, href } }`
+      (`leggiIndietro` in `navigazione.ts`, `ListRow` e `RigaGara` hanno `state`/`indietro`); la scheda gara
+      torna lì (anche passando dai Risultati), altrimenti al tab Gare. Lo usano prova, tutte le gare,
+      calendario e storico del tab Gare.
 5. **Tab Classifica**, due PR (piano approvato il 10/11/2026):
    1. server ✅: tabella `classifiche_ranking` (una riga per classifica, con tutte le righe in `righe`, `letta_il` e
       `aggiornato_il`; i membri leggono, scrive solo `salva_classifica_ranking`), migrazione `20261110140000`.

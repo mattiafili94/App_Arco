@@ -34,6 +34,8 @@ export interface ListRowProps {
   description?: string
   /** Riga che porta a un'altra pagina: mostra la freccia. */
   href?: string
+  /** Con `href` dentro l'app: dati per la pagina che si apre (es. dove tornare con la freccia indietro). */
+  state?: unknown
   /** Riga da far notare (es. un atleta della compagnia in una classifica): bordo e testo in grassetto. */
   evidenziata?: boolean
   /** Con `href`: l'indirizzo è fuori dall'app (sito, email, file): si apre a parte, con l'icona dedicata. */
@@ -53,6 +55,7 @@ export function ListRow({
   description,
   evidenziata,
   href,
+  state,
   esterno,
   selected,
   onSelect,
@@ -89,7 +92,7 @@ export function ListRow({
   }
   if (href) {
     return (
-      <Link className={classeRiga(styles.interactive)} to={href}>
+      <Link className={classeRiga(styles.interactive)} to={href} state={state}>
         {contenuto}
       </Link>
     )

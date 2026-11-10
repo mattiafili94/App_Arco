@@ -68,3 +68,15 @@
   color: var(--text-secondary);
   font-weight: 500;
 }
+
+.vuoto {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* I pulsanti delle prove nella scheda atleta. */
+.prove {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}

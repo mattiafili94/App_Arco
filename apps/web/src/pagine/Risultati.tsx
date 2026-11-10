@@ -1,5 +1,5 @@
 import { Trophy } from 'lucide-react'
-import { useParams, useSearchParams } from 'react-router'
+import { useLocation, useParams, useSearchParams } from 'react-router'
 import {
   CODICE_SOCIETA,
   descriviConteggi,
@@ -45,9 +45,12 @@ export function Risultati() {
   const gara = useGara(codice)
   const classifica = useClassifica(codice)
 
+  // Lo stato ricevuto dalla scheda gara (dove torna la sua freccia) le si restituisce tornando indietro.
+  const { state: stato } = useLocation()
   const scheda = {
     label: gara ? etichettaTipologia(gara.tipologia) : 'Gara',
     href: `/gare/${codice}`,
+    state: stato,
   }
   if (gara === undefined || classifica === undefined) {
     return <PageHeader title="Risultati" back={scheda} />
@@ -94,7 +97,7 @@ export function Risultati() {
       <>
         <PageHeader
           title={categoria.nome}
-          back={{ label: 'Risultati', href: `/gare/${codice}/risultati` }}
+          back={{ label: 'Risultati', href: `/gare/${codice}/risultati`, state: stato }}
           description={`${categoria.righe.length} atleti`}
         />
         <div className={styles.gruppi}>
@@ -139,6 +142,7 @@ export function Risultati() {
                 .filter(Boolean)
                 .join(' · ')}
               href={`/gare/${codice}/risultati?categoria=${encodeURIComponent(c.nome)}`}
+              state={stato}
             />
           ))}
         </ListGroup>

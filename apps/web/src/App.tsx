@@ -10,7 +10,7 @@ import { Benvenuto } from './pagine/Benvenuto'
 import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { DettaglioGara } from './pagine/DettaglioGara'
 import { Risultati } from './pagine/Risultati'
-import { SchedaAtleta } from './pagine/SchedaAtleta'
+import { GareAtleta, ProvaAtleta, SchedaAtleta } from './pagine/SchedaAtleta'
 import { SimulazionePagina } from './pagine/SimulazionePagina'
 import { Gare } from './pagine/Gare'
 import { CalendarioAnno, StoricoGare } from './pagine/ElenchiGare'
@@ -51,6 +51,8 @@ export function App() {
           <Route path="gare/:codice/risultati" element={<Risultati />} />
           <Route path="atleti" element={<Atleti />} />
           <Route path="atleti/:id" element={<SchedaAtleta />} />
+          <Route path="atleti/:id/prova/:serie" element={<ProvaAtleta />} />
+          <Route path="atleti/:id/gare" element={<GareAtleta />} />
           <Route path="classifica" element={<Classifica />} />
           <Route
             path="classifica/:tipo/:divisione/:classe/:genere"

@@ -7,7 +7,7 @@ import styles from './PageHeader.module.css'
 export interface PageHeaderProps {
   title: string
   /** Solo se la pagina ha una pagina "genitore". */
-  back?: { label: string; href: string }
+  back?: { label: string; href: string; state?: unknown }
   description?: string
   /** Al massimo un'azione principale, a destra del titolo. */
   action?: ReactNode
@@ -22,7 +22,7 @@ export function PageHeader({ title, back, description, action }: PageHeaderProps
   return (
     <header className={styles.header}>
       {back && (
-        <Link className={styles.back} to={back.href}>
+        <Link className={styles.back} to={back.href} state={back.state}>
           <Icon icon={ArrowLeft} size="compact" />
           {back.label}
         </Link>

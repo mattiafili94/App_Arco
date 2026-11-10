@@ -1,0 +1,49 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.etichetta {
+  color: var(--text-secondary);
+}
+
+.tendina {
+  position: relative;
+}
+
+.pulsante {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: var(--control-touch);
+  padding: 0 var(--space-12);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--background-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Il triangolino del browser non serve: c'è la freccia. */
+.pulsante::-webkit-details-marker {
+  display: none;
+}
+
+.freccia {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.tendina[open] .freccia {
+  transform: rotate(180deg);
+}
+
+.elenco {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4) var(--space-12);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-control);
+  background: var(--background-surface);
+}
