@@ -60,6 +60,16 @@ export interface GaraCalendario {
   statoFitarco: string
 }
 
+/**
+ * Il calendario è ancora **provvisorio**? Fitarco lo scrive nel titolo ("Calendario provvisorio 2027", visto il
+ * 10/11/2026); quando diventa definitivo il titolo è "Calendario 2027".
+ */
+export function calendarioProvvisorio(html: string): boolean {
+  return analizza(html)
+    .querySelectorAll('h1, h2, h3, h4')
+    .some((h) => /provvisori/i.test(h.text))
+}
+
 export function leggiCalendario(html: string): GaraCalendario[] {
   const doc = analizza(html)
   if (!doc.querySelector('.risultati')) {

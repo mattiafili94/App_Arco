@@ -32,12 +32,19 @@ export function richiesta(
   return { url, corpo: new URLSearchParams({ call, render, params: JSON.stringify(params) }) }
 }
 
-/** Calendario di un anno per un comitato regionale. */
-export function richiestaCalendario(anno: number, comitato = COMITATO_UMBRIA): RichiestaFitarco {
+/**
+ * Calendario di un anno per un comitato regionale; con `mese` (1-12) solo le gare di quel mese (verificato
+ * il 10/11/2026: dicembre 2026 dà solo le due gare di dicembre).
+ */
+export function richiestaCalendario(
+  anno: number,
+  comitato = COMITATO_UMBRIA,
+  mese: number | null = null,
+): RichiestaFitarco {
   return richiesta(URL_ELENCHI, 'calendario', 'lista_calendario_results', {
     idPeriodo: String(anno),
     idComitato: comitato,
-    mese: '',
+    mese: mese === null ? '' : String(mese),
     idClasseEvento: '',
     idsTipoGare: '',
     idMatchRound: '',

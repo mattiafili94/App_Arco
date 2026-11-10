@@ -38,16 +38,76 @@ describe('cosa leggere e quando', () => {
     expect(letture(stato({}))).toEqual([])
   })
 
-  it('calendario: anno in corso ogni settimana, il prossimo da ottobre', () => {
+  it('calendario: anno in corso ogni settimana; il prossimo solo a dicembre, ogni settimana', () => {
     expect(letture(stato({ ultimeLetture: new Map() }))).toEqual(['calendario 2027'])
     expect(letture(stato({ ultimeLetture: new Map([['calendario|2027', '2027-02-22']]) }))).toEqual(
       ['calendario 2027'],
     )
+    // Da ottobre a novembre il prossimo anno non si legge più (è ancora provvisorio).
     expect(
       letture(
         stato({ oggi: '2027-10-02', ultimeLetture: new Map([['calendario|2027', '2027-10-01']]) }),
       ),
+    ).toEqual([])
+    expect(
+      letture(
+        stato({ oggi: '2027-11-30', ultimeLetture: new Map([['calendario|2027', '2027-11-29']]) }),
+      ),
+    ).toEqual([])
+    // A dicembre sì, una volta a settimana.
+    const dicembre = (ultime: [string, string][]) =>
+      letture(stato({ oggi: '2027-12-10', ultimeLetture: new Map(ultime) }))
+    expect(dicembre([['calendario|2027', '2027-12-09']])).toEqual(['calendario 2028'])
+    expect(
+      dicembre([
+        ['calendario|2027', '2027-12-09'],
+        ['calendario|2028', '2027-12-05'],
+      ]),
+    ).toEqual([])
+    expect(
+      dicembre([
+        ['calendario|2027', '2027-12-09'],
+        ['calendario|2028', '2027-12-03'],
+      ]),
     ).toEqual(['calendario 2028'])
+  })
+
+  it('inviti: ogni giorno si rilegge il mese con gare future dell’Umbria ancora senza invito', () => {
+    const gare = [
+      gara({ codice: 'R2711001', dal: '2027-03-10', al: '2027-03-10' }),
+      gara({ codice: 'R2711002', dal: '2027-03-20', al: '2027-03-20' }),
+      gara({ codice: 'R2711003', dal: '2027-05-02', al: '2027-05-02' }),
+    ]
+    expect(letture(stato({ gare }))).toEqual(['calendario 2027-03', 'calendario 2027-05'])
+    // Letto ieri: oggi di nuovo; letto oggi: no.
+    const ultimeLetture = (quando: string) =>
+      new Map([
+        ['calendario|2027', '2027-02-28'],
+        ['calendario|2027-03', quando],
+        ['calendario|2027-05', '2027-03-01'],
+      ])
+    expect(letture(stato({ gare, ultimeLetture: ultimeLetture('2027-02-28') }))).toEqual([
+      'calendario 2027-03',
+    ])
+    expect(letture(stato({ gare, ultimeLetture: ultimeLetture('2027-03-01') }))).toEqual([])
+  })
+
+  it('inviti: niente mese da rileggere per gare passate, già con invito, annullate o fuori Umbria', () => {
+    const gare = [
+      gara({ codice: 'R2711001', dal: '2027-02-10', al: '2027-02-10' }), // passata
+      gara({ codice: 'R2711002', dal: '2027-03-10', al: '2027-03-10', haInvito: true }),
+      gara({ codice: 'R2711003', dal: '2027-04-10', al: '2027-04-10', stato: 'invito' }),
+      gara({ codice: 'R2711004', dal: '2027-05-10', al: '2027-05-10', stato: 'annullata' }),
+      gara({ codice: 'R2711005', dal: '2027-06-10', al: '2027-06-10', inCalendarioUmbria: false }),
+    ]
+    expect(letture(stato({ gare })).filter((l) => l.startsWith('calendario'))).toEqual([])
+  })
+
+  it('inviti: quando si rilegge tutto l’anno i mesi non servono', () => {
+    const gare = [gara({ codice: 'R2711001', dal: '2027-03-10', al: '2027-03-10' })]
+    expect(
+      letture(stato({ gare, ultimeLetture: new Map() })).filter((l) => l.startsWith('calendario')),
+    ).toEqual(['calendario 2027'])
   })
 
   it('calendari degli anni passati: mai (le loro gare arrivano dallo storico degli atleti)', () => {

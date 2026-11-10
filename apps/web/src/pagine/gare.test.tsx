@@ -230,3 +230,159 @@ describe('scheda gara', () => {
     expect(await screen.findByText('Invito')).toBeInTheDocument()
   })
 })
+
+describe('tab Gare: le 6 in evidenza, il calendario e lo storico', () => {
+  /** 8 gare future (una nel 2027, calendario già definitivo) e 8 passate (2025 e 2026). */
+  function remotoConTanteGare(conAnnoDopo = true) {
+    const remoto = new RemotoFinto()
+    const future = [
+      '2026-11-14',
+      '2026-11-21',
+      '2026-11-28',
+      '2026-12-05',
+      '2026-12-12',
+      '2026-12-19',
+    ]
+    future.forEach((dal, i) =>
+      remoto.scrivi('gare', gara(`R26110${60 + i}`, { dal, al: dal, localita: `Futura ${i + 1}` })),
+    )
+    remoto.scrivi(
+      'gare',
+      gara('R2611070', { dal: '2026-12-27', al: '2026-12-27', localita: 'Futura 7' }),
+    )
+    if (conAnnoDopo) {
+      remoto.scrivi(
+        'gare',
+        gara('R2711001', { dal: '2027-01-16', al: '2027-01-16', localita: 'Futura 8' }),
+      )
+    }
+    const passate = [
+      '2026-11-01',
+      '2026-10-18',
+      '2026-09-06',
+      '2026-06-14',
+      '2026-03-08',
+      '2026-01-11',
+    ]
+    passate.forEach((dal, i) =>
+      remoto.scrivi(
+        'gare',
+        gara(`R26110${10 + i}`, { dal, al: dal, localita: `Passata ${i + 1}` }),
+      ),
+    )
+    remoto.scrivi(
+      'gare',
+      gara('R2511001', { dal: '2025-12-07', al: '2025-12-07', localita: 'Passata 7' }),
+    )
+    remoto.scrivi(
+      'gare',
+      gara('R2511002', { dal: '2025-02-02', al: '2025-02-02', localita: 'Passata 8' }),
+    )
+    return remoto
+  }
+  const nomi = (regione: HTMLElement) =>
+    within(regione)
+      .getAllByRole('link')
+      .map((l) => /(Futura|Passata) \d/.exec(l.textContent ?? '')?.[0])
+
+  it('prossime: solo le prime 6 in ordine di data, poi i pulsanti dei calendari', async () => {
+    await renderApp('/gare', { servizio: servizioFinto({ remoto: remotoConTanteGare() }).servizio })
+    const prossime = await screen.findByRole('region', { name: 'Prossime' })
+    expect(nomi(prossime)).toEqual([
+      'Futura 1',
+      'Futura 2',
+      'Futura 3',
+      'Futura 4',
+      'Futura 5',
+      'Futura 6',
+    ])
+    expect(screen.getByRole('link', { name: 'Calendario 2026' })).toHaveAttribute(
+      'href',
+      '/gare/calendario/2026',
+    )
+    // Il calendario 2027 c'è solo perché le sue gare sono già scaricate (definitivo).
+    expect(screen.getByRole('link', { name: 'Calendario 2027' })).toHaveAttribute(
+      'href',
+      '/gare/calendario/2027',
+    )
+  })
+
+  it('senza gare dell’anno dopo c’è solo il calendario dell’anno in corso', async () => {
+    await renderApp('/gare', {
+      servizio: servizioFinto({ remoto: remotoConTanteGare(false) }).servizio,
+    })
+    expect(await screen.findByRole('link', { name: 'Calendario 2026' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Calendario 2027' })).not.toBeInTheDocument()
+  })
+
+  it('passate: solo le ultime 6, dalla più recente, poi "Storico completo"', async () => {
+    await renderApp('/gare', { servizio: servizioFinto({ remoto: remotoConTanteGare() }).servizio })
+    const passate = await screen.findByRole('region', { name: 'Passate' })
+    expect(nomi(passate)).toEqual([
+      'Passata 1',
+      'Passata 2',
+      'Passata 3',
+      'Passata 4',
+      'Passata 5',
+      'Passata 6',
+    ])
+    await userEvent.click(screen.getByRole('link', { name: 'Storico completo' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Storico gare' }),
+    ).toBeInTheDocument()
+  })
+
+  it('il calendario dell’anno: tutte le gare, mese per mese, anche quelle già fatte', async () => {
+    await renderApp('/gare', { servizio: servizioFinto({ remoto: remotoConTanteGare() }).servizio })
+    await userEvent.click(await screen.findByRole('link', { name: 'Calendario 2026' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Calendario 2026' }),
+    ).toBeInTheDocument()
+    expect(
+      screen
+        .getAllByRole('region')
+        .map((r) => r.getAttribute('aria-label') ?? r.querySelector('h2')?.textContent),
+    ).toEqual(['Gennaio', 'Marzo', 'Giugno', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'])
+    expect(nomi(screen.getByRole('region', { name: 'Dicembre' }))).toEqual([
+      'Futura 4',
+      'Futura 5',
+      'Futura 6',
+      'Futura 7',
+    ])
+    // La gara del 2027 non è nel calendario 2026.
+    expect(screen.queryByText(/Futura 8/)).not.toBeInTheDocument()
+  })
+
+  it('il calendario dell’anno dopo ha le sue gare', async () => {
+    await renderApp('/gare/calendario/2027', {
+      servizio: servizioFinto({ remoto: remotoConTanteGare() }).servizio,
+    })
+    const gennaio = await screen.findByRole('region', { name: 'Gennaio' })
+    expect(nomi(gennaio)).toEqual(['Futura 8'])
+  })
+
+  it('un anno senza calendario (passato o non ancora definitivo) lo dice', async () => {
+    await renderApp('/gare/calendario/2025', {
+      servizio: servizioFinto({ remoto: remotoConTanteGare(false) }).servizio,
+    })
+    expect(await screen.findByText('Calendario non disponibile')).toBeInTheDocument()
+  })
+
+  it('lo storico completo: tutte le gare passate, anno per anno', async () => {
+    await renderApp('/gare/storico', {
+      servizio: servizioFinto({ remoto: remotoConTanteGare() }).servizio,
+    })
+    const anno2026 = await screen.findByRole('region', { name: '2026' })
+    expect(nomi(anno2026)).toHaveLength(6)
+    expect(nomi(screen.getByRole('region', { name: '2025' }))).toEqual(['Passata 7', 'Passata 8'])
+    // Niente gare future nello storico.
+    expect(screen.queryByText(/Futura/)).not.toBeInTheDocument()
+  })
+
+  it('storico vuoto: lo dice', async () => {
+    const remoto = new RemotoFinto()
+    remoto.scrivi('gare', gara('R2611060', { dal: '2026-12-12', al: '2026-12-12' }))
+    await renderApp('/gare/storico', { servizio: servizioFinto({ remoto }).servizio })
+    expect(await screen.findByText('Nessuna gara passata')).toBeInTheDocument()
+  })
+})

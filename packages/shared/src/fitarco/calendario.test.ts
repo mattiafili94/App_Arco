@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ErroreFormatoFitarco, leggiCalendario } from '../fitarco'
+import { calendarioProvvisorio, ErroreFormatoFitarco, leggiCalendario } from '../fitarco'
 import { esempio } from './esempi'
 
 const riga = (opz: {
@@ -24,6 +24,14 @@ const riga = (opz: {
     <div class="tab_col"><span class="head">Società</span><a class="link" data-id="11003" data-call="dett_soc">11003</a> - Arcieri Eugubini</div>
   </div>`
 const calendario = (...righe: string[]) => `<div class="risultati">${righe.join('')}</div>`
+
+describe('calendario provvisorio', () => {
+  it('lo riconosce dal titolo, come lo scrive Fitarco', () => {
+    expect(calendarioProvvisorio('<p><h3>Calendario provvisorio 2027</h3></p>')).toBe(true)
+    expect(calendarioProvvisorio('<p><h3>Calendario 2027</h3></p>')).toBe(false)
+    expect(calendarioProvvisorio(esempio('calendario'))).toBe(false)
+  })
+})
 
 describe('lettore del calendario', () => {
   const gare = leggiCalendario(esempio('calendario'))

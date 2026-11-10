@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { aspettaMotoreOffline, conTema, TEMI } from './aiuti'
-import { simulaSupabase } from './supabase-finto'
+import { GARE_PROVA, simulaSupabase } from './supabase-finto'
 
 test.beforeEach(async ({ page }) => {
   await simulaSupabase(page)
@@ -61,6 +61,19 @@ test.describe('tab Gare', () => {
     await expect(page.getByText(/ISCRIZIONI dal 3 ottobre/)).toBeVisible()
   })
 
+  test('dal tab si aprono il calendario dell’anno e lo storico completo', async ({ page }) => {
+    await page.goto('/gare')
+    // L'anno della gara di Perugia (fra 30 giorni: a dicembre può essere già l'anno dopo).
+    const anno = GARE_PROVA[1]!.dal.slice(0, 4)
+    await page.getByRole('link', { name: `Calendario ${anno}` }).click()
+    await expect(page.getByRole('heading', { level: 1, name: `Calendario ${anno}` })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Perugia/ })).toBeVisible()
+    await page.getByRole('link', { name: 'Gare', exact: true }).first().click()
+    await page.getByRole('link', { name: 'Storico completo' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Storico gare' })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Gubbio/ })).toBeVisible()
+  })
+
   test.describe('accessibilità', () => {
     // Senza animazione di ingresso: i colori si misurano a pagina ferma.
     test.use({ reducedMotion: 'reduce' })
@@ -77,6 +90,18 @@ test.describe('tab Gare', () => {
         await page.setViewportSize({ width: 390, height: 1800 })
         await page.getByRole('link', { name: /Perugia/ }).click()
         await expect(page.getByText(/ISCRIZIONI dal 3 ottobre/)).toBeVisible()
+        await controllaAccessibilita(page)
+      })
+
+      test(`accessibilità di calendario e storico, tema ${scelta}`, async ({ page }) => {
+        await conTema(page, scelta)
+        await page.setViewportSize({ width: 390, height: 1800 })
+        await page.goto(`/gare/calendario/${GARE_PROVA[1]!.dal.slice(0, 4)}`)
+        await expect(page.getByRole('link', { name: /Perugia/ })).toBeVisible()
+        await expect(page.locator('html')).toHaveAttribute('data-theme', attributo)
+        await controllaAccessibilita(page)
+        await page.goto('/gare/storico')
+        await expect(page.getByRole('link', { name: /Gubbio/ })).toBeVisible()
         await controllaAccessibilita(page)
       })
     }

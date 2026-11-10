@@ -93,8 +93,8 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
 | Risultati dettagliati (parziali, 10, X…) | PDF dei risultati della gara | quando la gara risulta "Terminata" |
 | Record personali | **calcolati da noi** (Fitarco non li pubblica) | a ogni nuovo risultato |
 | Classifica Campionati Italiani | ranking (nazionale completa) | **lunedì alle 10:00** (una classifica ogni 15 minuti) e pulsante "Aggiorna" (stessa classifica al massimo ogni 6 ore); cercare con i filtri legge solo il nostro database |
-| Calendario Umbria | calendario | **solo l'anno in corso** (da ottobre anche il provvisorio del prossimo), ogni settimana; gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
-| Inviti (date iscrizioni) | scheda gara → invito | controllo periodico delle gare future |
+| Calendario Umbria | calendario | **solo l'anno in corso**, tutto ogni settimana; **ogni giorno** solo i mesi con gare future dell'Umbria ancora senza invito (`mese` nella richiesta, chiave `AAAA-MM`); il **prossimo anno** solo a dicembre, ogni settimana, e si salva solo quando non è più "provvisorio" (Mattia, 10/11/2026); gli anni passati no (Mattia, 8/11/2026): delle gare passate restano solo quelle dei nostri atleti |
+| Inviti (date iscrizioni) | scheda gara → invito | quando il calendario dice che c'è l'invito (entro un giorno), poi ogni settimana per le gare future |
 
 - **Inviti** (decisione di Mattia, 10/11/2026, sostituisce i promemoria gestiti dall'app): niente estrazione
   automatica delle date e **nessun promemoria creato nell'app**. Quando esce l'invito NUOVO di una gara
@@ -295,8 +295,9 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         `gare.risultati_aggiornati_il`). I record non hanno tabella: si calcolano dalle prove (Fase 4).
         Regole pure in `supabase/functions/_shared/aggiornamento/`: riconoscere gli Eugubini nei PDF
         (cognome + nome + società 11003, senza accenti; omonimi → nessun collegamento), righe per il
-        database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, il
-        prossimo da ottobre, mai gli anni passati; inviti delle gare future
+        database, combinazioni di ranking, `pianificaLetture` (calendario anno in corso ogni 7 giorni, i mesi
+        con gare future senza invito ogni giorno, il prossimo anno solo a dicembre — dal 10/11/2026 —, mai gli
+        anni passati; inviti delle gare future
         dell'Umbria ogni 7 giorni; scheda gara ogni giorno per un mese dopo la gara, poi ogni settimana,
         finché c'è il PDF; risultati provvisori ogni 3 giorni e subito quando la gara è omologata o compie
         60 giorni; schede
@@ -317,7 +318,11 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           dopo la gara (`risultatiProvvisori`). A ogni giro `pota_gare` toglie le gare degli anni passati
           che nessun nostro atleta ha fatto (con classifiche e inviti);
         - il calendario provvisorio del prossimo anno ha quasi tutte le gare con codice temporaneo
-          (`tmp11564`): si salvano solo i codici definitivi, le altre arrivano quando hanno il codice vero;
+          (`tmp11564`): si salvano solo i codici definitivi, le altre arrivano quando hanno il codice vero.
+          **Dal 10/11/2026** (Mattia) il calendario del prossimo anno **non si salva finché è provvisorio**: il titolo
+          della risposta è "Calendario provvisorio 2027" (`calendarioProvvisorio`); quando diventa "Calendario
+          2027" si salva e le gare compaiono nell'app. Le 3 gare 2027 salvate prima le toglie la migrazione
+          `20261116120000`. Il calendario dell'anno in corso si salva sempre;
         - un aggiornamento parziale di una gara va fatto con `update` (`aggiornaGara`), non con "inserisci o
           aggiorna" (Postgres vuole comunque i campi obbligatori);
         - pdf.js consuma il file che riceve: `estraiRighe` gli passa una copia;
@@ -365,7 +370,13 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
    2. tab Gare ✅: calendario e scheda gara (invito, "Aggiungi al calendario"), con le gare fuori regione dei
       nostri atleti nella parte "Passate". Elenco (`pagine/Gare.tsx`): "Prossime" (la più vicina per prima) e
       "Passate" (la più recente per prima), riga = tipologia · luogo, date, e sotto stato / "Fuori regione" /
-      "Hai partecipato". Scheda (`pagine/DettaglioGara.tsx`, `/gare/:codice`): dettagli, "Aggiungi al
+      "Hai partecipato" (`gare/RigaGara.tsx`). **Dal 10/11/2026** (Mattia) il tab mostra solo **6 prossime** e
+      **6 passate** (`GARE_IN_EVIDENZA`); sotto le prossime i pulsanti **"Calendario 2026"** e, quando il
+      calendario dell'anno dopo è definitivo (cioè ci sono le sue gare), **"Calendario 2027"**; da gennaio resta
+      solo quello dell'anno in corso (`anniDelCalendario`). `/gare/calendario/:anno`: tutte le gare dell'anno,
+      mese per mese, anche quelle già fatte; sotto le passate **"Storico completo"** → `/gare/storico`: tutte le
+      gare passate, anno per anno (`pagine/ElenchiGare.tsx`, logica in `packages/shared/src/gare.ts`). Un
+      collegamento con l'aspetto di un pulsante è `LinkButton` (`componenti/Button.tsx`). Scheda (`pagine/DettaglioGara.tsx`, `/gare/:codice`): dettagli, "Aggiungi al
       calendario" solo per le gare future non annullate (file `.ics` per iPhone e Android con avviso alle 9:00
       del giorno prima + link Google Calendar), contatti e testo completo dell'invito (a capo rispettati),
       link al PDF dei risultati. Logica pura in `packages/shared/src/gare.ts` (date italiane, stato,

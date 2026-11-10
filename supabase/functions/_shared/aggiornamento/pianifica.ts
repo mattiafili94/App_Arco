@@ -38,7 +38,10 @@ export interface StatoPianificazione {
 
 /** Ogni quanti giorni rileggere. */
 export const OGNI = {
+  /** Calendario completo dell'anno in corso (gare nuove, cambiate, annullate). */
   calendario: 7,
+  /** I mesi con gare future dell'Umbria ancora senza invito: ogni giorno, per accorgersi presto degli inviti. */
+  calendarioInviti: 1,
   invito: 7,
   schedaAtleta: 7,
   /** Scheda gara (link al PDF) dopo la gara, finché non escono i risultati… */
@@ -103,14 +106,38 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   // degli atleti (una richiesta per atleta): niente calendari, schede gara né PDF per loro.
   const inizio = inizioClassificheComplete(s.oggi)
 
-  // Calendari: solo l'anno in corso e, da ottobre, il prossimo (provvisorio). Quelli degli anni
-  // passati non interessano (Mattia, 8/11/2026): le gare passate arrivano dagli storici degli atleti.
+  // Calendari (Mattia, 8/11 e 10/11/2026). Quelli degli anni passati non interessano: le gare passate
+  // arrivano dagli storici degli atleti.
+  // - Anno in corso: tutto, una volta a settimana (gare nuove, cambiate, annullate).
+  // - Ogni giorno, solo i MESI con gare future dell'Umbria ancora senza invito (una richiesta per mese, chiave
+  //   "AAAA-MM"): così un invito nuovo si vede entro un giorno. Non serve quando si legge tutto l'anno.
+  // - Anno prossimo: solo a dicembre, una volta a settimana, per sapere quando diventa definitivo (finché è
+  //   provvisorio non si salva niente: vedi il motore).
   const anno = Number(s.oggi.slice(0, 4))
-  const anni = Number(s.oggi.slice(5, 7)) >= 10 ? [anno, anno + 1] : [anno]
-  for (const a of anni) {
-    if (scaduta('calendario', String(a), OGNI.calendario)) {
-      aggiungi('calendario', String(a), PRIORITA.calendario)
+  const tuttoLAnno = scaduta('calendario', String(anno), OGNI.calendario)
+  if (tuttoLAnno) aggiungi('calendario', String(anno), PRIORITA.calendario)
+  if (!tuttoLAnno) {
+    const mesi = new Set(
+      s.gare
+        .filter(
+          (g) =>
+            g.inCalendarioUmbria &&
+            g.dal >= s.oggi &&
+            g.dal.startsWith(`${anno}-`) &&
+            g.stato !== 'annullata' &&
+            g.stato !== 'invito' &&
+            !g.haInvito,
+        )
+        .map((g) => g.dal.slice(0, 7)),
+    )
+    for (const m of [...mesi].sort()) {
+      if (scaduta('calendario', m, OGNI.calendarioInviti)) {
+        aggiungi('calendario', m, PRIORITA.calendario)
+      }
     }
+  }
+  if (s.oggi.slice(5, 7) === '12' && scaduta('calendario', String(anno + 1), OGNI.calendario)) {
+    aggiungi('calendario', String(anno + 1), PRIORITA.calendario)
   }
 
   for (const g of s.gare) {
