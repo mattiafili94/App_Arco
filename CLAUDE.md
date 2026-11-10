@@ -341,6 +341,14 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       Cloudflare → Workers → arcieri-eugubini-controllo → Logs. Wrangler non è una dipendenza della repo
       (scarica parecchio): si usa con `npx` alla versione indicata. La classifica (ranking) resta solo su
       richiesta (`{"azione":"ranking"}`, poi pulsante "Aggiorna" nel tab Classifica).
+      **Atleta nuovo, scheda subito** (Mattia, 10/11/2026): quando l'amministratore aggiunge un atleta
+      (matricola, nome e cognome si salvano in `atleti`; la matricola serve a leggere la scheda) l'app chiama la
+      funzione `aggiorna-atleta` (solo amministratore, `_shared/aggiornamento/aggiorna-atleta.ts`): un giro del
+      motore con una sola lettura di tipo `scheda-atleta` (opzione `soloTipi` di `giro`), così storico, classe,
+      genere e righe già salvate nelle classifiche sono pronti prima che mandi il link. Fire-and-forget: se
+      fallisce, il controllo automatico legge la scheda al giro dopo (al massimo 15 minuti). Le classifiche
+      ranking del nuovo atleta restano al giro automatico. Pubblicazione:
+      `npx supabase functions deploy aggiorna-atleta --use-api`.
 3. **Tab Gare**, una PR per passo (piano approvato il 9/11/2026):
    1. sincronizzazione offline ✅ (`apps/web/src/sync/`): database sul telefono con Dexie (`ArcoDb`: atleti,
       gare, inviti, partecipazioni, classifiche, ranking + `meta` con i cursori). Si scaricano solo le righe

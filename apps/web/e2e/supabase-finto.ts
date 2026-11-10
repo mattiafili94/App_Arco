@@ -482,6 +482,12 @@ export async function simulaSupabase(
       return json(route, riga)
     }
 
+    // Funzione del server aggiorna-atleta (lettura immediata della scheda di un atleta appena aggiunto).
+    if (url.pathname === '/functions/v1/aggiorna-atleta') {
+      richiesteFunzione.push({ azione: 'aggiorna-atleta' })
+      return json(route, { letture: [], fermato: null })
+    }
+
     // Funzione del server crea-accesso.
     if (url.pathname === '/functions/v1/crea-accesso') {
       const corpo = richiesta.postDataJSON() as { azione: string; atletaId: string }

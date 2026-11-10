@@ -605,6 +605,8 @@ export interface OpzioniGiro {
   massimoPesanti: number
   /** Non iniziare letture nuove dopo questo istante (ms). */
   scadenza: number
+  /** Se c'è, si fanno solo letture di questi tipi (le altre restano in lista per il prossimo giro). */
+  soloTipi?: readonly TipoLettura[]
   adesso?: () => number
 }
 
@@ -680,6 +682,7 @@ export async function giro(ctx: Contesto, opzioni: OpzioniGiro): Promise<Riepilo
       riepilogo.fermato = 'Tempo finito: si continua alla prossima chiamata'
       break
     }
+    if (opzioni.soloTipi && !opzioni.soloTipi.includes(lavoro.tipo)) continue
     const pesante = PESANTI.has(lavoro.tipo)
     if (pesante && pesanti >= opzioni.massimoPesanti) continue
     if (pesante) pesanti++
