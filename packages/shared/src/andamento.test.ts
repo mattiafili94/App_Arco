@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { assePunteggi, medieAnnuali, serieAndamento } from './andamento'
+import {
+  anniDellaSerie,
+  anniPredefiniti,
+  assePunteggi,
+  descriviAnni,
+  filtraPerAnni,
+  idSerie,
+  medieAnnuali,
+  serieAndamento,
+  serieAtleta,
+  storicoPerAnnoDellaSerie,
+} from './andamento'
 import type { ProvaGara } from './atleti'
 
 const p = (
@@ -101,5 +112,61 @@ describe('assePunteggi', () => {
     const grande = assePunteggi([200, 1290])
     expect(grande.min).toBeLessThanOrEqual(200)
     expect(grande.max).toBeGreaterThanOrEqual(1290)
+  })
+})
+
+describe('scheda atleta per prova', () => {
+  const prove = [
+    p('indoor:18m', 560, '2025-01-10'),
+    p('indoor:18m', 570, '2026-02-01'),
+    p('indoor:18m', 575, '2026-11-08'),
+    p('indoor:25m', 540, '2026-03-01'), // un solo punteggio
+    p('outdoor:70m', 600, '2024-06-01', 'CO'),
+  ]
+
+  it('tutte le prove con almeno un punteggio, nell’ordine dei record', () => {
+    expect(serieAtleta(prove).map((s) => s.etichetta)).toEqual([
+      '18 m · Ricurvo',
+      '25 m · Ricurvo',
+      '70 m · Compound',
+    ])
+    // L'andamento continua a volerne almeno due.
+    expect(serieAndamento(prove).map((s) => s.etichetta)).toEqual(['18 m · Ricurvo'])
+  })
+
+  it('l’identificativo della serie', () => {
+    expect(idSerie({ chiave: 'indoor:18m', divisione: 'OL' })).toBe('indoor:18m|OL')
+  })
+
+  it('gli anni con punteggi, dal più recente', () => {
+    expect(anniDellaSerie(prove)).toEqual([2026, 2025, 2024])
+    expect(anniDellaSerie([])).toEqual([])
+  })
+
+  it('anni di partenza: quello in corso, o il più recente con punteggi', () => {
+    expect(anniPredefiniti([2026, 2025], '2026-11-10')).toEqual([2026])
+    expect(anniPredefiniti([2024], '2026-11-10')).toEqual([2024])
+    expect(anniPredefiniti([], '2026-11-10')).toBe('tutti')
+  })
+
+  it('filtrare per anni o tutta la carriera', () => {
+    const diciotto = prove.slice(0, 3)
+    expect(filtraPerAnni(diciotto, [2026]).map((x) => x.totale)).toEqual([570, 575])
+    expect(filtraPerAnni(diciotto, [2025, 2026])).toHaveLength(3)
+    expect(filtraPerAnni(diciotto, [])).toEqual([])
+    expect(filtraPerAnni(diciotto, 'tutti')).toHaveLength(3)
+  })
+
+  it('descrivere la scelta', () => {
+    expect(descriviAnni('tutti')).toBe('Tutta la carriera')
+    expect(descriviAnni([2026, 2024])).toBe('2024, 2026')
+  })
+
+  it('storico della prova anno per anno, dal più recente', () => {
+    const r = storicoPerAnnoDellaSerie(prove.slice(0, 3))
+    expect(r.map((a) => [a.anno, a.punti.map((x) => x.totale)])).toEqual([
+      [2026, [575, 570]],
+      [2025, [560]],
+    ])
   })
 })

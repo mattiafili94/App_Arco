@@ -23,7 +23,7 @@ export interface SerieAndamento {
  * Le serie con almeno due punteggi (con uno solo non c'è un andamento), nello stesso ordine dei record:
  * indoor, outdoor, campagna, 3D.
  */
-export function serieAndamento(prove: readonly ProvaGara[]): SerieAndamento[] {
+export function serieAndamento(prove: readonly ProvaGara[], minimo = 2): SerieAndamento[] {
   const perSerie = new Map<string, ProvaGara[]>()
   for (const p of prove) {
     const id = `${p.chiave}|${p.divisione}`
@@ -32,7 +32,7 @@ export function serieAndamento(prove: readonly ProvaGara[]): SerieAndamento[] {
   return recordPersonali(prove).flatMap((r) => {
     const id = `${r.chiave}|${r.divisione}`
     const punti = perSerie.get(id)!
-    if (punti.length < 2) return []
+    if (punti.length < minimo) return []
     return [
       {
         id,
@@ -88,4 +88,57 @@ export function assePunteggi(valori: readonly number[]): {
   const tacche: number[] = []
   for (let v = min; v <= max + 1e-9; v += passo) tacche.push(v)
   return { min, max, tacche }
+}
+
+// --- Scheda atleta per prova (Mattia, 10/11/2026) ------------------------------------------------
+
+/**
+ * Tutte le prove (con il loro arco) in cui l'atleta ha almeno un punteggio: i pulsanti della scheda atleta,
+ * nello stesso ordine dei record (indoor, outdoor, campagna, 3D; dentro ognuna per distanza).
+ */
+export const serieAtleta = (prove: readonly ProvaGara[]) => serieAndamento(prove, 1)
+
+/** "indoor:18m|OL": identifica una prova con un arco (e va nell'indirizzo della pagina, codificato). */
+export const idSerie = (p: Pick<ProvaGara, 'chiave' | 'divisione'>) => `${p.chiave}|${p.divisione}`
+
+/** Gli anni in cui ci sono punteggi, dal più recente. */
+export function anniDellaSerie(punti: readonly Pick<ProvaGara, 'data'>[]): number[] {
+  return [...new Set(punti.map((p) => Number(p.data.slice(0, 4))))].sort((a, b) => b - a)
+}
+
+/** Gli anni scelti nel grafico: alcuni anni, o tutta la carriera. */
+export type AnniScelti = readonly number[] | 'tutti'
+
+/**
+ * La scelta di partenza: l'anno in corso; se quest'anno non ci sono ancora punteggi, l'anno più recente che ne
+ * ha (altrimenti il grafico partirebbe vuoto).
+ */
+export function anniPredefiniti(anni: readonly number[], oggi: string): AnniScelti {
+  const corrente = Number(oggi.slice(0, 4))
+  if (anni.includes(corrente)) return [corrente]
+  return anni.length > 0 ? [anni[0]!] : 'tutti'
+}
+
+/** I punteggi degli anni scelti. */
+export const filtraPerAnni = <T extends Pick<ProvaGara, 'data'>>(
+  punti: readonly T[],
+  anni: AnniScelti,
+): T[] =>
+  anni === 'tutti' ? [...punti] : punti.filter((p) => anni.includes(Number(p.data.slice(0, 4))))
+
+/** "2026", "2025, 2026", "Tutta la carriera": cosa è scelto, in breve. */
+export const descriviAnni = (anni: AnniScelti): string =>
+  anni === 'tutti' ? 'Tutta la carriera' : [...anni].sort((a, b) => a - b).join(', ')
+
+/** Lo storico di una prova: i punteggi anno per anno, dal più recente. */
+export function storicoPerAnnoDellaSerie(
+  punti: readonly ProvaGara[],
+): { anno: number; punti: ProvaGara[] }[] {
+  const recenti = [...punti].sort(
+    (a, b) => b.data.localeCompare(a.data) || b.gara_codice.localeCompare(a.gara_codice),
+  )
+  return anniDellaSerie(recenti).map((anno) => ({
+    anno,
+    punti: recenti.filter((p) => p.data.startsWith(`${anno}-`)),
+  }))
 }

@@ -1,5 +1,5 @@
 import { Calendar } from 'lucide-react'
-import { useParams } from 'react-router'
+import { useParams, useLocation } from 'react-router'
 import {
   CODICE_SOCIETA,
   creaIcs,
@@ -16,6 +16,7 @@ import {
 import { EmptyState } from '../componenti/EmptyState'
 import { ListGroup, ListRow } from '../componenti/List'
 import { PageHeader } from '../componenti/PageHeader'
+import { leggiIndietro } from '../navigazione'
 import { oggi as oggiIn, useClassifica, useGara, useInvito } from '../gare/dati'
 import { scaricaTesto } from '../gare/scarica'
 import styles from './Gare.module.css'
@@ -32,7 +33,7 @@ function descriviRisultati(classifica: RigaClassifica[]): string {
     .join(' · ')
 }
 
-const INDIETRO = { label: 'Gare', href: '/gare' }
+const GARE = { label: 'Gare', href: '/gare' }
 
 /**
  * Scheda di una gara: dettagli, invito (testo completo) e "Aggiungi al calendario" per le gare
@@ -40,6 +41,9 @@ const INDIETRO = { label: 'Gare', href: '/gare' }
  */
 export function DettaglioGara() {
   const { codice = '' } = useParams()
+  const posizione = useLocation()
+  // La freccia torna da dove si è arrivati (es. un record dell'atleta); altrimenti al tab Gare.
+  const INDIETRO = leggiIndietro(posizione.state) ?? GARE
   const gara = useGara(codice)
   const invito = useInvito(codice)
   const classifica = useClassifica(codice)
@@ -143,6 +147,7 @@ export function DettaglioGara() {
                 label="Classifica"
                 description={descriviRisultati(classifica)}
                 href={`/gare/${gara.codice}/risultati`}
+                state={posizione.state}
               />
             )}
             {classifica.length === 0 && classificaInArrivo && (

@@ -27,3 +27,24 @@ export function titoloDocumento(percorso: string): string {
         : undefined)
   return pagina ? `${pagina} · Arcieri Eugubini` : 'Arcieri Eugubini'
 }
+
+/** Dove porta la freccia "indietro" di una pagina che si apre da più posti (es. la scheda di una gara). */
+export interface Indietro {
+  label: string
+  href: string
+  /** Lo stato della pagina a cui si torna (se anche lei sa dove tornare). */
+  state?: unknown
+}
+
+/**
+ * Il "da dove vengo" che una pagina riceve con il collegamento (`state: { indietro }`), se c'è ed è valido.
+ * Senza (pagina aperta da una notifica o da un link) la pagina usa il suo genitore di sempre.
+ */
+export function leggiIndietro(stato: unknown): Indietro | null {
+  if (typeof stato !== 'object' || stato === null || !('indietro' in stato)) return null
+  const i = (stato as { indietro: unknown }).indietro
+  if (typeof i !== 'object' || i === null) return null
+  const { label, href, state } = i as Record<string, unknown>
+  if (typeof label !== 'string' || typeof href !== 'string' || !href.startsWith('/')) return null
+  return { label, href, state }
+}

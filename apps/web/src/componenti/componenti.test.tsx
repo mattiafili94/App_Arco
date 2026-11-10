@@ -9,6 +9,7 @@ import { ListGroup, ListRow } from './List'
 import { NavigationBar } from './NavigationBar'
 import { Notice } from './Notice'
 import { PageHeader } from './PageHeader'
+import { SceltaMultipla } from './SceltaMultipla'
 import { StatusLine } from './StatusLine'
 import { renderConRouter } from '../test/render'
 
@@ -71,6 +72,52 @@ describe('LinkButton', () => {
     )
     expect(container.querySelector('svg')).not.toBeNull()
     expect(screen.getByRole('link', { name: 'Calendario 2026' })).toBeInTheDocument()
+  })
+})
+
+describe('SceltaMultipla', () => {
+  const apri = (scelti: readonly string[] | 'tutti', onChange = vi.fn()) => {
+    render(
+      <SceltaMultipla
+        label="Anni"
+        tutto="Tutta la carriera"
+        opzioni={[
+          { valore: '2026', etichetta: '2026' },
+          { valore: '2025', etichetta: '2025' },
+        ]}
+        scelti={scelti}
+        onChange={onChange}
+        riassunto="Riassunto"
+      />,
+    )
+    return onChange
+  }
+
+  it('il pulsante dice cosa è scelto; dentro le caselle da spuntare', async () => {
+    apri(['2026'])
+    expect(screen.getByText('Riassunto')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Riassunto'))
+    expect(screen.getByRole('group', { name: 'Anni' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '2026' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Tutta la carriera' })).not.toBeChecked()
+  })
+
+  it('spuntare un anno lo aggiunge; "tutto" tolto torna al primo anno', async () => {
+    const onChange = apri(['2026'])
+    await userEvent.click(screen.getByText('Riassunto'))
+    await userEvent.click(screen.getByRole('checkbox', { name: '2025' }))
+    expect(onChange).toHaveBeenLastCalledWith(['2026', '2025'])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Tutta la carriera' }))
+    expect(onChange).toHaveBeenLastCalledWith('tutti')
+  })
+
+  it('da "tutto", una spunta sceglie solo quell’anno; togliendo "tutto" resta il primo', async () => {
+    const onChange = apri('tutti')
+    await userEvent.click(screen.getByText('Riassunto'))
+    await userEvent.click(screen.getByRole('checkbox', { name: '2025' }))
+    expect(onChange).toHaveBeenLastCalledWith(['2025'])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Tutta la carriera' }))
+    expect(onChange).toHaveBeenLastCalledWith(['2026'])
   })
 })
 

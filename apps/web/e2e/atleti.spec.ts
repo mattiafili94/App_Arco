@@ -15,9 +15,7 @@ async function controllaAccessibilita(page: Page) {
 }
 
 test.describe('tab Atleti', () => {
-  test('elenca chi ha l’accesso, tu in cima; la scheda mostra record e storico', async ({
-    page,
-  }) => {
+  test('elenca chi ha l’accesso, tu in cima; la scheda apre le prove', async ({ page }) => {
     await page.goto('/atleti')
     const elenco = page.getByRole('region', { name: 'Compagnia' })
     const righe = elenco.getByRole('link')
@@ -30,21 +28,30 @@ test.describe('tab Atleti', () => {
 
     await righe.first().click()
     await expect(page.getByRole('heading', { level: 1, name: 'Bruno Prova' })).toBeVisible()
-    const record = page.getByRole('region', { name: 'Record personali' })
-    await expect(record.getByRole('link')).toContainText('18 m · Ricurvo')
-    await expect(record.getByRole('link')).toContainText('534')
-    // Due punteggi da 18 m: c'è l'andamento, con la media per anno.
+    // La scheda: i pulsanti delle prove e "Tutte le gare".
+    const prove = page.getByRole('navigation', { name: 'Prove' })
+    await prove.getByRole('link', { name: '18 m · Ricurvo' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: '18 m · Ricurvo' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Record personale' })).toContainText('534')
+    // Andamento: tutta la carriera dalla tendina degli anni (i due punteggi possono essere in anni diversi).
     const andamento = page.getByRole('region', { name: 'Andamento' })
-    await expect(andamento.getByRole('group', { name: 'Andamento 18 m · Ricurvo' })).toBeVisible()
-    await expect(andamento.getByRole('button', { name: /^520 punti/ })).toBeVisible()
+    await andamento.locator('summary').first().click()
+    await andamento.getByRole('checkbox', { name: 'Tutta la carriera' }).check()
     await andamento.getByRole('button', { name: /^520 punti/ }).click()
     await expect(andamento).toContainText('520 · Terni (TR)')
-    const storico = page.getByRole('region', { name: 'Storico gare' })
-    await expect(storico.getByRole('link').first()).toContainText('2° posto')
+    await expect(page.getByRole('region', { name: 'Media per anno' })).toBeVisible()
 
-    // Dallo storico si apre la gara.
-    await storico.getByRole('link').first().click()
+    // Dal record si apre la gara, e la freccia torna alla prova.
+    await page.getByRole('region', { name: 'Record personale' }).getByRole('link').click()
     await expect(page.getByText('Tipologia')).toBeVisible()
+    await page.getByRole('link', { name: '18 m · Ricurvo' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: '18 m · Ricurvo' })).toBeVisible()
+
+    // Tutte le gare, con la posizione.
+    await page.getByRole('link', { name: 'Bruno Prova' }).first().click()
+    await page.getByRole('link', { name: 'Tutte le gare' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Tutte le gare' })).toBeVisible()
+    await expect(page.getByText('2° posto').first()).toBeVisible()
   })
 
   test('senza rete l’elenco e la scheda si vedono lo stesso', async ({ page, context }) => {
@@ -52,7 +59,8 @@ test.describe('tab Atleti', () => {
     await expect(page.getByRole('link', { name: /Bruno Prova/ })).toBeVisible()
     await context.setOffline(true)
     await page.getByRole('link', { name: /Bruno Prova/ }).click()
-    await expect(page.getByRole('region', { name: 'Record personali' })).toBeVisible()
+    await page.getByRole('navigation', { name: 'Prove' }).getByRole('link').first().click()
+    await expect(page.getByRole('region', { name: 'Record personale' })).toBeVisible()
   })
 
   test.describe('accessibilità', () => {
@@ -68,15 +76,21 @@ test.describe('tab Atleti', () => {
 
         await page.setViewportSize({ width: 390, height: 1800 })
         await page.getByRole('link', { name: /Bruno Prova/ }).click()
-        await expect(
-          page.getByRole('region', { name: 'Record personali' }).getByRole('link'),
-        ).toBeVisible()
-        // Anche il grafico dell'andamento, e la tabella aperta, devono essere accessibili.
+        await expect(page.getByRole('navigation', { name: 'Prove' })).toBeVisible()
+        await controllaAccessibilita(page)
+        // La pagina della prova: grafico con la tendina degli anni aperta e la tabella aperta.
+        await page.getByRole('navigation', { name: 'Prove' }).getByRole('link').first().click()
         const andamento = page.getByRole('region', { name: 'Andamento' })
+        await andamento.locator('summary').first().click()
+        await andamento.getByRole('checkbox', { name: 'Tutta la carriera' }).check()
         await expect(
-          andamento.getByRole('group', { name: 'Andamento 18 m · Ricurvo' }),
+          andamento.getByRole('group', { name: /^Andamento 18 m · Ricurvo/ }),
         ).toBeVisible()
         await andamento.getByText('Mostra come tabella').click()
+        await controllaAccessibilita(page)
+        await page.getByRole('link', { name: 'Bruno Prova' }).first().click()
+        await page.getByRole('link', { name: 'Tutte le gare' }).click()
+        await expect(page.getByRole('heading', { level: 1, name: 'Tutte le gare' })).toBeVisible()
         await controllaAccessibilita(page)
       })
     }

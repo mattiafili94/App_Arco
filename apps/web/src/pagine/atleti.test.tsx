@@ -177,53 +177,33 @@ describe('tab Atleti', () => {
   })
 })
 
-describe('scheda atleta', () => {
-  it('record personali per prova e arco, con luogo, data e provvisorio', async () => {
+describe('scheda atleta: i pulsanti delle prove', () => {
+  it('un pulsante per ogni prova con il suo arco, nell’ordine dei record, e "Tutte le gare"', async () => {
     await renderApp('/atleti/id-bruno', { servizio: conAtleti() })
-    const record = await screen.findByRole('region', { name: 'Record personali' })
-    await waitFor(() => expect(within(record).getAllByRole('link')).toHaveLength(3))
-    const righe = within(record)
-      .getAllByRole('link')
-      .map((l) => l.textContent ?? '')
-    // 18 m: il migliore è quello del 2019 (560, solo storico); 25 m e 70 m dalle prove dei PDF.
-    expect(righe).toHaveLength(3)
-    expect(righe[0]).toContain('18 m · Ricurvo')
-    expect(righe[0]).toContain('570') // la prova da 18 m del 25+18
-    expect(righe[1]).toContain('25 m · Ricurvo')
-    expect(righe[1]).toContain('530')
-    expect(righe[2]).toContain('70 m · Ricurvo')
-    expect(righe[2]).toContain('640')
-    expect(righe[2]).toContain('provvisorio')
-    expect(righe[0]).not.toContain('provvisorio')
+    const prove = await screen.findByRole('navigation', { name: 'Prove' })
+    await waitFor(() => expect(within(prove).getAllByRole('link')).toHaveLength(3))
+    const link = within(prove).getAllByRole('link')
+    expect(link.map((l) => l.textContent)).toEqual([
+      '18 m · Ricurvo',
+      '25 m · Ricurvo',
+      '70 m · Ricurvo',
+    ])
+    expect(link[0]).toHaveAttribute(
+      'href',
+      `/atleti/id-bruno/prova/${encodeURIComponent('indoor:18m|OL')}`,
+    )
+    expect(screen.getByRole('link', { name: 'Tutte le gare' })).toHaveAttribute(
+      'href',
+      '/atleti/id-bruno/gare',
+    )
+    // Niente più record e storico in questa schermata.
+    expect(screen.queryByRole('region', { name: 'Record personali' })).not.toBeInTheDocument()
   })
 
-  it('storico: le gare dalla più recente, con totale e posizione', async () => {
-    await renderApp('/atleti/id-bruno', { servizio: conAtleti() })
-    const storico = await screen.findByRole('region', { name: 'Storico gare' })
-    await waitFor(() => expect(within(storico).getAllByRole('link')).toHaveLength(4))
-    const righe = within(storico)
-      .getAllByRole('link')
-      .map((l) => l.textContent ?? '')
-    expect(righe).toHaveLength(4)
-    expect(righe[0]).toContain('70 m · Gubbio (PG)')
-    expect(righe[0]).toContain('640')
-    expect(righe[0]).toContain('1° posto')
-    expect(righe[1]).toContain('25+18 m · Gubbio (PG)')
-    expect(righe[3]).toContain('18 m · Perugia (PG)')
-    expect(righe[3]).toContain('2 feb 2019')
-  })
-
-  it('da una gara si apre la scheda della gara', async () => {
-    await renderApp('/atleti/id-bruno', { servizio: conAtleti() })
-    const storico = await screen.findByRole('region', { name: 'Storico gare' })
-    await userEvent.click((await within(storico).findAllByRole('link'))[0]!)
-    expect(await screen.findByText('Tipologia')).toBeInTheDocument()
-  })
-
-  it('un atleta senza gare mostra due righe che spiegano', async () => {
+  it('un atleta senza punteggi: lo dice, e resta "Tutte le gare"', async () => {
     await renderApp('/atleti/id-anna', { servizio: conAtleti() })
-    expect(await screen.findByText('Nessun record per ora')).toBeInTheDocument()
-    expect(screen.getByText('Nessuna gara per ora')).toBeInTheDocument()
+    expect(await screen.findByText('Nessun punteggio per ora')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Tutte le gare' })).toBeInTheDocument()
   })
 
   it('atleta sconosciuto, senza accesso o non attivo: non trovato', async () => {
@@ -236,15 +216,16 @@ describe('scheda atleta', () => {
 
   it('si torna all’elenco', async () => {
     await renderApp('/atleti/id-bruno', { servizio: conAtleti() })
-    await screen.findByRole('region', { name: 'Record personali' })
-    const indietro = screen.getAllByRole('link', { name: 'Atleti' })[0]!
-    expect(indietro).toHaveAttribute('href', '/atleti')
+    await screen.findByRole('navigation', { name: 'Prove' })
+    expect(screen.getAllByRole('link', { name: 'Atleti' })[0]).toHaveAttribute('href', '/atleti')
   })
 })
 
-describe('andamento nella scheda atleta', () => {
+describe('pagina di una prova', () => {
+  const PROVA_18 = `/atleti/id-bruno/prova/${encodeURIComponent('indoor:18m|OL')}`
+
   /** Come `remotoConAtleti`, più una seconda gara da 70 m: la serie dei 70 m ha due punteggi. */
-  function conDueSerie() {
+  function conDueSettanta() {
     const remoto = remotoConAtleti()
     remoto.scrivi('gare', gara('G6', '2026-09-01', '70/60mt Round - 50mt Round'))
     remoto.scrivi('partecipazioni', part(ATLETA.id, 'G6', { totale: 650, posizione: 1 }))
@@ -257,89 +238,164 @@ describe('andamento nella scheda atleta', () => {
     return servizioFinto({ remoto }).servizio
   }
 
-  const apriAndamento = async (servizio: ReturnType<typeof conAtleti>) => {
-    await renderApp('/atleti/id-bruno', { servizio })
-    const sezione = await screen.findByRole('region', { name: 'Andamento' })
-    return sezione
-  }
-
-  it('una sola serie: il grafico c’è, la scelta della prova no; media per anno', async () => {
-    const sezione = await apriAndamento(conAtleti())
-    // 18 m: 560 (2019), 540 (gen 2026), 570 (mar 2026, dal 25+18).
-    await waitFor(() =>
-      expect(within(sezione).getAllByRole('button', { name: /punti, /i })).toHaveLength(3),
+  it('dalla scheda si apre la prova: titolo, atleta e record personale', async () => {
+    await renderApp('/atleti/id-bruno', { servizio: conAtleti() })
+    const prove = await screen.findByRole('navigation', { name: 'Prove' })
+    await userEvent.click(await within(prove).findByRole('link', { name: '18 m · Ricurvo' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '18 m · Ricurvo' }),
+    ).toBeInTheDocument()
+    const record = screen.getByRole('region', { name: 'Record personale' })
+    // 18 m: 560 nel 2019 (solo storico), 540 a gennaio, 570 a marzo (la prova da 18 m del 25+18).
+    expect(record).toHaveTextContent('570')
+    expect(record).toHaveTextContent('Gubbio (PG)')
+    expect(record).toHaveTextContent('gara 25+18 m')
+    expect(screen.getAllByRole('link', { name: 'Bruno Prova' })[0]).toHaveAttribute(
+      'href',
+      '/atleti/id-bruno',
     )
-    expect(within(sezione).getByRole('group', { name: 'Andamento 18 m · Ricurvo' })).toBeVisible()
-    expect(within(sezione).queryByRole('radiogroup')).not.toBeInTheDocument()
-
-    const medie = screen.getByRole('region', { name: 'Media per anno' })
-    const righe = within(medie).getAllByText(/gar[ae]$/)
-    expect(righe.map((r) => r.textContent)).toEqual(['2 gare', '1 gara'])
-    expect(medie).toHaveTextContent('2026')
-    expect(medie).toHaveTextContent('555')
-    expect(medie).toHaveTextContent('2019')
-    expect(medie).toHaveTextContent('560')
   })
 
-  it('di base è scelto l’ultimo punto; toccandone un altro la descrizione cambia', async () => {
-    const sezione = await apriAndamento(conAtleti())
+  it('andamento: di base l’anno in corso; con la tendina si sceglie anche tutta la carriera', async () => {
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const sezione = await screen.findByRole('region', { name: 'Andamento' })
     await waitFor(() =>
-      expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3),
+      expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(2),
     )
+    expect(within(sezione).getByText('2026', { selector: 'summary span' })).toBeInTheDocument()
     expect(sezione).toHaveTextContent('570 · Gubbio (PG) · 14 mar 2026')
-    await userEvent.click(within(sezione).getByRole('button', { name: /^560 punti/ }))
-    expect(sezione).toHaveTextContent('560 · Perugia (PG) · 2 feb 2019')
-    // Con la tastiera.
-    within(sezione)
-      .getByRole('button', { name: /^540 punti/ })
-      .focus()
-    await userEvent.keyboard('{Enter}')
-    expect(sezione).toHaveTextContent('540 · Gubbio (PG) · 10 gen 2026')
-    expect(within(sezione).getByRole('button', { name: /^540 punti/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+
+    await userEvent.click(within(sezione).getByText('2026', { selector: 'summary span' }))
+    await userEvent.click(within(sezione).getByRole('checkbox', { name: 'Tutta la carriera' }))
+    expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3)
+    expect(within(sezione).getByRole('checkbox', { name: '2026' })).not.toBeChecked()
+
+    // Due anni insieme: si spunta il 2019, poi il 2026.
+    await userEvent.click(within(sezione).getByRole('checkbox', { name: '2019' }))
+    expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(1)
+    await userEvent.click(within(sezione).getByRole('checkbox', { name: '2026' }))
+    expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3)
+    expect(within(sezione).getByText('2019, 2026', { selector: 'summary span' })).toBeVisible()
+  })
+
+  it('togliendo tutti gli anni si torna a tutta la carriera', async () => {
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const sezione = await screen.findByRole('region', { name: 'Andamento' })
+    await userEvent.click(await within(sezione).findByText('2026', { selector: 'summary span' }))
+    await userEvent.click(within(sezione).getByRole('checkbox', { name: '2026' }))
+    expect(within(sezione).getByRole('checkbox', { name: 'Tutta la carriera' })).toBeChecked()
+    expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3)
   })
 
   it('la tabella ha gli stessi punteggi del grafico', async () => {
-    const sezione = await apriAndamento(conAtleti())
-    await waitFor(() =>
-      expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(3),
-    )
-    await userEvent.click(within(sezione).getByText('Mostra come tabella'))
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const sezione = await screen.findByRole('region', { name: 'Andamento' })
+    await userEvent.click(await within(sezione).findByText('Mostra come tabella'))
     const tabella = within(sezione).getByRole('table', { name: 'Punteggi 18 m · Ricurvo' })
-    const celle = within(tabella)
-      .getAllByRole('row')
-      .slice(1)
-      .map((r) => r.textContent)
-    expect(celle).toEqual([
-      '2 feb 2019Perugia (PG)560',
-      '10 gen 2026Gubbio (PG)540',
-      '14 mar 2026Gubbio (PG)570',
-    ])
+    expect(
+      within(tabella)
+        .getAllByRole('row')
+        .slice(1)
+        .map((r) => r.textContent),
+    ).toEqual(['10 gen 2026Gubbio (PG)540', '14 mar 2026Gubbio (PG)570'])
   })
 
-  it('più serie: si sceglie la prova e il punto provvisorio è segnalato', async () => {
-    const sezione = await apriAndamento(conDueSerie())
-    const scelte = await within(sezione).findByRole('radiogroup', { name: 'Prova e arco' })
-    const radio = within(scelte).getAllByRole('radio')
-    expect(radio.map((r) => r.textContent)).toEqual(['18 m · Ricurvo', '70 m · Ricurvo'])
-    expect(radio[0]).toHaveAttribute('aria-checked', 'true')
-
-    await userEvent.click(radio[1]!)
-    expect(radio[1]).toHaveAttribute('aria-checked', 'true')
-    const gruppo = within(sezione).getByRole('group', { name: 'Andamento 70 m · Ricurvo' })
-    expect(gruppo).toBeVisible()
-    await userEvent.click(within(sezione).getByRole('button', { name: /^640 punti.*provvisorio/ }))
-    expect(sezione).toHaveTextContent('640 · Gubbio (PG) · 31 ott 2026 · provvisorio')
-    const medie = screen.getByRole('region', { name: 'Media per anno' })
-    expect(medie).toHaveTextContent('645')
+  it('media per anno e storico della prova anno per anno', async () => {
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const medie = await screen.findByRole('region', { name: 'Media per anno' })
+    expect(
+      within(medie)
+        .getAllByText(/gar[ae]$/)
+        .map((r) => r.textContent),
+    ).toEqual(['2 gare', '1 gara'])
+    expect(medie).toHaveTextContent('555')
+    const anno2026 = screen.getByRole('region', { name: 'Gare del 2026' })
+    const righe = within(anno2026)
+      .getAllByRole('link')
+      .map((l) => l.textContent ?? '')
+    expect(righe).toHaveLength(2)
+    expect(righe[0]).toContain('570')
+    expect(righe[0]).toContain('gara 25+18 m')
+    expect(righe[1]).toContain('540')
+    expect(screen.getByRole('region', { name: 'Gare del 2019' })).toHaveTextContent('Perugia (PG)')
   })
 
-  it('senza almeno due punteggi in una prova non compare', async () => {
-    await renderApp('/atleti/id-carla', { servizio: conAtleti() })
-    await screen.findByRole('region', { name: 'Storico gare' })
+  it('un solo punteggio: record e storico sì, andamento no', async () => {
+    await renderApp(`/atleti/id-bruno/prova/${encodeURIComponent('indoor:25m|OL')}`, {
+      servizio: conAtleti(),
+    })
+    expect(await screen.findByRole('region', { name: 'Record personale' })).toHaveTextContent('530')
     expect(screen.queryByRole('region', { name: 'Andamento' })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Gare del 2026' })).toBeInTheDocument()
+  })
+
+  it('il punto provvisorio è segnalato', async () => {
+    await renderApp(`/atleti/id-bruno/prova/${encodeURIComponent('outdoor:70m|OL')}`, {
+      servizio: conDueSettanta(),
+    })
+    const sezione = await screen.findByRole('region', { name: 'Andamento' })
+    await userEvent.click(
+      await within(sezione).findByRole('button', { name: /^640 punti.*provvisorio/ }),
+    )
+    expect(sezione).toHaveTextContent('640 · Gubbio (PG) · 31 ott 2026 · provvisorio')
+    expect(screen.getByRole('region', { name: 'Media per anno' })).toHaveTextContent('645')
+  })
+
+  it('una prova che non c’è lo dice', async () => {
+    await renderApp('/atleti/id-bruno/prova/boh', { servizio: conAtleti() })
+    expect(await screen.findByText('Prova non trovata')).toBeInTheDocument()
+  })
+
+  it('dalla gara del record la freccia torna alla prova, non al tab Gare', async () => {
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const record = await screen.findByRole('region', { name: 'Record personale' })
+    await userEvent.click(within(record).getByRole('link'))
+    expect(await screen.findByText('Tipologia')).toBeInTheDocument()
+    const indietro = screen.getByRole('link', { name: '18 m · Ricurvo' })
+    expect(indietro).toHaveAttribute('href', PROVA_18)
+    await userEvent.click(indietro)
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '18 m · Ricurvo' }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('tutte le gare dell’atleta', () => {
+  it('anno per anno, dalla più recente, con totale e posizione', async () => {
+    await renderApp('/atleti/id-bruno/gare', { servizio: conAtleti() })
+    const anno2026 = await screen.findByRole('region', { name: '2026' })
+    await waitFor(() => expect(within(anno2026).getAllByRole('link')).toHaveLength(3))
+    const righe = within(anno2026)
+      .getAllByRole('link')
+      .map((l) => l.textContent ?? '')
+    expect(righe[0]).toContain('70 m · Gubbio (PG)')
+    expect(righe[0]).toContain('1° posto')
+    expect(righe[1]).toContain('25+18 m · Gubbio (PG)')
+    expect(screen.getByRole('region', { name: '2019' })).toHaveTextContent('2 feb 2019')
+  })
+
+  it('dalla gara si torna a "Tutte le gare"', async () => {
+    await renderApp('/atleti/id-bruno/gare', { servizio: conAtleti() })
+    const anno2026 = await screen.findByRole('region', { name: '2026' })
+    await userEvent.click((await within(anno2026).findAllByRole('link'))[0]!)
+    expect(await screen.findByText('Tipologia')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Tutte le gare' })).toHaveAttribute(
+      'href',
+      '/atleti/id-bruno/gare',
+    )
+  })
+
+  it('senza gare lo dice', async () => {
+    await renderApp('/atleti/id-anna/gare', { servizio: conAtleti() })
+    expect(await screen.findByText('Nessuna gara per ora')).toBeInTheDocument()
+  })
+})
+
+describe('scheda gara aperta da sola', () => {
+  it('senza una pagina da cui si arriva, la freccia torna al tab Gare', async () => {
+    await renderApp('/gare/G1', { servizio: conAtleti() })
+    expect(await screen.findByText('Tipologia')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Gare' })[0]).toHaveAttribute('href', '/gare')
   })
 })
 

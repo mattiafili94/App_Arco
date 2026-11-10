@@ -1,5 +1,6 @@
 import { descriviStato, etichettaTipologia, formattaDate, type Gara } from '@arco/shared'
 import { ListRow } from '../componenti/List'
+import type { Indietro } from '../navigazione'
 
 /**
  * Una gara negli elenchi (tab Gare, calendario, storico): tipologia · luogo, date e sotto lo stato,
@@ -9,11 +10,14 @@ export function RigaGara({
   gara: g,
   oggi,
   mie,
+  indietro,
 }: {
   gara: Gara
   oggi: string
   /** I codici delle gare dell'atleta collegato. */
   mie: ReadonlySet<string>
+  /** Dove torna la freccia della scheda gara (di base il tab Gare). */
+  indietro?: Indietro
 }) {
   const annoCorrente = Number(oggi.slice(0, 4))
   return (
@@ -30,6 +34,7 @@ export function RigaGara({
           .join(' · ') || undefined
       }
       href={`/gare/${g.codice}`}
+      state={indietro ? { indietro } : undefined}
     />
   )
 }

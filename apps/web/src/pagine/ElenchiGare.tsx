@@ -5,19 +5,30 @@ import { ListGroup } from '../componenti/List'
 import { PageHeader } from '../componenti/PageHeader'
 import { oggi as oggiIn, useGare, useMieGare } from '../gare/dati'
 import { RigaGara } from '../gare/RigaGara'
+import type { Indietro } from '../navigazione'
 import { Calendar, History } from 'lucide-react'
 import styles from './Gare.module.css'
 
 const INDIETRO = { label: 'Gare', href: '/gare' }
 
 /** Un elenco di gare a gruppi (mesi o anni), dai dati sul telefono. */
-function Gruppi({ gruppi, oggi, mie }: { gruppi: GruppoGare[]; oggi: string; mie: Set<string> }) {
+function Gruppi({
+  gruppi,
+  oggi,
+  mie,
+  indietro,
+}: {
+  gruppi: GruppoGare[]
+  oggi: string
+  mie: Set<string>
+  indietro: Indietro
+}) {
   return (
     <div className={styles.gruppi}>
       {gruppi.map((gr) => (
         <ListGroup key={gr.titolo} title={gr.titolo}>
           {gr.gare.map((g) => (
-            <RigaGara key={g.codice} gara={g} oggi={oggi} mie={mie} />
+            <RigaGara key={g.codice} gara={g} oggi={oggi} mie={mie} indietro={indietro} />
           ))}
         </ListGroup>
       ))}
@@ -57,7 +68,12 @@ export function CalendarioAnno() {
     <>
       <PageHeader title={titolo} back={INDIETRO} />
       {mesi.length > 0 ? (
-        <Gruppi gruppi={mesi} oggi={oggi} mie={mie} />
+        <Gruppi
+          gruppi={mesi}
+          oggi={oggi}
+          mie={mie}
+          indietro={{ label: titolo, href: `/gare/calendario/${anno}` }}
+        />
       ) : (
         <EmptyState
           icon={Calendar}
@@ -83,7 +99,12 @@ export function StoricoGare() {
     <>
       <PageHeader title="Storico gare" back={INDIETRO} />
       {anni.length > 0 ? (
-        <Gruppi gruppi={anni} oggi={oggi} mie={mie} />
+        <Gruppi
+          gruppi={anni}
+          oggi={oggi}
+          mie={mie}
+          indietro={{ label: 'Storico gare', href: '/gare/storico' }}
+        />
       ) : (
         <EmptyState
           icon={History}
