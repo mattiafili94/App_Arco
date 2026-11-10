@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  GIORNI_CONTROLLO_INVITI,
   pianificaLetture,
   PRIORITA,
   inizioClassificheComplete,
@@ -76,15 +77,15 @@ describe('cosa leggere e quando', () => {
     const gare = [
       gara({ codice: 'R2711001', dal: '2027-03-10', al: '2027-03-10' }),
       gara({ codice: 'R2711002', dal: '2027-03-20', al: '2027-03-20' }),
-      gara({ codice: 'R2711003', dal: '2027-05-02', al: '2027-05-02' }),
+      gara({ codice: 'R2711003', dal: '2027-04-20', al: '2027-04-20' }),
     ]
-    expect(letture(stato({ gare }))).toEqual(['calendario 2027-03', 'calendario 2027-05'])
+    expect(letture(stato({ gare }))).toEqual(['calendario 2027-03', 'calendario 2027-04'])
     // Letto ieri: oggi di nuovo; letto oggi: no.
     const ultimeLetture = (quando: string) =>
       new Map([
         ['calendario|2027', '2027-02-28'],
         ['calendario|2027-03', quando],
-        ['calendario|2027-05', '2027-03-01'],
+        ['calendario|2027-04', '2027-03-01'],
       ])
     expect(letture(stato({ gare, ultimeLetture: ultimeLetture('2027-02-28') }))).toEqual([
       'calendario 2027-03',
@@ -101,6 +102,18 @@ describe('cosa leggere e quando', () => {
       gara({ codice: 'R2711005', dal: '2027-06-10', al: '2027-06-10', inCalendarioUmbria: false }),
     ]
     expect(letture(stato({ gare })).filter((l) => l.startsWith('calendario'))).toEqual([])
+  })
+
+  it('inviti: ogni giorno solo le gare dei prossimi 60 giorni (le più lontane le copre il calendario della settimana)', () => {
+    expect(GIORNI_CONTROLLO_INVITI).toBe(60)
+    const gare = [
+      gara({ codice: 'R2711001', dal: '2027-04-30', al: '2027-04-30' }), // 60 giorni dopo il 1° marzo
+      gara({ codice: 'R2711002', dal: '2027-05-01', al: '2027-05-01' }), // 61 giorni: no
+      gara({ codice: 'R2711003', dal: '2027-09-12', al: '2027-09-12' }), // lontana: no
+    ]
+    expect(letture(stato({ gare })).filter((l) => l.startsWith('calendario'))).toEqual([
+      'calendario 2027-04',
+    ])
   })
 
   it('inviti: quando si rilegge tutto l’anno i mesi non servono', () => {

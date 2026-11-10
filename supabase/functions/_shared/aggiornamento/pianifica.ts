@@ -66,6 +66,13 @@ export const GIORNI_RISULTATI_DEFINITIVI = 60
 /** Giorni dopo la gara oltre i quali non si cerca più un PDF dei risultati mai uscito. */
 export const GIORNI_MASSIMI_ATTESA_PDF = 90
 
+/**
+ * Il controllo giornaliero degli inviti guarda solo le gare dei prossimi 60 giorni (Mattia, 10/11/2026): di solito
+ * l'invito esce poche settimane prima, e per le gare più lontane basta il calendario intero della settimana.
+ * Così a gennaio non partono 10 richieste al giorno (una per ogni mese dell'anno).
+ */
+export const GIORNI_CONTROLLO_INVITI = 60
+
 export const giorni = (da: string, a: string) =>
   Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000)
 
@@ -109,7 +116,7 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
   // Calendari (Mattia, 8/11 e 10/11/2026). Quelli degli anni passati non interessano: le gare passate
   // arrivano dagli storici degli atleti.
   // - Anno in corso: tutto, una volta a settimana (gare nuove, cambiate, annullate).
-  // - Ogni giorno, solo i MESI con gare future dell'Umbria ancora senza invito (una richiesta per mese, chiave
+  // - Ogni giorno, solo i MESI con gare dell'Umbria dei prossimi 60 giorni ancora senza invito (una richiesta per mese, chiave
   //   "AAAA-MM"): così un invito nuovo si vede entro un giorno. Non serve quando si legge tutto l'anno.
   // - Anno prossimo: solo a dicembre, una volta a settimana, per sapere quando diventa definitivo (finché è
   //   provvisorio non si salva niente: vedi il motore).
@@ -123,6 +130,7 @@ export function pianificaLetture(s: StatoPianificazione): Lettura[] {
           (g) =>
             g.inCalendarioUmbria &&
             g.dal >= s.oggi &&
+            giorni(s.oggi, g.dal) <= GIORNI_CONTROLLO_INVITI &&
             g.dal.startsWith(`${anno}-`) &&
             g.stato !== 'annullata' &&
             g.stato !== 'invito' &&
