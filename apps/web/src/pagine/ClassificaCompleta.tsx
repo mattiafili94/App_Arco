@@ -34,9 +34,13 @@ const OPZIONI_REGIONE = [
 
 type Esito = { tipo: 'success' | 'warning' | 'error'; testo: string }
 
+/** Quanti atleti sotto di te si vedono quando la classifica si apre dalla tua posizione. */
+const SOTTO_DI_ME = 3
+
 /**
- * L'elenco a blocchi di 50. Ha il suo stato (da dove si parte e quanti se ne mostrano): chi lo usa gli
- * dà una `key` che cambia con i filtri, così a ogni ricerca riparte da capo.
+ * L'elenco parte sempre dal 1° (Mattia, 10/11/2026) e si allunga a blocchi di 50. Aperto dalla tua posizione
+ * arriva fino a te e a qualche posto sotto di te (almeno i primi 50). Ha il suo stato (quanti se ne mostrano):
+ * chi lo usa gli dà una `key` che cambia con i filtri, così a ogni ricerca riparte da capo.
  */
 function Elenco({
   righe,
@@ -48,9 +52,8 @@ function Elenco({
   partiDaMe: boolean
 }) {
   const indiceMia = righe.findIndex((r) => r.matricola === matricola)
-  const vicinoAMe = Math.max(0, indiceMia - 3)
-  const [inizio, setInizio] = useState(partiDaMe && indiceMia >= 0 ? vicinoAMe : 0)
-  const [quante, setQuante] = useState(PER_PAGINA)
+  const finoAMe = Math.max(PER_PAGINA, indiceMia + 1 + SOTTO_DI_ME)
+  const [quante, setQuante] = useState(partiDaMe && indiceMia >= 0 ? finoAMe : PER_PAGINA)
 
   if (righe.length === 0) {
     return (
@@ -61,8 +64,8 @@ function Elenco({
       />
     )
   }
-  const visibili = righe.slice(inizio, inizio + quante)
-  const fine = inizio + visibili.length
+  const visibili = righe.slice(0, quante)
+  const fine = visibili.length
 
   return (
     <>
@@ -81,17 +84,12 @@ function Elenco({
         })}
       </ListGroup>
       <p className={`type-caption ${styles.nota}`} aria-live="polite">
-        {`Atleti da ${inizio + 1} a ${fine} su ${righe.length}.`}
+        {`Atleti da 1 a ${fine} su ${righe.length}.`}
       </p>
       <div className={styles.azioni}>
-        {indiceMia >= 0 && (inizio > vicinoAMe || fine <= indiceMia) && (
-          <Button variant="secondary" onClick={() => setInizio(vicinoAMe)}>
+        {indiceMia >= 0 && fine <= indiceMia && (
+          <Button variant="secondary" onClick={() => setQuante(finoAMe)}>
             Vai alla mia posizione
-          </Button>
-        )}
-        {inizio > 0 && (
-          <Button variant="text" onClick={() => setInizio(0)}>
-            Torna all’inizio
           </Button>
         )}
         {fine < righe.length && (
@@ -113,7 +111,7 @@ function Contenuto({ filtro }: { filtro: FiltroClassifica }) {
   const [testo, setTesto] = useState('')
   const [esito, setEsito] = useState<Esito | null>(null)
   const soloUmbria = ricerca.get('regione') === 'umbria'
-  // Arrivando da "La tua posizione" la lista parte da te (solo senza ricerche o filtri attivi).
+  // Arrivando da "La tua posizione" la lista arriva fino a te (solo senza ricerche o filtri attivi).
   const partiDaMe = ricerca.get('mia') === '1' && testo === '' && !soloUmbria
 
   const premiAggiorna = async () => {

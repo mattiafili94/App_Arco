@@ -204,27 +204,28 @@ describe('classifica completa', () => {
     expect(nomiVisibili()[0]).toBe('1. Atleta1 Cognome')
   })
 
-  it('dalla tua posizione la lista parte da te, evidenziata; "Torna all’inizio" riporta in cima', async () => {
+  it('dalla tua posizione la lista parte dal 1° e arriva fino a te e a 3 posti sotto di te', async () => {
     await apri('/classifica/I/OL/S/M?mia=1')
-    // Tu sei il 60°: si parte 3 posti prima.
-    expect(nomiVisibili()[0]).toBe('57. Atleta57 Cognome')
-    const mia = screen.getByText('60. Prova Bruno · Tu')
-    expect(mia).toBeInTheDocument()
-    expect(mia.closest('div[class*="row"]')).toHaveTextContent('Della compagnia:')
-    expect(screen.getByText('Atleti da 57 a 106 su 120.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Vai alla mia posizione' })).not.toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Torna all’inizio' }))
+    // Tu sei il 60°: si vede dal 1° al 63°.
     expect(nomiVisibili()[0]).toBe('1. Atleta1 Cognome')
-    // Ora non sei in vista: ti ritrovi con un tocco.
-    expect(screen.getByRole('button', { name: 'Vai alla mia posizione' })).toBeInTheDocument()
+    expect(nomiVisibili().at(-1)).toBe('63. Atleta63 Cognome')
+    const mia = screen.getByText('60. Prova Bruno · Tu')
+    expect(mia.closest('div[class*="row"]')).toHaveTextContent('Della compagnia:')
+    expect(screen.getByText('Atleti da 1 a 63 su 120.')).toBeInTheDocument()
+    // Niente più "Torna all'inizio" né "Vai alla mia posizione": resta "Mostra altri".
+    expect(screen.queryByRole('button', { name: /Torna all/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Vai alla mia posizione' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Mostra altri 50' }))
+    expect(screen.getByText('Atleti da 1 a 113 su 120.')).toBeInTheDocument()
   })
 
-  it('"Vai alla mia posizione" compare quando non sei in vista', async () => {
+  it('"Vai alla mia posizione" compare quando non sei in vista e allunga l’elenco fino a te', async () => {
     await apri()
     // Tra i primi 50 non ci sei (60°).
     await userEvent.click(screen.getByRole('button', { name: 'Vai alla mia posizione' }))
-    expect(nomiVisibili()[0]).toBe('57. Atleta57 Cognome')
+    expect(nomiVisibili()[0]).toBe('1. Atleta1 Cognome')
+    expect(screen.getByText('60. Prova Bruno · Tu')).toBeInTheDocument()
+    expect(screen.getByText('Atleti da 1 a 63 su 120.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Vai alla mia posizione' })).not.toBeInTheDocument()
   })
 

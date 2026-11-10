@@ -473,7 +473,8 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       - `/classifica/:tipo/:divisione/:classe/:genere` (`?regione=umbria`, `?mia=1`): tutti gli atleti, 50 alla
         volta, posizione nazionale, punti, società e le due gare; ricerca per nome o società; "Umbria" = società
         con codice che inizia per 11 (il numero del comitato); le nostre società evidenziate, tu con "· Tu";
-        "Vai alla mia posizione"; pulsante "Aggiorna" (rifiuti spiegati con l'ora per riprovare);
+        "Vai alla mia posizione"; l'elenco parte **sempre dal 1°** e, aperto dalla tua posizione, arriva fino a te
+        e a 3 posti sotto (Mattia, 10/11/2026; niente "Torna all'inizio", resta "Mostra altri 50"); pulsante "Aggiorna" (rifiuti spiegati con l'ora per riprovare);
       - **cercare legge solo il nostro database** (`classifiche_ranking`), mai Fitarco. La classifica non
         scaricata dice "Questa classifica non è ancora scaricata" e offre "Scarica da Fitarco" (stessa funzione
         del pulsante Aggiorna);
