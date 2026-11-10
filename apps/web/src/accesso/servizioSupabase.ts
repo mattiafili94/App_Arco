@@ -105,7 +105,12 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
 
     async aggiungiAtleta(dati) {
       const { error } = await supabase.from('atleti').insert(dati)
-      if (!error) return { esito: 'ok' }
+      if (!error) {
+        // Il server legge subito la scheda Fitarco del nuovo atleta (senza aspettare il giro automatico).
+        // Non si aspetta e un errore non conta: la lettura parte comunque al prossimo giro.
+        void supabase.functions.invoke('aggiorna-atleta', { body: {} }).catch(() => undefined)
+        return { esito: 'ok' }
+      }
       return { esito: error.code === '23505' ? 'duplicato' : 'errore' }
     },
 

@@ -82,8 +82,9 @@ test.describe('uscita', () => {
 })
 
 test.describe('amministrazione', () => {
+  let richiesteFunzione: unknown[] = []
   test.beforeEach(async ({ page }) => {
-    await simulaSupabase(page, { collegato: AMMINISTRATORE_PROVA })
+    ;({ richiesteFunzione } = await simulaSupabase(page, { collegato: AMMINISTRATORE_PROVA }))
   })
 
   test('dalle Impostazioni si apre l elenco degli atleti', async ({ page }) => {
@@ -100,6 +101,12 @@ test.describe('amministrazione', () => {
     await page.getByLabel('Cognome').fill('Esempio')
     await page.getByRole('button', { name: 'Aggiungi atleta' }).click()
     await expect(page.getByText(/Atleta aggiunto: Dario Esempio/)).toBeVisible()
+    // Il server legge subito la scheda Fitarco del nuovo atleta (senza aspettare il giro automatico).
+    await expect
+      .poll(() =>
+        richiesteFunzione.filter((r) => (r as { azione: string }).azione === 'aggiorna-atleta'),
+      )
+      .toHaveLength(1)
 
     await page.getByRole('link', { name: /Esempio Dario/ }).click()
     await expect(titolo(page, 'Dario Esempio')).toBeVisible()
