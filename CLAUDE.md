@@ -128,6 +128,12 @@ Queste decisioni sostituiscono quelle della prima versione di questo file (app E
   record. Le gare lette mentre erano nella finestra tengono invece i dettagli dei nostri atleti per sempre.
 - **Storico automatico**: dopo ogni gara il server legge il PDF, trova gli Eugubini (per nome + società, il PDF non
   ha la matricola) e aggiorna storico e record. Risultato "provvisorio" finché la gara non è omologata.
+  **Se i dati sono nel database si mostrano** (Mattia, 10/11/2026): una gara che l'atleta ha nel PDF (riga collegata,
+  `atleta_id`) ma che la sua scheda Fitarco non ha ancora (si rilegge ogni settimana, e Fitarco può aggiungerla tardi)
+  entra lo stesso nello storico dell'app: `partecipazioniConPdf` (packages/shared/src/atleti.ts) aggiunge una
+  partecipazione presa dal PDF (arco, posizione, totale; DNF senza punteggio) senza doppioni (gara + arco); la usano
+  `usePartecipazioni`, `usePartecipazioniDi` e `useMieGare`, quindi record, andamento, storico, ultima gara e
+  "Hai partecipato". Solo nell'app: il server non cambia.
   Le gare fuori dall'Umbria si trovano tramite i codici gara nelle schede atleta.
 - **Classifica**: il server scarica solo le classifiche necessarie (tipo × divisione × classe × genere), senza
   doppioni: quelle dei nostri atleti (se mancano, subito; poi ogni lunedì dalle 10) e quelle che qualcuno ha

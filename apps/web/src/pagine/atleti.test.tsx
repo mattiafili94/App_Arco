@@ -433,3 +433,50 @@ describe('GraficoAndamento', () => {
     expect(screen.getByRole('group', { name: 'Prova' })).toBeInTheDocument()
   })
 })
+
+describe('gare che si conoscono solo dal PDF dei risultati', () => {
+  /** Una gara di domenica scorsa: c'è il PDF (Bruno collegato), la scheda Fitarco non l'ha ancora. */
+  function conGaraSoloPdf() {
+    const remoto = remotoConAtleti()
+    remoto.scrivi(
+      'gare',
+      gara('G7', '2026-11-08', '18 m', { stato: 'da-omologare', localita: 'Perugia (PG)' }),
+    )
+    remoto.scrivi('classifiche', {
+      ...(remoto.righe.classifiche[0] as Record<string, unknown>),
+      gara_codice: 'G7',
+      totale: 533,
+      posizione: 7,
+      esito: '7',
+      provvisoria: true,
+    })
+    return servizioFinto({ remoto }).servizio
+  }
+
+  it('compare nello storico della prova, con il punteggio del PDF e "provvisorio"', async () => {
+    await renderApp(`/atleti/id-bruno/prova/${encodeURIComponent('indoor:18m|OL')}`, {
+      servizio: conGaraSoloPdf(),
+    })
+    const anno = await screen.findByRole('region', { name: 'Gare del 2026' })
+    await waitFor(() => expect(anno).toHaveTextContent('533'))
+    expect(anno).toHaveTextContent('Perugia (PG)')
+    expect(anno).toHaveTextContent('provvisorio')
+  })
+
+  it('compare in "Tutte le gare" e come ultima gara nell’elenco', async () => {
+    await renderApp('/atleti/id-bruno/gare', { servizio: conGaraSoloPdf() })
+    const anno = await screen.findByRole('region', { name: '2026' })
+    await waitFor(() =>
+      expect(within(anno).getAllByRole('link')[0]).toHaveTextContent('Perugia (PG)'),
+    )
+    expect(within(anno).getAllByRole('link')[0]).toHaveTextContent('7° posto')
+  })
+
+  it('nel tab Gare risulta "Hai partecipato"', async () => {
+    await renderApp('/gare', { servizio: conGaraSoloPdf() })
+    const passate = await screen.findByRole('region', { name: 'Passate' })
+    await waitFor(() =>
+      expect(within(passate).getAllByRole('link')[0]).toHaveTextContent('Hai partecipato'),
+    )
+  })
+})

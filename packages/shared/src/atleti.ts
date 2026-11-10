@@ -25,6 +25,8 @@ export interface Partecipazione {
   classe: string
   posizione: number | null
   totale: number | null
+  /** La gara non è ancora nella scheda Fitarco dell'atleta: viene dal PDF dei risultati (vedi `partecipazioniConPdf`). */
+  dalPdf?: boolean
 }
 
 /** Una prova di una gara, con il punteggio dell'atleta. */
@@ -214,3 +216,41 @@ export function storicoAtleta(
 /** L'ultima gara già disputata (la prima dello storico che non è nel futuro). */
 export const ultimaGara = (storico: readonly RigaStorico[], oggi: string): Gara | null =>
   storico.find((r) => garaPassata(r.gara, oggi) || r.gara.dal <= oggi)?.gara ?? null
+
+/**
+ * Lo storico di un atleta con anche le gare che si conoscono **solo dal PDF dei risultati** (Mattia, 10/11/2026: se
+ * i dati sono nel database si mostrano). La scheda Fitarco dell'atleta si rilegge una volta a settimana e una gara
+ * appena finita può comparirci anche dopo l'omologazione; il PDF invece arriva pochi giorni dopo la gara e la riga
+ * dell'atleta è già collegata a lui (\`atleta_id\`). Per ogni riga collegata senza la gara nello storico si aggiunge
+ * una partecipazione presa dal PDF (arco, posizione, totale); quando arriva quella della scheda vale quella e non ci
+ * sono doppioni (stessa gara e stesso arco). `partecipazioni` e `classifiche` possono essere di più atleti.
+ */
+export function partecipazioniConPdf(
+  partecipazioni: readonly Partecipazione[],
+  classifiche: readonly Pick<
+    RigaClassifica,
+    'atleta_id' | 'gara_codice' | 'divisione' | 'posizione' | 'totale' | 'esito'
+  >[],
+): Partecipazione[] {
+  const chiave = (atleta: string, gara: string, divisione: string) =>
+    `${atleta}|${gara}|${divisione}`
+  const note = new Set(partecipazioni.map((p) => chiave(p.atleta_id, p.gara_codice, p.divisione)))
+  const risultato = [...partecipazioni]
+  for (const r of classifiche) {
+    if (!r.atleta_id) continue
+    const k = chiave(r.atleta_id, r.gara_codice, r.divisione)
+    if (note.has(k)) continue
+    note.add(k)
+    risultato.push({
+      atleta_id: r.atleta_id,
+      gara_codice: r.gara_codice,
+      divisione: r.divisione,
+      // La classe non serve: con la riga del PDF la distanza si legge dalle colonne.
+      classe: '',
+      posizione: r.esito === 'DNF' ? null : r.posizione,
+      totale: r.esito === 'DNF' ? null : r.totale,
+      dalPdf: true,
+    })
+  }
+  return risultato
+}
