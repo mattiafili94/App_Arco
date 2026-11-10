@@ -104,3 +104,8 @@
     transform: rotate(1turn);
   }
 }
+
+/* Un collegamento che ha l'aspetto di un pulsante (porta a un'altra pagina dell'app). */
+.link {
+  text-decoration: none;
+}

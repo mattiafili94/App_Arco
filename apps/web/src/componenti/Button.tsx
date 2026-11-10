@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react'
+import { Link } from 'react-router'
 import { LoaderCircle, type LucideIcon } from 'lucide-react'
 import { Icon } from './Icon'
 import styles from './Button.module.css'
@@ -53,5 +54,25 @@ export function Button({
         </span>
       )}
     </button>
+  )
+}
+
+export interface LinkButtonProps {
+  /** La pagina dell'app da aprire. */
+  to: string
+  variant?: 'primary' | 'secondary'
+  icon?: LucideIcon
+  children: ReactNode
+}
+
+/** Un collegamento con l'aspetto di un pulsante: apre un'altra pagina dell'app (per i lettori di schermo è un link). */
+export function LinkButton({ to, variant = 'secondary', icon, children }: LinkButtonProps) {
+  return (
+    <Link to={to} className={[styles.button, styles[variant], styles.link].join(' ')}>
+      <span className={styles.content}>
+        {icon && <Icon icon={icon} />}
+        <span>{children}</span>
+      </span>
+    </Link>
   )
 }

@@ -6,6 +6,7 @@
  * le novità e scrive nel diario `letture` com'è andata.
  */
 import {
+  calendarioProvvisorio,
   ErroreFormatoFitarco,
   estraiRighe,
   leggiCalendario,
@@ -315,14 +316,32 @@ const CAMPI_GARA: (keyof RigaGara)[] = [
   'in_calendario_umbria',
 ]
 
+/**
+ * Il calendario dell'Umbria: tutto l'anno (chiave "2026") o un mese solo (chiave "2026-12", per gli inviti).
+ * Il calendario dell'anno prossimo finché è provvisorio non si salva (Mattia, 10/11/2026): le gare compaiono
+ * nell'app solo quando diventa definitivo.
+ */
 async function calendario(ctx: Contesto, chiave: string): Promise<Esecuzione> {
-  const anno = Number(chiave)
-  const tutte = leggiCalendario(await leggiHtml(ctx.fonte, richiestaCalendario(anno)))
+  const [annoTesto = '', meseTesto] = chiave.split('-')
+  const anno = Number(annoTesto)
+  const mese = meseTesto === undefined ? null : Number(meseTesto)
+  const html = await leggiHtml(ctx.fonte, richiestaCalendario(anno, undefined, mese))
+  if (anno > Number(ctx.oggi.slice(0, 4)) && calendarioProvvisorio(html)) {
+    return {
+      esito: 'invariato',
+      messaggio: `Il calendario ${anno} è ancora provvisorio: non si salva`,
+    }
+  }
+  const tutte = leggiCalendario(html)
   // Nel calendario provvisorio (es. il prossimo anno) molte gare hanno un codice temporaneo
   // ("tmp11564"): diventerebbero doppioni quando arriva quello vero. Si salvano solo i codici definitivi.
   const lette = tutte.filter((g) => CODICE_DEFINITIVO.test(g.codice)).map(rigaGaraDaCalendario)
   const temporanee = tutte.length - lette.length
-  const salvate = new Map((await ctx.archivio.gareDiAnno(anno)).map((g) => [g.codice, g]))
+  const salvate = new Map(
+    (await ctx.archivio.gareDiAnno(anno))
+      .filter((g) => mese === null || g.dal.startsWith(`${chiave}-`))
+      .map((g) => [g.codice, g]),
+  )
 
   const umbria = (righe: Iterable<{ in_calendario_umbria: boolean }>) =>
     [...righe].filter((g) => g.in_calendario_umbria).length

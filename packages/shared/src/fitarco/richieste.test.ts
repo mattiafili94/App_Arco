@@ -42,6 +42,15 @@ describe('richieste a Fitarco', () => {
     expect(JSON.parse(richiestaCalendario(2027, '00').corpo.get('params') ?? '')).toMatchObject({
       idPeriodo: '2027',
       idComitato: '00',
+      mese: '',
+    })
+    // Un mese solo (per gli inviti).
+    expect(
+      JSON.parse(richiestaCalendario(2026, undefined, 12).corpo.get('params') ?? ''),
+    ).toMatchObject({
+      idPeriodo: '2026',
+      idComitato: '11',
+      mese: '12',
     })
   })
 })

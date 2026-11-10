@@ -158,7 +158,8 @@ describe('un giro di lavoro', () => {
     const secondo = (await giro(ctx, OPZIONI)).eseguite.map((e) => `${e.tipo} ${e.chiave}`)
     expect(secondo).not.toContain('calendario 2026')
     expect(secondo).not.toContain('scheda-atleta a1')
-    expect(secondo.filter((l) => l.startsWith('calendario'))).toEqual([])
+    // L'unico calendario del secondo giro è il mese con gare future ancora senza invito (dicembre).
+    expect(secondo.filter((l) => l.startsWith('calendario'))).toEqual(['calendario 2026-12'])
   })
 
   it('con tante letture pesanti in lista, fa comunque quelle leggere', async () => {
@@ -328,6 +329,57 @@ describe('le singole letture', () => {
       '0 gare nuove o cambiate su 20 (1 con codice provvisorio, non salvate)',
     )
     expect(archivio.gareSalvate.has('tmp11564')).toBe(false)
+  })
+
+  it('calendario di un mese (per gli inviti): chiede solo quel mese e confronta solo le sue gare', async () => {
+    fonte.risposte.lista_calendario_results = {
+      ok: true,
+      html: esempio('calendario').replace(
+        /<div class="tab_row">[\s\S]*?(?=<div class="tab_row">|$)/g,
+        (m) => (m.includes('data-id="R2611044"') ? m : ''),
+      ),
+    }
+    const prima = archivio.gareSalvate.size
+    const r = await esegui('calendario', '2026-12')
+    expect(r).toMatchObject({ esito: 'invariato' })
+    expect(r.messaggio).toMatch(/^0 gare nuove o cambiate su 1/)
+    expect(fonte.chiamate).toHaveLength(1)
+    expect(fonte.chiamate[0]).toContain('"idPeriodo":"2026"')
+    expect(fonte.chiamate[0]).toContain('"mese":"12"')
+    // Le gare degli altri mesi restano dove sono.
+    expect(archivio.gareSalvate.size).toBe(prima)
+  })
+
+  it('calendario dell’anno prossimo ancora provvisorio: non si salva niente', async () => {
+    fonte.risposte.lista_calendario_results = {
+      ok: true,
+      html: `<p><h3>Calendario provvisorio 2027</h3></p>${esempio('calendario').replaceAll('/2026', '/2027')}`,
+    }
+    const prima = archivio.gareSalvate.size
+    expect(await esegui('calendario', '2027')).toMatchObject({
+      esito: 'invariato',
+      messaggio: 'Il calendario 2027 è ancora provvisorio: non si salva',
+    })
+    expect(archivio.gareSalvate.size).toBe(prima)
+  })
+
+  it('calendario dell’anno prossimo definitivo: si salva', async () => {
+    fonte.risposte.lista_calendario_results = {
+      ok: true,
+      html: `<p><h3>Calendario 2027</h3></p>${esempio('calendario')}`,
+    }
+    const r = await esegui('calendario', '2027')
+    expect(r.messaggio).not.toContain('provvisorio')
+  })
+
+  it('calendario dell’anno in corso: si salva anche se Fitarco lo chiama ancora provvisorio', async () => {
+    fonte.risposte.lista_calendario_results = {
+      ok: true,
+      html: `<p><h3>Calendario provvisorio 2026</h3></p>${esempio('calendario')}`,
+    }
+    expect(await esegui('calendario', '2026')).toMatchObject({
+      messaggio: '0 gare nuove o cambiate su 21',
+    })
   })
 
   it('calendario: se torna vuoto non si salva niente (sentinella)', async () => {

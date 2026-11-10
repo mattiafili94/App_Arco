@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Calendar, Users } from 'lucide-react'
 import { describe, expect, it, vi } from 'vitest'
-import { Button } from './Button'
+import { Button, LinkButton } from './Button'
 import { EmptyState } from './EmptyState'
 import { Icon } from './Icon'
 import { ListGroup, ListRow } from './List'
@@ -52,6 +52,25 @@ describe('Button', () => {
   it('applica la variante richiesta', () => {
     render(<Button variant="destructive">Elimina</Button>)
     expect(screen.getByRole('button')).toHaveClass('destructive')
+  })
+})
+
+describe('LinkButton', () => {
+  it('è un collegamento a un’altra pagina, con l’aspetto di un pulsante', () => {
+    renderConRouter(<LinkButton to="/gare/storico">Storico completo</LinkButton>)
+    const link = screen.getByRole('link', { name: 'Storico completo' })
+    expect(link).toHaveAttribute('href', '/gare/storico')
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('può avere un’icona', () => {
+    const { container } = renderConRouter(
+      <LinkButton to="/gare" icon={Calendar} variant="primary">
+        Calendario 2026
+      </LinkButton>,
+    )
+    expect(container.querySelector('svg')).not.toBeNull()
+    expect(screen.getByRole('link', { name: 'Calendario 2026' })).toBeInTheDocument()
   })
 })
 

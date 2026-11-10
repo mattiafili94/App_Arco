@@ -151,3 +151,72 @@ export function linkGoogleCalendar(g: Gara): string {
   })
   return `https://calendar.google.com/calendar/render?${parametri.toString()}`
 }
+
+// --- Elenchi del tab Gare (Mattia, 10/11/2026) ----------------------------------------------------
+
+/** Quante gare si vedono nel tab Gare, sia tra le prossime sia tra le passate: le altre nelle pagine complete. */
+export const GARE_IN_EVIDENZA = 6
+
+const MESI_INTERI = [
+  'Gennaio',
+  'Febbraio',
+  'Marzo',
+  'Aprile',
+  'Maggio',
+  'Giugno',
+  'Luglio',
+  'Agosto',
+  'Settembre',
+  'Ottobre',
+  'Novembre',
+  'Dicembre',
+]
+
+const perData = (a: Gara, b: Gara) => a.dal.localeCompare(b.dal) || a.codice.localeCompare(b.codice)
+
+/** Le gare non ancora finite, dalla più vicina. */
+export const prossimeGare = (gare: readonly Gara[], oggi: string): Gara[] =>
+  gare.filter((g) => !garaPassata(g, oggi)).sort(perData)
+
+/** Le gare finite, dalla più recente. */
+export const garePassate = (gare: readonly Gara[], oggi: string): Gara[] =>
+  gare.filter((g) => garaPassata(g, oggi)).sort((a, b) => perData(b, a))
+
+/**
+ * Gli anni con un calendario da aprire: l'anno in corso e, quando c'è (cioè quando il server l'ha scaricato
+ * perché è diventato definitivo), quello dopo. Gli anni passati stanno nello storico.
+ */
+export function anniDelCalendario(gare: readonly Gara[], oggi: string): number[] {
+  const anno = Number(oggi.slice(0, 4))
+  const dopo = gare.some((g) => g.dal.startsWith(`${anno + 1}-`))
+  return dopo ? [anno, anno + 1] : [anno]
+}
+
+export interface GruppoGare {
+  /** "Dicembre" (calendario) o "2025" (storico). */
+  titolo: string
+  gare: Gara[]
+}
+
+/** Il calendario di un anno, mese per mese, dalla prima gara dell'anno (anche quelle già fatte). */
+export function calendarioPerMese(gare: readonly Gara[], anno: number): GruppoGare[] {
+  const gruppi = new Map<number, Gara[]>()
+  for (const g of [...gare].filter((x) => x.dal.startsWith(`${anno}-`)).sort(perData)) {
+    const mese = Number(g.dal.slice(5, 7))
+    gruppi.set(mese, [...(gruppi.get(mese) ?? []), g])
+  }
+  return [...gruppi.entries()].map(([mese, lista]) => ({
+    titolo: MESI_INTERI[mese - 1]!,
+    gare: lista,
+  }))
+}
+
+/** Lo storico: tutte le gare finite, anno per anno, dalla più recente. */
+export function storicoPerAnno(gare: readonly Gara[], oggi: string): GruppoGare[] {
+  const gruppi = new Map<string, Gara[]>()
+  for (const g of garePassate(gare, oggi)) {
+    const anno = g.dal.slice(0, 4)
+    gruppi.set(anno, [...(gruppi.get(anno) ?? []), g])
+  }
+  return [...gruppi.entries()].map(([titolo, lista]) => ({ titolo, gare: lista }))
+}

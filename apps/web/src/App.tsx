@@ -13,6 +13,7 @@ import { Risultati } from './pagine/Risultati'
 import { SchedaAtleta } from './pagine/SchedaAtleta'
 import { SimulazionePagina } from './pagine/SimulazionePagina'
 import { Gare } from './pagine/Gare'
+import { CalendarioAnno, StoricoGare } from './pagine/ElenchiGare'
 import { GiornoAllenamentoPagina } from './pagine/GiornoAllenamento'
 import { Impostazioni } from './pagine/Impostazioni'
 import { NuovaSimulazionePagina } from './pagine/NuovaSimulazione'
@@ -44,6 +45,8 @@ export function App() {
         <Route element={<Shell />}>
           <Route index element={<Navigate to="/gare" replace />} />
           <Route path="gare" element={<Gare />} />
+          <Route path="gare/calendario/:anno" element={<CalendarioAnno />} />
+          <Route path="gare/storico" element={<StoricoGare />} />
           <Route path="gare/:codice" element={<DettaglioGara />} />
           <Route path="gare/:codice/risultati" element={<Risultati />} />
           <Route path="atleti" element={<Atleti />} />

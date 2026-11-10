@@ -11,3 +11,16 @@
   overflow-wrap: anywhere;
   margin: 0;
 }
+
+/* Un elenco con i suoi pulsanti sotto (calendari, storico). */
+.sezione {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.pulsanti {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}

@@ -8,6 +8,12 @@ import {
   giornoDopo,
   linkGoogleCalendar,
   nomeFileIcs,
+  anniDelCalendario,
+  calendarioPerMese,
+  GARE_IN_EVIDENZA,
+  garePassate,
+  prossimeGare,
+  storicoPerAnno,
   type Gara,
 } from './gare'
 
@@ -149,5 +155,59 @@ describe('Aggiungi al calendario', () => {
       location: 'Perugia (PG)',
       details: 'Organizza ASD Arcieri Augusta Perusia\ncompetizione interregionale\nGara R2611040',
     })
+  })
+})
+
+describe('elenchi del tab Gare', () => {
+  const OGGI = '2026-11-10'
+  const g = (codice: string, dal: string, al = dal) => gara({ codice, dal, al })
+  const codici = (lista: readonly Gara[]) => lista.map((x) => x.codice)
+  const gare = [
+    g('A', '2025-03-01'),
+    g('B', '2026-01-10'),
+    g('C', '2026-11-08', '2026-11-09'),
+    g('D', '2026-11-10', '2026-11-11'), // in corso oggi: è ancora "prossima"
+    g('E', '2026-12-12', '2026-12-13'),
+    g('F', '2026-12-12'), // stesso giorno: in ordine di codice
+    g('G', '2027-07-09'),
+  ]
+
+  it('se ne mostrano 6', () => {
+    expect(GARE_IN_EVIDENZA).toBe(6)
+  })
+
+  it('prossime: dalla più vicina, comprese quelle in corso', () => {
+    expect(codici(prossimeGare(gare, OGGI))).toEqual(['D', 'E', 'F', 'G'])
+  })
+
+  it('passate: dalla più recente', () => {
+    expect(codici(garePassate(gare, OGGI))).toEqual(['C', 'B', 'A'])
+  })
+
+  it('calendari da aprire: l’anno in corso, e il prossimo solo quando ci sono le sue gare', () => {
+    expect(anniDelCalendario(gare, OGGI)).toEqual([2026, 2027])
+    expect(anniDelCalendario(gare.slice(0, 6), OGGI)).toEqual([2026])
+    // L'anno dopo diventa quello in corso: resta un solo calendario.
+    expect(anniDelCalendario(gare, '2027-01-02')).toEqual([2027])
+  })
+
+  it('calendario di un anno: mese per mese, dalla prima gara, anche quelle già fatte', () => {
+    expect(
+      calendarioPerMese(gare, 2026).map((m) => ({ titolo: m.titolo, gare: codici(m.gare) })),
+    ).toEqual([
+      { titolo: 'Gennaio', gare: ['B'] },
+      { titolo: 'Novembre', gare: ['C', 'D'] },
+      { titolo: 'Dicembre', gare: ['E', 'F'] },
+    ])
+    expect(calendarioPerMese(gare, 2028)).toEqual([])
+  })
+
+  it('storico: anno per anno, dalla gara più recente', () => {
+    expect(
+      storicoPerAnno(gare, OGGI).map((a) => ({ titolo: a.titolo, gare: codici(a.gare) })),
+    ).toEqual([
+      { titolo: '2026', gare: ['C', 'B'] },
+      { titolo: '2025', gare: ['A'] },
+    ])
   })
 })
