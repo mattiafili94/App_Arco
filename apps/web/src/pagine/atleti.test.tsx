@@ -224,6 +224,16 @@ describe('scheda atleta: i pulsanti delle prove', () => {
 describe('pagina di una prova', () => {
   const PROVA_18 = `/atleti/id-bruno/prova/${encodeURIComponent('indoor:18m|OL')}`
 
+  /** Apre la prova dei 18 m e aspetta che ci siano tutti i dati (storico e classifiche dei PDF). */
+  const apriProva18 = async () => {
+    await renderApp(PROVA_18, { servizio: conAtleti() })
+    const record = await screen.findByRole('region', { name: 'Record personale' })
+    await waitFor(() => expect(record).toHaveTextContent('570'))
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Media per anno' })).toHaveTextContent('2 gare'),
+    )
+  }
+
   /** Come `remotoConAtleti`, più una seconda gara da 70 m: la serie dei 70 m ha due punteggi. */
   function conDueSettanta() {
     const remoto = remotoConAtleti()
@@ -247,7 +257,7 @@ describe('pagina di una prova', () => {
     ).toBeInTheDocument()
     const record = screen.getByRole('region', { name: 'Record personale' })
     // 18 m: 560 nel 2019 (solo storico), 540 a gennaio, 570 a marzo (la prova da 18 m del 25+18).
-    expect(record).toHaveTextContent('570')
+    await waitFor(() => expect(record).toHaveTextContent('570'))
     expect(record).toHaveTextContent('Gubbio (PG)')
     expect(record).toHaveTextContent('gara 25+18 m')
     expect(screen.getAllByRole('link', { name: 'Bruno Prova' })[0]).toHaveAttribute(
@@ -257,7 +267,7 @@ describe('pagina di una prova', () => {
   })
 
   it('andamento: di base l’anno in corso; con la tendina si sceglie anche tutta la carriera', async () => {
-    await renderApp(PROVA_18, { servizio: conAtleti() })
+    await apriProva18()
     const sezione = await screen.findByRole('region', { name: 'Andamento' })
     await waitFor(() =>
       expect(within(sezione).getAllByRole('button', { name: /punti, / })).toHaveLength(2),
@@ -279,7 +289,7 @@ describe('pagina di una prova', () => {
   })
 
   it('togliendo tutti gli anni si torna a tutta la carriera', async () => {
-    await renderApp(PROVA_18, { servizio: conAtleti() })
+    await apriProva18()
     const sezione = await screen.findByRole('region', { name: 'Andamento' })
     await userEvent.click(await within(sezione).findByText('2026', { selector: 'summary span' }))
     await userEvent.click(within(sezione).getByRole('checkbox', { name: '2026' }))
@@ -288,7 +298,7 @@ describe('pagina di una prova', () => {
   })
 
   it('la tabella ha gli stessi punteggi del grafico', async () => {
-    await renderApp(PROVA_18, { servizio: conAtleti() })
+    await apriProva18()
     const sezione = await screen.findByRole('region', { name: 'Andamento' })
     await userEvent.click(await within(sezione).findByText('Mostra come tabella'))
     const tabella = within(sezione).getByRole('table', { name: 'Punteggi 18 m · Ricurvo' })
@@ -301,13 +311,16 @@ describe('pagina di una prova', () => {
   })
 
   it('media per anno e storico della prova anno per anno', async () => {
-    await renderApp(PROVA_18, { servizio: conAtleti() })
+    await apriProva18()
     const medie = await screen.findByRole('region', { name: 'Media per anno' })
-    expect(
-      within(medie)
-        .getAllByText(/gar[ae]$/)
-        .map((r) => r.textContent),
-    ).toEqual(['2 gare', '1 gara'])
+    // Si aspetta che arrivino tutti i dati (le classifiche dei PDF possono arrivare dopo lo storico).
+    await waitFor(() =>
+      expect(
+        within(medie)
+          .getAllByText(/gar[ae]$/)
+          .map((r) => r.textContent),
+      ).toEqual(['2 gare', '1 gara']),
+    )
     expect(medie).toHaveTextContent('555')
     const anno2026 = screen.getByRole('region', { name: 'Gare del 2026' })
     const righe = within(anno2026)
@@ -347,7 +360,7 @@ describe('pagina di una prova', () => {
   })
 
   it('dalla gara del record la freccia torna alla prova, non al tab Gare', async () => {
-    await renderApp(PROVA_18, { servizio: conAtleti() })
+    await apriProva18()
     const record = await screen.findByRole('region', { name: 'Record personale' })
     await userEvent.click(within(record).getByRole('link'))
     expect(await screen.findByText('Tipologia')).toBeInTheDocument()
