@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Partecipazione, RigaClassifica } from '@arco/shared'
+import { partecipazioniConPdf, type Partecipazione, type RigaClassifica } from '@arco/shared'
 import { useSincronizzazione } from '../sync/contesto'
 
 /** Un atleta com'è salvato sul telefono (tabella `atleti`). */
@@ -35,26 +35,37 @@ export function useAtleta(id: string): AtletaSalvato | null | undefined {
   }, [db, id])
 }
 
-/** Le gare di tutti gli atleti (storico completo). */
+/**
+ * Le gare di tutti gli atleti (storico completo), comprese quelle che si conoscono solo dal PDF dei risultati
+ * (righe di classifica già collegate a un atleta: vedi `partecipazioniConPdf`).
+ */
 export function usePartecipazioni(): Partecipazione[] | undefined {
   const { db } = useSincronizzazione()
-  return useLiveQuery(
-    () => db.partecipazioni.toArray() as Promise<unknown> as Promise<Partecipazione[]>,
-    [db],
-  )
+  return useLiveQuery(async () => {
+    const storico = (await db.partecipazioni.toArray()) as unknown as Partecipazione[]
+    // Le righe senza atleta_id non sono nell'indice: si leggono solo quelle collegate.
+    const collegate = (await db.classifiche
+      .where('atleta_id')
+      .above('')
+      .toArray()) as unknown as RigaClassifica[]
+    return partecipazioniConPdf(storico, collegate)
+  }, [db])
 }
 
-/** Le gare di un atleta. */
+/** Le gare di un atleta, comprese quelle che si conoscono solo dal PDF dei risultati. */
 export function usePartecipazioniDi(atletaId: string): Partecipazione[] | undefined {
   const { db } = useSincronizzazione()
-  return useLiveQuery(
-    () =>
-      db.partecipazioni
-        .where('atleta_id')
-        .equals(atletaId)
-        .toArray() as Promise<unknown> as Promise<Partecipazione[]>,
-    [db, atletaId],
-  )
+  return useLiveQuery(async () => {
+    const storico = (await db.partecipazioni
+      .where('atleta_id')
+      .equals(atletaId)
+      .toArray()) as unknown as Partecipazione[]
+    const collegate = (await db.classifiche
+      .where('atleta_id')
+      .equals(atletaId)
+      .toArray()) as unknown as RigaClassifica[]
+    return partecipazioniConPdf(storico, collegate)
+  }, [db, atletaId])
 }
 
 /** Le righe di classifica di un atleta (solo gare lette dal PDF). */

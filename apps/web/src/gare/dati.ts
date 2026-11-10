@@ -44,13 +44,14 @@ export function useInvito(codice: string): Invito | null | undefined {
   )
 }
 
-/** I codici delle gare a cui ha partecipato l'atleta collegato. */
+/** I codici delle gare a cui ha partecipato l'atleta collegato (anche quelle che si conoscono solo dal PDF). */
 export function useMieGare(): Set<string> | undefined {
   const { db } = useSincronizzazione()
   const { id } = useAtletaCorrente()
   return useLiveQuery(async () => {
     const righe = await db.partecipazioni.where('atleta_id').equals(id).toArray()
-    return new Set(righe.map((r) => r.gara_codice as string))
+    const dalPdf = await db.classifiche.where('atleta_id').equals(id).toArray()
+    return new Set([...righe, ...dalPdf].map((r) => r.gara_codice as string))
   }, [db, id])
 }
 

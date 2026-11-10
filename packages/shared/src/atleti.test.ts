@@ -3,6 +3,7 @@ import {
   distanzaOutdoor,
   nomeDivisione,
   nomeProva,
+  partecipazioniConPdf,
   proveDiAtleta,
   recordPersonali,
   storicoAtleta,
@@ -405,5 +406,58 @@ describe('storico e ultima gara', () => {
     expect(ultimaGara(s, '2026-11-10')?.codice).toBe('G2')
     expect(ultimaGara(s, '2026-03-10')?.codice).toBe('G2')
     expect(ultimaGara(s, '2025-01-01')).toBeNull()
+  })
+})
+
+describe('storico con le gare che si conoscono solo dal PDF', () => {
+  it('una riga del PDF collegata all’atleta, senza la gara nello storico, diventa una partecipazione', () => {
+    const r = partecipazioniConPdf([part('G1')], [riga('G2', { posizione: 4, totale: 533 })])
+    expect(r).toEqual([
+      part('G1'),
+      {
+        atleta_id: 'a1',
+        gara_codice: 'G2',
+        divisione: 'OL',
+        classe: '',
+        posizione: 4,
+        totale: 533,
+        dalPdf: true,
+      },
+    ])
+  })
+
+  it('quando la gara c’è già nello storico (stessa gara e stesso arco) vale quella: niente doppioni', () => {
+    expect(partecipazioniConPdf([part('G1')], [riga('G1', { totale: 999 })])).toEqual([part('G1')])
+  })
+
+  it('la stessa gara con un altro arco è un’altra partecipazione', () => {
+    const r = partecipazioniConPdf([part('G1')], [riga('G1', { divisione: 'CO' })])
+    expect(r.map((p) => p.divisione)).toEqual(['OL', 'CO'])
+  })
+
+  it('le righe di chi non è nell’app (non collegate) non contano; un ritirato non ha punteggio', () => {
+    const r = partecipazioniConPdf(
+      [],
+      [riga('G1', { atleta_id: null }), riga('G2', { esito: 'DNF', posizione: null, totale: 300 })],
+    )
+    expect(r).toEqual([
+      expect.objectContaining({ gara_codice: 'G2', posizione: null, totale: null }),
+    ])
+  })
+
+  it('una riga ripetuta nel PDF conta una volta sola', () => {
+    expect(partecipazioniConPdf([], [riga('G1'), riga('G1', { ordine: 2 })])).toHaveLength(1)
+  })
+
+  it('con le prove e i record: la gara dal PDF conta come le altre (anche provvisoria)', () => {
+    const gare = [gara('G1', '2026-11-08', '18 m', { stato: 'da-omologare' })]
+    const classifiche = [riga('G1', { totale: 533, provvisoria: true })]
+    const prove = proveDiAtleta('a1', partecipazioniConPdf([], classifiche), gare, classifiche)
+    expect(prove).toEqual([
+      expect.objectContaining({ chiave: 'indoor:18m', totale: 533, provvisoria: true }),
+    ])
+    expect(storicoAtleta('a1', partecipazioniConPdf([], classifiche), gare)).toEqual([
+      expect.objectContaining({ totale: 533, posizione: 3 }),
+    ])
   })
 })
