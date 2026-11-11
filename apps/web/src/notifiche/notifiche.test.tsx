@@ -7,12 +7,15 @@ import { describe, expect, it, vi } from 'vitest'
 import { AccessoProvider } from '../accesso/AccessoContext'
 import type { IscrizionePush } from '../accesso/servizio'
 import { App } from '../App'
-import { servizioFinto } from '../test/servizioFinto'
+import { RemotoFinto } from '../test/remotoFinto'
+import { AMMINISTRATORE, ATLETA, servizioFinto } from '../test/servizioFinto'
 import { chiaveInByte, daSottoscrizione } from './browser'
 import { ContestoNotifiche } from './contesto'
 import {
   creaServizioNotifiche,
+  memoriaBrowser,
   type Ambiente,
+  type Avvisi,
   type ServizioNotifiche,
   type StatoNotifiche,
 } from './servizio'
@@ -136,6 +139,7 @@ describe('browser', () => {
 
 function notificheFinte(stato: StatoNotifiche, esitoAttiva: 'ok' | 'negato' | 'errore' = 'ok') {
   let corrente = stato
+  let avvisi: Avvisi = { inviti: true, programma: true }
   const servizio: ServizioNotifiche = {
     stato: vi.fn(async () => corrente),
     attiva: vi.fn(async () => {
@@ -143,6 +147,8 @@ function notificheFinte(stato: StatoNotifiche, esitoAttiva: 'ok' | 'negato' | 'e
       return esitoAttiva
     }),
     disattiva: vi.fn(async () => void (corrente = 'spente')),
+    avvisi: vi.fn(() => avvisi),
+    imposta: vi.fn(async (a: Avvisi) => void (avvisi = a)),
   }
   return servizio
 }
@@ -210,6 +216,128 @@ describe('Impostazioni → Notifiche', () => {
     })
     await apriImpostazioni(notifiche)
     expect(await screen.findByText(/Tocca per accenderle/)).toBeInTheDocument()
+  })
+})
+
+describe('servizio notifiche: quali avvisi riceve il telefono', () => {
+  const memoriaFinta = () => {
+    let salvati: Avvisi | null = null
+    return {
+      leggi: vi.fn(() => salvati),
+      scrivi: vi.fn((a: Avvisi) => void (salvati = a)),
+    }
+  }
+
+  it('di base tutti; la scelta va al server e il telefono se la ricorda', async () => {
+    const { servizio } = servizioFinto()
+    const memoria = memoriaFinta()
+    const n = creaServizioNotifiche(servizio, ambienteFinto(), 'chiave', memoria)
+    expect(n.avvisi()).toEqual({ inviti: true, programma: true })
+    await n.attiva()
+    await n.imposta({ inviti: false, programma: true })
+    expect(servizio.impostaAvvisi).toHaveBeenCalledWith(TELEFONO.endpoint, false, true)
+    expect(n.avvisi()).toEqual({ inviti: false, programma: true })
+    // Spegnendo tutto si riparte da quelli di base.
+    await n.disattiva()
+    expect(n.avvisi()).toEqual({ inviti: true, programma: true })
+  })
+
+  it('la memoria del browser: legge, scrive, e senza memoria non si rompe', () => {
+    localStorage.clear()
+    expect(memoriaBrowser.leggi()).toBeNull()
+    memoriaBrowser.scrivi({ inviti: true, programma: false })
+    expect(memoriaBrowser.leggi()).toEqual({ inviti: true, programma: false })
+    localStorage.setItem('arco.avvisi', 'non è json')
+    expect(memoriaBrowser.leggi()).toBeNull()
+    const scrivi = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('finestra privata')
+    })
+    expect(() => memoriaBrowser.scrivi({ inviti: true, programma: true })).not.toThrow()
+    scrivi.mockRestore()
+  })
+})
+
+describe('Impostazioni → avviso del programma dell’allenatore', () => {
+  const aggiornato_il = '2026-11-01T10:00:00+00:00'
+  /** Bruno (collegato) è seguito da Anna. */
+  function remotoConAllenatore() {
+    const remoto = new RemotoFinto()
+    for (const a of [ATLETA, AMMINISTRATORE]) {
+      remoto.scrivi('atleti', {
+        id: a.id,
+        matricola: a.matricola,
+        nome: a.nome,
+        cognome: a.cognome,
+        ruolo: a.ruolo,
+        attivo: true,
+        ha_accesso: true,
+        allenatore: a.id === AMMINISTRATORE.id,
+        aggiornato_il,
+      })
+    }
+    remoto.scrivi('allenatori_atleti', {
+      allenatore_id: AMMINISTRATORE.id,
+      atleta_id: ATLETA.id,
+      aggiornato_il,
+    })
+    return remoto
+  }
+  const apri = async (notifiche: ServizioNotifiche, remoto = remotoConAllenatore()) => {
+    render(
+      <MemoryRouter initialEntries={['/impostazioni']}>
+        <AccessoProvider servizio={servizioFinto({ remoto }).servizio}>
+          <ContestoNotifiche.Provider value={notifiche}>
+            <App />
+          </ContestoNotifiche.Provider>
+        </AccessoProvider>
+      </MemoryRouter>,
+    )
+    await screen.findByRole('heading', { name: 'Impostazioni', level: 1 })
+  }
+  const programma = () => screen.findByRole('button', { name: /Programma dell’allenatore/ })
+
+  it('senza allenatore l’interruttore non c’è', async () => {
+    await apri(notificheFinte('spente'), new RemotoFinto())
+    await screen.findByRole('button', { name: /Nuovi inviti/ })
+    expect(
+      screen.queryByRole('button', { name: /Programma dell’allenatore/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('accendendo solo il programma, il telefono riceve solo quello', async () => {
+    const notifiche = notificheFinte('spente')
+    await apri(notifiche)
+    await userEvent.click(await programma())
+    await waitFor(() =>
+      expect(notifiche.imposta).toHaveBeenCalledWith({ inviti: false, programma: true }),
+    )
+    expect(notifiche.attiva).toHaveBeenCalled()
+    expect(await screen.findByText(/cambia il programma. Tocca per spegnerle/)).toBeInTheDocument()
+    expect(await screen.findByText(/invito di una gara. Tocca per accenderle/)).toBeInTheDocument()
+  })
+
+  it('con tutti e due accesi, spegnerne uno lascia l’altro; spegnere l’ultimo toglie il telefono', async () => {
+    const notifiche = notificheFinte('accese')
+    await apri(notifiche)
+    // Prima che arrivi chi segue l'atleta, l'interruttore del programma non c'è.
+    await programma()
+    await userEvent.click(await screen.findByRole('button', { name: /Nuovi inviti/ }))
+    await waitFor(() =>
+      expect(notifiche.imposta).toHaveBeenCalledWith({ inviti: false, programma: true }),
+    )
+    expect(notifiche.disattiva).not.toHaveBeenCalled()
+    await userEvent.click(await programma())
+    await waitFor(() => expect(notifiche.disattiva).toHaveBeenCalled())
+  })
+
+  it('se il server non riesce a cambiare la scelta: avviso', async () => {
+    const notifiche = notificheFinte('accese')
+    notifiche.imposta = vi.fn(async () => {
+      throw new Error('rete')
+    })
+    await apri(notifiche)
+    await userEvent.click(await programma())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Non è stato possibile')
   })
 })
 

@@ -4,7 +4,9 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3'
 import { PREFISSO_BLOCCO } from '../_shared/aggiornamento/index.ts'
 import type {
   Archivio,
+  ArchivioAvvisi,
   ArchivioNotifiche,
+  AvvisoProgramma,
   AtletaArchivio,
   ClassificaSalvata,
   GaraSalvata,
@@ -312,7 +314,8 @@ export function archivioNotificheSupabase(db: SupabaseClient): ArchivioNotifiche
 
     async iscrizioni() {
       return controlla(
-        await db.from('iscrizioni_push').select('endpoint, p256dh, auth'),
+        // Solo i telefoni con l'avviso dei nuovi inviti acceso.
+        await db.from('iscrizioni_push').select('endpoint, p256dh, auth').eq('inviti', true),
         'iscrizioni push',
       )
     },
@@ -321,6 +324,61 @@ export function archivioNotificheSupabase(db: SupabaseClient): ArchivioNotifiche
       controlla(
         await db.from('notifiche').update({ inviata_il: new Date().toISOString() }).eq('id', id),
         'segna notifica inviata',
+      )
+    },
+
+    async togliIscrizioni(endpoint) {
+      controlla(
+        await db.from('iscrizioni_push').delete().in('endpoint', endpoint),
+        'toglie iscrizioni push',
+      )
+    },
+  }
+}
+
+/** Gli avvisi del programma (Fase 7.3) sul database vero. */
+export function archivioAvvisiSupabase(db: SupabaseClient): ArchivioAvvisi {
+  return {
+    async avvisiDaInviare(primaDi) {
+      const righe = controlla(
+        await db
+          .from('avvisi_programma')
+          .select(
+            'id, atleta_id, settimana, creato_il, ultima_modifica_il, allenatore:allenatore_id(nome, cognome)',
+          )
+          .is('inviato_il', null)
+          .lte('ultima_modifica_il', primaDi.toISOString())
+          .order('id'),
+        'avvisi del programma',
+      ) as unknown as (Omit<AvvisoProgramma, 'allenatore'> & {
+        allenatore: { nome: string; cognome: string } | null
+      })[]
+      return righe.map((r) => ({
+        ...r,
+        allenatore: r.allenatore
+          ? `${r.allenatore.nome} ${r.allenatore.cognome}`
+          : 'Il tuo allenatore',
+      }))
+    },
+
+    async iscrizioniDi(atletaId) {
+      return controlla(
+        await db
+          .from('iscrizioni_push')
+          .select('endpoint, p256dh, auth')
+          .eq('atleta_id', atletaId)
+          .eq('programma', true),
+        'iscrizioni push dell’atleta',
+      )
+    },
+
+    async segnaAvvisoInviato(id) {
+      controlla(
+        await db
+          .from('avvisi_programma')
+          .update({ inviato_il: new Date().toISOString() })
+          .eq('id', id),
+        'segna avviso inviato',
       )
     },
 

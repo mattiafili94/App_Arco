@@ -53,6 +53,8 @@ export interface ServizioAccesso {
   registraPush(iscrizione: IscrizionePush): Promise<void>
   /** Toglie la registrazione di questo telefono. */
   rimuoviPush(endpoint: string): Promise<void>
+  /** Quali avvisi riceve questo telefono (nuovi inviti, programma dell'allenatore). */
+  impostaAvvisi(endpoint: string, inviti: boolean, programma: boolean): Promise<void>
   /** L'allenatore collegato inizia o smette di seguire un atleta. Lancia un errore con un messaggio da mostrare. */
   seguiAtleta(atletaId: string, segui: boolean): Promise<void>
   /** L'amministratore dà o toglie il ruolo di allenatore. Lancia un errore se non riesce. */

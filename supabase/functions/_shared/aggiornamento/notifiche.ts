@@ -128,3 +128,85 @@ export async function inviaNotifiche(
   if (scadute.size > 0) await archivio.togliIscrizioni([...scadute])
   return riepilogo
 }
+
+// --- Avvisi del programma (Fase 7.3) --------------------------------------------------------------------
+
+/**
+ * L'avviso parte quando l'allenatore ha finito di scrivere: dall'ultima modifica deve passare almeno questo tempo
+ * (tante modifiche di fila diventano un avviso solo).
+ */
+export const ATTESA_AVVISO_PROGRAMMA_MS = 10 * 60_000
+
+/** Un avviso in coda (tabella `avvisi_programma`), con il nome dell'allenatore. */
+export interface AvvisoProgramma {
+  id: number
+  atleta_id: string
+  /** "Mattia Rossi". */
+  allenatore: string
+  /** Il lunedì della settimana ("AAAA-MM-GG"). */
+  settimana: string
+  creato_il: string
+  ultima_modifica_il: string
+}
+
+export interface ArchivioAvvisi {
+  /** Gli avvisi non ancora mandati con l'ultima modifica prima di `primaDi`. */
+  avvisiDaInviare(primaDi: Date): Promise<AvvisoProgramma[]>
+  /** I telefoni di un atleta con gli avvisi del programma accesi. */
+  iscrizioniDi(atletaId: string): Promise<Iscrizione[]>
+  segnaAvvisoInviato(id: number): Promise<void>
+  togliIscrizioni(endpoint: string[]): Promise<void>
+}
+
+/** La domenica della settimana che inizia il lunedì indicato. */
+const domenica = (lunedi: string) =>
+  new Date(Date.parse(`${lunedi}T00:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10)
+
+/** Cosa riceve il telefono: toccando si apre la settimana del programma. */
+export function messaggioAvvisoProgramma(a: Pick<AvvisoProgramma, 'allenatore' | 'settimana'>) {
+  return JSON.stringify({
+    titolo: 'Programma aggiornato',
+    testo: `${a.allenatore} ha aggiornato il tuo programma della settimana ${formattaDate(a.settimana, domenica(a.settimana))}. Tocca per vederlo.`,
+    url: `/allenamento?settimana=${a.settimana}`,
+  })
+}
+
+/**
+ * Manda gli avvisi del programma, ognuno SOLO ai telefoni dell'atleta interessato (con l'avviso acceso).
+ * Come le notifiche degli inviti: senza telefoni l'avviso si chiude; se la consegna fallisce per tutti riprova al
+ * giro dopo, ma per 2 giorni al massimo; i telefoni che non esistono più si tolgono.
+ */
+export async function inviaAvvisiProgramma(
+  archivio: ArchivioAvvisi,
+  invia: Inviatore,
+  adesso: Date,
+): Promise<RiepilogoInvio> {
+  const riepilogo: RiepilogoInvio = { notifiche: 0, inviate: 0, scadute: 0, errori: 0 }
+  const coda = await archivio.avvisiDaInviare(
+    new Date(adesso.getTime() - ATTESA_AVVISO_PROGRAMMA_MS),
+  )
+  const scadute = new Set<string>()
+  for (const a of coda) {
+    riepilogo.notifiche++
+    if (adesso.getTime() - Date.parse(a.creato_il) > VALIDITA_NOTIFICA_MS) {
+      await archivio.segnaAvvisoInviato(a.id)
+      continue
+    }
+    const messaggio = messaggioAvvisoProgramma(a)
+    let riuscite = 0
+    let fallite = 0
+    for (const i of await archivio.iscrizioniDi(a.atleta_id)) {
+      if (scadute.has(i.endpoint)) continue
+      const esito = await invia(i, messaggio).catch(() => 'errore' as const)
+      if (esito === 'ok') riuscite++
+      else if (esito === 'scaduta') scadute.add(i.endpoint)
+      else fallite++
+    }
+    riepilogo.inviate += riuscite
+    riepilogo.errori += fallite
+    if (riuscite > 0 || fallite === 0) await archivio.segnaAvvisoInviato(a.id)
+  }
+  riepilogo.scadute = scadute.size
+  if (scadute.size > 0) await archivio.togliIscrizioni([...scadute])
+  return riepilogo
+}

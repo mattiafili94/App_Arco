@@ -15,16 +15,18 @@ import { useOnline } from '../stato/useOnline'
 import { DESTINAZIONI, destinazioneDi } from '../navigazione'
 import { SCELTE_TEMA } from '../tema/tema'
 import { useTema } from '../tema/useTema'
+import { useChiMiSegue } from '../allenatore/dati'
 import { AtletiCheSegui, TiSeguono } from '../allenatore/SezioneImpostazioni'
 import styles from './Impostazioni.module.css'
 
 /** La frase sotto "Nuovi inviti": spiega cosa fare o perché non si può. */
-function descrizioneNotifiche(stato: StatoNotifiche): string {
+function descrizioneNotifiche(stato: StatoNotifiche, acceso: boolean): string {
   switch (stato) {
     case 'accese':
-      return "Ti avvisiamo quando esce l'invito di una gara. Tocca per spegnerle."
     case 'spente':
-      return "Ricevi un avviso quando esce l'invito di una gara. Tocca per accenderle."
+      return acceso
+        ? "Ti avvisiamo quando esce l'invito di una gara. Tocca per spegnerle."
+        : "Ricevi un avviso quando esce l'invito di una gara. Tocca per accenderle."
     case 'serve-home':
       return 'Su iPhone prima aggiungi l’app alla schermata Home, poi aprila da lì.'
     case 'bloccate':
@@ -44,7 +46,10 @@ export function Impostazioni() {
   const [confermaUscita, setConfermaUscita] = useState(false)
   const online = useOnline()
   const { stato: sync, aggiorna } = useSincronizzazione()
-  const notifiche = useNotifiche()
+  // L'avviso del programma ha senso solo se qualcuno segue l'atleta (Fase 7.3).
+  const chiMiSegue = useChiMiSegue()
+  const haAllenatore = (chiMiSegue?.length ?? 0) > 0
+  const notifiche = useNotifiche(haAllenatore)
   const daInviare = useModificheDaInviare()
   const interruttoreUtilizzabile =
     !notifiche.occupato && (notifiche.stato === 'spente' || notifiche.stato === 'accese')
@@ -86,10 +91,24 @@ export function Impostazioni() {
         <ListGroup title="Notifiche">
           <ListRow
             label="Nuovi inviti"
-            value={notifiche.stato === 'accese' ? 'Accese' : 'Spente'}
-            description={descrizioneNotifiche(notifiche.stato)}
-            onSelect={interruttoreUtilizzabile ? () => void notifiche.cambia() : undefined}
+            value={notifiche.acceso('inviti') ? 'Accese' : 'Spente'}
+            description={descrizioneNotifiche(notifiche.stato, notifiche.acceso('inviti'))}
+            onSelect={interruttoreUtilizzabile ? () => void notifiche.cambia('inviti') : undefined}
           />
+          {haAllenatore && (notifiche.stato === 'spente' || notifiche.stato === 'accese') && (
+            <ListRow
+              label="Programma dell’allenatore"
+              value={notifiche.acceso('programma') ? 'Accese' : 'Spente'}
+              description={
+                notifiche.acceso('programma')
+                  ? 'Ti avvisiamo quando un tuo allenatore cambia il programma. Tocca per spegnerle.'
+                  : 'Ricevi un avviso quando un tuo allenatore cambia il programma. Tocca per accenderle.'
+              }
+              onSelect={
+                interruttoreUtilizzabile ? () => void notifiche.cambia('programma') : undefined
+              }
+            />
+          )}
         </ListGroup>
         {notifiche.errore === 'negato' && (
           <Notice status="warning">
