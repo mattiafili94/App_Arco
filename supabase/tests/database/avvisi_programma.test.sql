@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000b6', 'allenatore6@test.invalid'),
@@ -62,7 +62,10 @@ select lives_ok(
        false, 0, '', '2027-03-01 11:00+00', '2027-03-01 11:00+00') $$,
   'l''atleta scrive il suo programma'
 );
-select is((select count(*)::int from public.avvisi_programma), 2, 'e non parte nessun avviso');
+select throws_ok(
+  $ select count(*) from public.avvisi_programma $,
+  '42501', null, 'la coda degli avvisi la vede solo il server'
+);
 
 -- Ogni telefono sceglie i suoi avvisi ------------------------------------------------------------------------------
 select is(public.imposta_avvisi('https://push.example/carla', true, false), true, 'l''atleta spegne gli avvisi del programma');
@@ -72,6 +75,8 @@ select is(
   (select string_agg(endpoint || ':' || inviti || '/' || programma, ',' order by endpoint) from public.iscrizioni_push),
   'https://push.example/bruno:true/true,https://push.example/carla:true/false', 'solo il suo telefono è cambiato'
 );
+
+select is((select count(*)::int from public.avvisi_programma), 2, 'e quando il programma lo cambia l''atleta non parte nessun avviso');
 
 select * from finish();
 rollback;
