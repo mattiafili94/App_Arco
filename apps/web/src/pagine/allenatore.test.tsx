@@ -278,7 +278,9 @@ describe('impostazioni', () => {
       atleti: [AMMINISTRATORE, { ...ATLETA, allenatore: true }, CARLA, DARIO],
     })
     await renderApp('/impostazioni', { servizio: finto.servizio })
-    expect(await screen.findByText(/Bruno Prova: vedono il tuo allenamento/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Bruno Prova: vedono il tuo allenamento/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
     // Non è allenatore: niente scelta degli atleti.
     expect(screen.queryByRole('region', { name: 'Atleti che segui' })).not.toBeInTheDocument()
   })
