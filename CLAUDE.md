@@ -586,7 +586,25 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         la pagina si scorre (`clip-path: circle` e controllo della distanza); le frecce vecchie più lontane si
         disegnano sul bordo. **Ordine**: volée in corso, scelta tastierino/bersaglio, "Annulla ultima freccia",
         **elenco delle volée**, **riepilogo** (con il confronto), in fondo **"Dove sono arrivate le frecce"**.
-7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
+7. **Ruolo allenatore**, tre PR (piano approvato l'11/11/2026). L'allenatore è un **atleta con in più il ruolo**
+   (`atleti.allenatore`, lo dà o lo toglie l'amministratore); sceglie **da solo** chi seguire (Impostazioni →
+   "Atleti che segui"); ha un **quinto tab "I miei atleti"**; degli atleti seguiti **vede tutto** l'allenamento
+   (anche le simulazioni, in sola lettura) e **scrive solo il programma** (tutti e due lo possono cambiare; si vede
+   chi l'ha modificato per ultimo); può **copiare il programma della settimana su altri atleti** (i giorni già
+   scritti si sostituiscono solo se lo si conferma); l'atleta vede **"Ti seguono: …"** e riceve una **notifica** solo
+   lui quando l'allenatore cambia il suo programma. L'amministratore senza ruolo non vede niente (per le prove
+   Mattia ha anche il ruolo, poi lo toglierà).
+   1. server ✅: migrazione `20261118120000_allenatore.sql`. Tabella `allenatori_atleti` (allenatore, atleta,
+      `aggiornato_il`, traccia delle eliminazioni: si sincronizza); si segue o si smette con `segui_atleta` (solo
+      allenatori attivi, mai sé stessi); la vedono l'allenatore e l'atleta seguito. `allenamento_accessibile` =
+      l'atleta **o** un allenatore (con il ruolo) che lo segue; `allenamento_proprio` = solo l'atleta (lo usa
+      `salva_simulazione`: le simulazioni le scrive solo l'atleta). Il **programma ha la sua data e il suo autore**
+      (`programma_modificato_il`, `programma_modificato_da`): `salva_allenamento_giorno` ha `p_programma_modificato_il`
+      (facoltativo); l'allenatore cambia solo il programma; le app vecchie (senza quella data) non sovrascrivono mai
+      il programma dell'allenatore; un giorno creato dall'allenatore ha `modificato_il` al 1970, così ogni modifica
+      dell'atleta vince. Tolto il ruolo (o disattivato l'atleta) l'allenatore smette di seguire tutti (trigger
+      `allenatore_tolto`). Test in `supabase/tests/database/allenatore.test.sql`.
+8. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system
 
