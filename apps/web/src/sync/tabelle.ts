@@ -10,6 +10,7 @@ export type NomeTabella =
   | 'inviti'
   | 'partecipazioni'
   | 'classifiche'
+  | 'allenatori_atleti'
   | 'allenamento_giorni'
   | 'simulazioni'
 
@@ -27,13 +28,15 @@ export const TABELLE: readonly DefinizioneTabella[] = [
     chiave: ['id'],
     // Niente `utente_id`: il collegamento con l'accesso non serve nell'app (basta `ha_accesso`).
     colonne:
-      'id, matricola, nome, cognome, ruolo, attivo, ha_accesso, classe, genere, aggiornato_il',
+      'id, matricola, nome, cognome, ruolo, attivo, ha_accesso, allenatore, classe, genere, aggiornato_il',
   },
   { nome: 'gare', chiave: ['codice'], colonne: '*' },
   { nome: 'inviti', chiave: ['gara_codice'], colonne: '*' },
   { nome: 'partecipazioni', chiave: ['atleta_id', 'gara_codice', 'divisione'], colonne: '*' },
   { nome: 'classifiche', chiave: ['gara_codice', 'categoria', 'ordine'], colonne: '*' },
-  // Privato: il server restituisce solo le righe dell'atleta collegato. Si scrive anche dal telefono
+  // Chi segue chi (Fase 7): l'allenatore vede chi segue, l'atleta chi lo segue.
+  { nome: 'allenatori_atleti', chiave: ['allenatore_id', 'atleta_id'], colonne: '*' },
+  // Privato: il server restituisce solo le righe dell'atleta collegato (e degli atleti che segue, se è allenatore). Si scrive anche dal telefono
   // (vedi motore.ts, "inviaModifiche").
   { nome: 'allenamento_giorni', chiave: ['atleta_id', 'giorno'], colonne: '*' },
   // Privato e scrivibile come l'allenamento: le simulazioni di gara con tutte le frecce.

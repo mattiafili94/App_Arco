@@ -20,6 +20,7 @@ import {
   type Simulazione,
   type ValoreFreccia,
 } from '@arco/shared'
+import { useAtletaCorrente } from '../accesso/contesto'
 import { useSimulazione } from '../allenamento/dati'
 import { useInvioDifferito } from '../allenamento/invioDifferito'
 import {
@@ -101,13 +102,24 @@ function Casella({
   selezionata,
   onScegli,
   etichetta,
+  solaLettura = false,
 }: {
   valore: ValoreFreccia | null
   indice: number
   selezionata: boolean
   onScegli(indice: number): void
   etichetta: string
+  /** Solo da guardare (l'allenatore): niente correzioni. */
+  solaLettura?: boolean
 }) {
+  if (valore !== null && solaLettura) {
+    return (
+      <span className={`${styles.casella} ${classeZona(valore)}`}>
+        <span className="visually-hidden">{`${etichetta}: `}</span>
+        {valore}
+      </span>
+    )
+  }
   if (valore === null) {
     return (
       <span className={`${styles.casella} ${styles.vuota}`} aria-hidden="true">
@@ -151,7 +163,17 @@ function useModoSegnapunti(): [Modo, (m: Modo) => void] {
   return [modo, imposta]
 }
 
-function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
+function Tiro({
+  simulazione: s,
+  base,
+  solaLettura,
+}: {
+  simulazione: Simulazione
+  /** `/allenamento` o `/allenatore/:atleta`: da qui gli indirizzi del giorno. */
+  base: string
+  /** L'allenatore guarda la simulazione dell'atleta: niente tastierino, correzioni, note da scrivere. */
+  solaLettura: boolean
+}) {
   const { db } = useSincronizzazione()
   const vai = useNavigate()
   const programmaInvio = useInvioDifferito()
@@ -192,7 +214,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const elimina = async () => {
     await eliminaSimulazione(db, s.id)
     programmaInvio()
-    vai(`/allenamento/${s.giorno}`, { replace: true })
+    vai(`${base}/${s.giorno}`, { replace: true })
   }
 
   const provaInCorso = r.prove[stato.prova]!
@@ -233,10 +255,14 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
     <>
       <PageHeader
         title={nomeSimulazione(s)}
-        action={haTimer(s.formato) && !stato.finita ? <PulsanteTimer timer={timer} /> : undefined}
+        action={
+          !solaLettura && haTimer(s.formato) && !stato.finita ? (
+            <PulsanteTimer timer={timer} />
+          ) : undefined
+        }
         back={{
           label: etichettaGiorno(s.giorno, annoCorrente),
-          href: `/allenamento/${s.giorno}`,
+          href: `${base}/${s.giorno}`,
         }}
         description={dove}
       />
@@ -251,6 +277,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                 indice={primaDellaVolee + i}
                 selezionata={selezionata === primaDellaVolee + i}
                 onScegli={setSelezionata}
+                solaLettura={solaLettura}
                 etichetta={`Freccia ${i + 1} della ${unita.minuscolo} ${stato.volee}`}
               />
             ))}
@@ -269,55 +296,59 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
           </Notice>
         )}
 
-        {conAnelli !== null && (
-          <Scelte
-            label="Come segni le frecce"
-            opzioni={[
-              { valore: 'tastierino', etichetta: 'Tastierino' },
-              { valore: 'bersaglio', etichetta: 'Bersaglio' },
-            ]}
-            valore={modo}
-            onChange={(v) => impostaModo(v === 'bersaglio' ? 'bersaglio' : 'tastierino')}
-          />
-        )}
-        {modoEffettivo === 'bersaglio' && conAnelli !== null ? (
-          <BersaglioTocco
-            bersaglio={conAnelli}
-            compound={s.compound ?? false}
-            punti={puntiProva}
-            onSegna={(posizione, valore) => void premi(valore, posizione)}
-            disabilitato={stato.finita && selezionata === null}
-            etichetta="Bersaglio: tocca dove è arrivata la freccia. In alternativa usa il tastierino."
-          />
-        ) : (
-          <div
-            className={styles.tastierino}
-            role="group"
-            aria-label="Valore della freccia"
-            data-colonne={valori.length > 8 || s.bersaglio === 'campagna' ? 4 : 3}
-          >
-            {valori.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={`${styles.tasto} ${classeZona(v)}`}
-                disabled={stato.finita && selezionata === null}
-                onClick={() => void premi(v)}
+        {!solaLettura && (
+          <>
+            {conAnelli !== null && (
+              <Scelte
+                label="Come segni le frecce"
+                opzioni={[
+                  { valore: 'tastierino', etichetta: 'Tastierino' },
+                  { valore: 'bersaglio', etichetta: 'Bersaglio' },
+                ]}
+                valore={modo}
+                onChange={(v) => impostaModo(v === 'bersaglio' ? 'bersaglio' : 'tastierino')}
+              />
+            )}
+            {modoEffettivo === 'bersaglio' && conAnelli !== null ? (
+              <BersaglioTocco
+                bersaglio={conAnelli}
+                compound={s.compound ?? false}
+                punti={puntiProva}
+                onSegna={(posizione, valore) => void premi(valore, posizione)}
+                disabilitato={stato.finita && selezionata === null}
+                etichetta="Bersaglio: tocca dove è arrivata la freccia. In alternativa usa il tastierino."
+              />
+            ) : (
+              <div
+                className={styles.tastierino}
+                role="group"
+                aria-label="Valore della freccia"
+                data-colonne={valori.length > 8 || s.bersaglio === 'campagna' ? 4 : 3}
               >
-                {v}
-              </button>
-            ))}
-          </div>
+                {valori.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`${styles.tasto} ${classeZona(v)}`}
+                    disabled={stato.finita && selezionata === null}
+                    onClick={() => void premi(v)}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className={styles.azioni}>
+              <Button
+                variant="secondary"
+                disabled={s.frecce.length === 0}
+                onClick={() => void annulla()}
+              >
+                Annulla ultima freccia
+              </Button>
+            </div>
+          </>
         )}
-        <div className={styles.azioni}>
-          <Button
-            variant="secondary"
-            disabled={s.frecce.length === 0}
-            onClick={() => void annulla()}
-          >
-            Annulla ultima freccia
-          </Button>
-        </div>
 
         {r.frecceSegnate > 0 && (
           <>
@@ -352,17 +383,19 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                               <span className={styles.totali}>
                                 {`${unita.maiuscolo} ${v.totale} · Totale ${progressivo}`}
                               </span>
-                              <button
-                                type="button"
-                                className={styles.pulsanteNota}
-                                aria-expanded={notaAperta === indiceVolee}
-                                onClick={() =>
-                                  setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
-                                }
-                              >
-                                <span className="visually-hidden">{`Nota della ${unita.minuscolo} ${j + 1}: `}</span>{' '}
-                                {nota === '' ? 'Aggiungi' : 'Modifica'}
-                              </button>
+                              {!solaLettura && (
+                                <button
+                                  type="button"
+                                  className={styles.pulsanteNota}
+                                  aria-expanded={notaAperta === indiceVolee}
+                                  onClick={() =>
+                                    setNotaAperta(notaAperta === indiceVolee ? null : indiceVolee)
+                                  }
+                                >
+                                  <span className="visually-hidden">{`Nota della ${unita.minuscolo} ${j + 1}: `}</span>{' '}
+                                  {nota === '' ? 'Aggiungi' : 'Modifica'}
+                                </button>
+                              )}
                             </div>
                             <div className={styles.frecce}>
                               {v.frecce.map((valore, k) => {
@@ -374,6 +407,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                                     indice={indice}
                                     selezionata={selezionata === indice}
                                     onScegli={setSelezionata}
+                                    solaLettura={solaLettura}
                                     etichetta={`Freccia ${k + 1} della ${unita.minuscolo} ${j + 1}`}
                                   />
                                 )
@@ -464,43 +498,58 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
           </>
         )}
 
-        <div className={styles.azioni}>
-          {conferma ? (
-            <>
-              <Notice status="warning">
-                La simulazione e tutte le sue frecce verranno cancellate.
-              </Notice>
-              <Button variant="destructive" onClick={() => void elimina()}>
+        {!solaLettura && (
+          <div className={styles.azioni}>
+            {conferma ? (
+              <>
+                <Notice status="warning">
+                  La simulazione e tutte le sue frecce verranno cancellate.
+                </Notice>
+                <Button variant="destructive" onClick={() => void elimina()}>
+                  Elimina la simulazione
+                </Button>
+                <Button variant="text" onClick={() => setConferma(false)}>
+                  Annulla
+                </Button>
+              </>
+            ) : (
+              <Button variant="text" onClick={() => setConferma(true)}>
                 Elimina la simulazione
               </Button>
-              <Button variant="text" onClick={() => setConferma(false)}>
-                Annulla
-              </Button>
-            </>
-          ) : (
-            <Button variant="text" onClick={() => setConferma(true)}>
-              Elimina la simulazione
-            </Button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   )
 }
 
-/** Una simulazione di gara (`/allenamento/AAAA-MM-GG/simulazione/:id`): tastierino, volée e riepilogo. */
-export function SimulazionePagina() {
+/**
+ * Una simulazione di gara di un atleta: dell'atleta collegato (`/allenamento/AAAA-MM-GG/simulazione/:id`) con
+ * tastierino, volée e riepilogo, oppure di un atleta seguito (`/allenatore/:atleta/…`) solo da guardare.
+ */
+export function SimulazioneAtleta({
+  atletaId,
+  base,
+  solaLettura,
+  indietro,
+}: {
+  atletaId: string
+  base: string
+  solaLettura: boolean
+  indietro: string
+}) {
   const { giorno = '', id = '' } = useParams()
-  const s = useSimulazione(id)
+  const s = useSimulazione(id, atletaId)
   if (s === undefined) {
-    return <PageHeader title="Simulazione" back={{ label: 'Allenamento', href: '/allenamento' }} />
+    return <PageHeader title="Simulazione" back={{ label: indietro, href: base }} />
   }
   if (s === null) {
     return (
       <>
         <PageHeader
           title="Simulazione"
-          back={{ label: 'Allenamento', href: giorno ? `/allenamento/${giorno}` : '/allenamento' }}
+          back={{ label: indietro, href: giorno ? `${base}/${giorno}` : base }}
         />
         <EmptyState
           icon={Target}
@@ -511,6 +560,19 @@ export function SimulazionePagina() {
     )
   }
   if (giorno !== s.giorno)
-    return <Navigate to={`/allenamento/${s.giorno}/simulazione/${s.id}`} replace />
-  return <Tiro key={s.id} simulazione={s} />
+    return <Navigate to={`${base}/${s.giorno}/simulazione/${s.id}`} replace />
+  return <Tiro key={s.id} simulazione={s} base={base} solaLettura={solaLettura} />
+}
+
+/** Una simulazione di gara dell'atleta collegato. */
+export function SimulazionePagina() {
+  const io = useAtletaCorrente()
+  return (
+    <SimulazioneAtleta
+      atletaId={io.id}
+      base="/allenamento"
+      solaLettura={false}
+      indietro="Allenamento"
+    />
+  )
 }

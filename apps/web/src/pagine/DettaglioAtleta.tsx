@@ -4,6 +4,7 @@ import { formattaCodice } from '@arco/shared'
 import { useAccesso, useAtletaCorrente } from '../accesso/contesto'
 import { nomeCompleto } from '../accesso/servizio'
 import { Button } from '../componenti/Button'
+import { Checkbox } from '../componenti/Checkbox'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
@@ -21,8 +22,10 @@ export function DettaglioAtleta() {
 
   const [link, setLink] = useState<{ link: string; codice: string } | null>(null)
   const [esito, setEsito] = useState<Esito | null>(null)
-  const [inCorso, setInCorso] = useState<'genera' | 'revoca' | null>(null)
+  const [inCorso, setInCorso] = useState<'genera' | 'revoca' | 'ruolo' | null>(null)
   const [confermaRevoca, setConfermaRevoca] = useState(false)
+  // Il ruolo scelto si vede subito, prima che l'elenco si ricarichi dal server.
+  const [ruolo, setRuolo] = useState<boolean | null>(null)
 
   if (io.ruolo !== 'amministratore') return <Navigate to="/impostazioni" replace />
 
@@ -39,6 +42,27 @@ export function DettaglioAtleta() {
   const atleta = elenco.find((a) => a.id === id)
   if (!atleta) return <Navigate to="/amministrazione" replace />
   const sonoIo = atleta.id === io.id
+
+  const cambiaRuolo = async (allenatore: boolean) => {
+    setEsito(null)
+    setInCorso('ruolo')
+    setRuolo(allenatore)
+    try {
+      await servizio.impostaAllenatore(atleta.id, allenatore)
+      carica()
+      setEsito({
+        tipo: 'success',
+        testo: allenatore
+          ? `${atleta.nome} ora è anche allenatore.`
+          : `${atleta.nome} non è più allenatore: non segue più nessun atleta.`,
+      })
+    } catch (e) {
+      setRuolo(null)
+      setEsito({ tipo: 'error', testo: (e as Error).message })
+    } finally {
+      setInCorso(null)
+    }
+  }
 
   const genera = async () => {
     setEsito(null)
@@ -105,6 +129,14 @@ export function DettaglioAtleta() {
           />
           <ListRow label="Accesso" value={atleta.haAccesso ? 'Attivo' : 'Nessuno'} />
         </ListGroup>
+
+        {/* Il ruolo di allenatore (Fase 7): può seguire l'allenamento degli atleti che sceglie. */}
+        <Checkbox
+          label="Allenatore: può seguire l’allenamento degli atleti che sceglie e scrivere il loro programma"
+          checked={ruolo ?? atleta.allenatore ?? false}
+          disabled={inCorso !== null}
+          onChange={(e) => void cambiaRuolo(e.target.checked)}
+        />
 
         {esito && <Notice status={esito.tipo}>{esito.testo}</Notice>}
 

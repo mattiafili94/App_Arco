@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  programmiDaCopiare,
   aggiungiGiorni,
   copiaProgrammaSettimana,
   descriviSettimana,
@@ -178,5 +179,42 @@ describe('copia la settimana scorsa', () => {
     expect(
       copiaProgrammaSettimana([g('2026-11-02'), g('2026-11-03', { fatto: true })], []),
     ).toEqual([])
+  })
+})
+
+describe('copia del programma su un altro atleta', () => {
+  const g = (giorno: string, programma: string) => ({ giorno, programma })
+  const sorgente = [
+    g('2026-11-16', '60 frecce a 18 m'),
+    g('2026-11-17', ''),
+    g('2026-11-18', 'Riposo attivo'),
+    g('2026-11-19', 'Simulazione 18 m'),
+  ]
+
+  it('copia i programmi negli stessi giorni, saltando quelli vuoti', () => {
+    expect(programmiDaCopiare(sorgente, [], false)).toEqual([
+      g('2026-11-16', '60 frecce a 18 m'),
+      g('2026-11-18', 'Riposo attivo'),
+      g('2026-11-19', 'Simulazione 18 m'),
+    ])
+  })
+
+  it('i giorni già scritti restano com’erano, a meno di sostituirli', () => {
+    const destinazione = [g('2026-11-16', 'Il suo programma'), g('2026-11-18', '  ')]
+    expect(programmiDaCopiare(sorgente, destinazione, false).map((x) => x.giorno)).toEqual([
+      '2026-11-18',
+      '2026-11-19',
+    ])
+    expect(programmiDaCopiare(sorgente, destinazione, true).map((x) => x.giorno)).toEqual([
+      '2026-11-16',
+      '2026-11-18',
+      '2026-11-19',
+    ])
+  })
+
+  it('un programma già uguale non si riscrive', () => {
+    expect(programmiDaCopiare(sorgente, [g('2026-11-19', 'Simulazione 18 m')], true)).toHaveLength(
+      2,
+    )
   })
 })

@@ -15,6 +15,7 @@ import { useOnline } from '../stato/useOnline'
 import { DESTINAZIONI, destinazioneDi } from '../navigazione'
 import { SCELTE_TEMA } from '../tema/tema'
 import { useTema } from '../tema/useTema'
+import { AtletiCheSegui, TiSeguono } from '../allenatore/SezioneImpostazioni'
 import styles from './Impostazioni.module.css'
 
 /** La frase sotto "Nuovi inviti": spiega cosa fare o perché non si può. */
@@ -99,6 +100,9 @@ export function Impostazioni() {
         {notifiche.errore === 'errore' && (
           <Notice status="error">Non è stato possibile accenderle. Riprova tra poco.</Notice>
         )}
+
+        <TiSeguono />
+        <AtletiCheSegui />
 
         <ListGroup title="Tema" role="radiogroup">
           {SCELTE_TEMA.map((s) => (

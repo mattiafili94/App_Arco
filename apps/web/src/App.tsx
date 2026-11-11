@@ -13,6 +13,12 @@ import { Risultati } from './pagine/Risultati'
 import { GareAtleta, ProvaAtleta, SchedaAtleta } from './pagine/SchedaAtleta'
 import { SimulazionePagina } from './pagine/SimulazionePagina'
 import { Gare } from './pagine/Gare'
+import {
+  GiornoSeguito,
+  MieiAtleti,
+  SettimanaSeguito,
+  SimulazioneSeguito,
+} from './pagine/MieiAtleti'
 import { CalendarioAnno, StoricoGare } from './pagine/ElenchiGare'
 import { GiornoAllenamentoPagina } from './pagine/GiornoAllenamento'
 import { Impostazioni } from './pagine/Impostazioni'
@@ -62,6 +68,13 @@ export function App() {
           <Route path="allenamento/:giorno" element={<GiornoAllenamentoPagina />} />
           <Route path="allenamento/:giorno/nuova" element={<NuovaSimulazionePagina />} />
           <Route path="allenamento/:giorno/simulazione/:id" element={<SimulazionePagina />} />
+          <Route path="allenatore" element={<MieiAtleti />} />
+          <Route path="allenatore/:atleta" element={<SettimanaSeguito />} />
+          <Route path="allenatore/:atleta/:giorno" element={<GiornoSeguito />} />
+          <Route
+            path="allenatore/:atleta/:giorno/simulazione/:id"
+            element={<SimulazioneSeguito />}
+          />
           <Route path="impostazioni" element={<Impostazioni />} />
           <Route path="amministrazione" element={<Amministrazione />} />
           <Route path="amministrazione/atleti/:id" element={<DettaglioAtleta />} />

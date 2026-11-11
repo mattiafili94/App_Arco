@@ -13,6 +13,7 @@ export class RemotoFinto implements Remoto {
     inviti: [],
     partecipazioni: [],
     classifiche: [],
+    allenatori_atleti: [],
     allenamento_giorni: [],
     simulazioni: [],
   }

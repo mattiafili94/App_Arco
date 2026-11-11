@@ -56,3 +56,22 @@
   gap: var(--space-16);
   margin-top: var(--space-24);
 }
+
+/* "Copia il programma su…": l'elenco degli atleti da spuntare. */
+.copia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+  background: var(--background-surface);
+  color: var(--text-primary);
+}
+
+/* Chi ha scritto il programma, sotto il campo. */
+.autore {
+  margin: 0;
+  color: var(--text-secondary);
+}

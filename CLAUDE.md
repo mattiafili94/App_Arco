@@ -604,6 +604,21 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       il programma dell'allenatore; un giorno creato dall'allenatore ha `modificato_il` al 1970, così ogni modifica
       dell'atleta vince. Tolto il ruolo (o disattivato l'atleta) l'allenatore smette di seguire tutti (trigger
       `allenatore_tolto`). Test in `supabase/tests/database/allenatore.test.sql`.
+   2. app ✅: quinto tab **"I miei atleti"** (`pagine/MieiAtleti.tsx`, `/allenatore`, solo con il ruolo: `destinazioniPer` in
+      `navigazione.ts`, `useSonoAllenatore` dai dati sincronizzati) con gli atleti seguiti; `/allenatore/:atleta` è la
+      stessa settimana dell'atleta (`SettimanaAllenamento`), `/allenatore/:atleta/:giorno` lo stesso giorno
+      (`GiornoAllenamento`: l'allenatore scrive solo il programma, "fatto", frecce e nota li vede in "Segnato
+      dall'atleta") e le simulazioni **solo da guardare** (`SimulazioneAtleta` con `solaLettura`). Sotto il programma
+      "Programma scritto da te / dall'atleta / da X (allenatore)"; nella settimana "scritto dall'atleta" o "scritto
+      da X" quando non l'ha scritto chi guarda (`allenatore/autore.ts`). **"Copia il programma su…"**
+      (`copiaProgrammaSuAtleti`, logica `programmiDaCopiare`): gli atleti seguiti da spuntare e "Sostituisci anche i
+      giorni che hanno già un programma". Impostazioni: **"Atleti che segui"** (spunte, serve la rete:
+      `servizio.seguiAtleta` → `segui_atleta`; la spunta si vede subito) e **"Ti seguono: …"**; Amministrazione: casella
+      **"Allenatore"** nella scheda dell'atleta (`servizio.impostaAllenatore`). Sincronizzazione: tabella
+      `allenatori_atleti` e colonna `atleti.allenatore`, Dexie versione 6; `salvaGiorno` tiene data e autore del
+      programma (`programma_modificato_il`, `programma_modificato_da`) e manda `p_programma_modificato_il`.
+      La sincronizzazione smette di scrivere sul telefono quando la schermata si chiude (`fermato` di `sincronizza`):
+      toglie anche i test "ballerini" dove una sincronizzazione del test prima scriveva dopo la pulizia.
 8. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

@@ -4,7 +4,8 @@ import { Outlet, useLocation } from 'react-router'
 import { Button } from './componenti/Button'
 import { NavigationBar } from './componenti/NavigationBar'
 import { StatusLine } from './componenti/StatusLine'
-import { DESTINAZIONI, destinazioneDi, titoloDocumento } from './navigazione'
+import { useSonoAllenatore } from './allenatore/dati'
+import { destinazioneDi, destinazioniPer, titoloDocumento } from './navigazione'
 import { useAggiornamento } from './stato/useAggiornamento'
 import { useOnline } from './stato/useOnline'
 import styles from './Shell.module.css'
@@ -15,6 +16,8 @@ export function Shell() {
   const online = useOnline()
   const { nuovaVersione, ricarica } = useAggiornamento()
   const primaVolta = useRef(true)
+  // Il quinto tab "I miei atleti" solo per chi ha il ruolo di allenatore.
+  const allenatore = useSonoAllenatore() === true
 
   useEffect(() => {
     document.title = titoloDocumento(pathname)
@@ -51,7 +54,10 @@ export function Shell() {
           <Outlet />
         </main>
       </div>
-      <NavigationBar destinations={DESTINAZIONI} current={destinazioneDi(pathname)?.id} />
+      <NavigationBar
+        destinations={destinazioniPer(allenatore)}
+        current={destinazioneDi(pathname)?.id}
+      />
     </div>
   )
 }

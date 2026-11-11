@@ -100,6 +100,7 @@ async function scaricaTabella(
   remoto: Remoto,
   db: ArcoDb,
   def: DefinizioneTabella,
+  fermato: () => boolean,
 ): Promise<number> {
   const cursore = await leggiMeta(db, chiaveCursore(def))
   const dal = cursore === undefined ? null : new Date(cursore - MARGINE_MS).toISOString()
@@ -107,6 +108,8 @@ async function scaricaTabella(
   let scritte = 0
   for (let da = 0; ; da += DIMENSIONE_PAGINA) {
     const pagina = await remoto.cambiamenti(def.nome, dal, da, DIMENSIONE_PAGINA)
+    // Chiusa l'app (o la schermata) nel frattempo: non si scrive più niente.
+    if (fermato()) return scritte
     if (pagina.length > 0)
       await db.tabella(def.nome).bulkPut(await senzaModificheLocali(db, def, pagina))
     scritte += pagina.length
@@ -155,6 +158,8 @@ export async function sincronizza(
   remoto: Remoto,
   db: ArcoDb,
   adesso: () => number = Date.now,
+  /** Vero quando chi ha chiesto la sincronizzazione non c'è più: da lì non si scrive più niente. */
+  fermato: () => boolean = () => false,
 ): Promise<EsitoSincronizzazione> {
   // Prima le modifiche fatte sul telefono (anche dopo tanto tempo: non si perdono mai).
   const invio = await inviaModifiche(remoto, db)
@@ -172,14 +177,14 @@ export async function sincronizza(
     // Primo giro: niente da togliere. Si segna fin d'ora fin dove arriva il registro, così le
     // eliminazioni avvenute mentre si scarica si applicano al giro dopo.
     const iniziale = await remoto.ultimaEliminazione()
-    for (const def of TABELLE) righe += await scaricaTabella(remoto, db, def)
-    await scriviMeta(db, CHIAVE_ELIMINAZIONI, iniziale)
+    for (const def of TABELLE) righe += await scaricaTabella(remoto, db, def, fermato)
+    if (!fermato()) await scriviMeta(db, CHIAVE_ELIMINAZIONI, iniziale)
   } else {
     // Prima le eliminazioni, poi le righe nuove: una riga eliminata e riscritta torna com'è sul server.
     eliminate = await applicaEliminazioni(remoto, db, idEliminazioni)
-    for (const def of TABELLE) righe += await scaricaTabella(remoto, db, def)
+    for (const def of TABELLE) righe += await scaricaTabella(remoto, db, def, fermato)
   }
-  await scriviMeta(db, CHIAVE_ULTIMA, adesso())
+  if (!fermato()) await scriviMeta(db, CHIAVE_ULTIMA, adesso())
   // Un invio fallito si segnala, ma dopo aver scaricato le novità.
   if (invio.errore !== null) throw invio.errore
   return { righe, eliminate, daCapo, inviate: invio.inviate }

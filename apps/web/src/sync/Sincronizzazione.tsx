@@ -45,7 +45,7 @@ export function Sincronizzazione({
         daRipetere.current = false
         if (montato.current) setFase('in-corso')
         try {
-          await sincronizza(servizio.remoto, db)
+          await sincronizza(servizio.remoto, db, Date.now, () => !montato.current)
           const quando = await ultimaSincronizzazione(db)
           if (montato.current) {
             setUltima(quando)
