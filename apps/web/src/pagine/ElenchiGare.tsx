@@ -85,7 +85,7 @@ export function CalendarioAnno() {
   )
 }
 
-/** Lo storico completo (`/gare/storico`): tutte le gare passate, anno per anno, dalla più recente. */
+/** Lo storico (`/gare/storico`): le gare passate dell'anno in corso e dell'anno prima, anno per anno. */
 export function StoricoGare() {
   const gare = useGare()
   const mie = useMieGare()

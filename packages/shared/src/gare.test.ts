@@ -202,7 +202,12 @@ describe('elenchi del tab Gare', () => {
     expect(calendarioPerMese(gare, 2028)).toEqual([])
   })
 
-  it('storico: anno per anno, dalla gara più recente', () => {
+  it('storico: solo l’anno in corso e quello prima, anno per anno, dalla gara più recente', () => {
+    // Una gara del 2024 (di un nostro atleta) non c’è nello storico del tab Gare.
+    expect(storicoPerAnno([...gare, g('Z', '2024-06-01')], OGGI).map((a) => a.titolo)).toEqual([
+      '2026',
+      '2025',
+    ])
     expect(
       storicoPerAnno(gare, OGGI).map((a) => ({ titolo: a.titolo, gare: codici(a.gare) })),
     ).toEqual([

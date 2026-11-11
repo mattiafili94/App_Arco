@@ -380,8 +380,9 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       **6 passate** (`GARE_IN_EVIDENZA`); sotto le prossime i pulsanti **"Calendario 2026"** e, quando il
       calendario dell'anno dopo è definitivo (cioè ci sono le sue gare), **"Calendario 2027"**; da gennaio resta
       solo quello dell'anno in corso (`anniDelCalendario`). `/gare/calendario/:anno`: tutte le gare dell'anno,
-      mese per mese, anche quelle già fatte; sotto le passate **"Storico completo"** → `/gare/storico`: tutte le
-      gare passate, anno per anno (`pagine/ElenchiGare.tsx`, logica in `packages/shared/src/gare.ts`). Un
+      mese per mese, anche quelle già fatte; sotto le passate **"Storico completo"** → `/gare/storico`: le gare
+      passate dell'**anno in corso e dell'anno prima** (Mattia, 11/11/2026; le più vecchie restano nella scheda
+      dell'atleta), anno per anno (`pagine/ElenchiGare.tsx`, logica in `packages/shared/src/gare.ts`). Un
       collegamento con l'aspetto di un pulsante è `LinkButton` (`componenti/Button.tsx`). Scheda (`pagine/DettaglioGara.tsx`, `/gare/:codice`): dettagli, "Aggiungi al
       calendario" solo per le gare future non annullate (file `.ics` per iPhone e Android con avviso alle 9:00
       del giorno prima + link Google Calendar), contatti e testo completo dell'invito (a capo rispettati),

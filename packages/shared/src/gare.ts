@@ -211,10 +211,15 @@ export function calendarioPerMese(gare: readonly Gara[], anno: number): GruppoGa
   }))
 }
 
-/** Lo storico: tutte le gare finite, anno per anno, dalla più recente. */
+/**
+ * Lo storico del tab Gare: le gare finite dell'anno in corso e dell'anno prima (Mattia, 11/11/2026: nel 2026 si
+ * vedono 2026 e 2025), anno per anno, dalla più recente. Le gare più vecchie dei nostri atleti restano nella scheda
+ * di ogni atleta ("Tutte le gare").
+ */
 export function storicoPerAnno(gare: readonly Gara[], oggi: string): GruppoGare[] {
+  const dal = `${Number(oggi.slice(0, 4)) - 1}-01-01`
   const gruppi = new Map<string, Gara[]>()
-  for (const g of garePassate(gare, oggi)) {
+  for (const g of garePassate(gare, oggi).filter((x) => x.dal >= dal)) {
     const anno = g.dal.slice(0, 4)
     gruppi.set(anno, [...(gruppi.get(anno) ?? []), g])
   }
