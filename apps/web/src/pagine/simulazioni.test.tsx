@@ -117,9 +117,7 @@ describe('nuova simulazione', () => {
     await userEvent.click(screen.getByRole('radio', { name: '80 cm ridotto' }))
     await userEvent.click(screen.getByRole('button', { name: 'Inizia' }))
 
-    expect(
-      await screen.findByRole('heading', { level: 1, name: '60 m · 80 cm ridotto' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '60 m' })).toBeInTheDocument()
     const salvate = await dbPredefinito().simulazioni.toArray()
     expect(salvate).toHaveLength(1)
     expect(salvate[0]).toMatchObject({
@@ -432,8 +430,6 @@ describe('cancellare, inviare, indirizzi sbagliati', () => {
     await renderApp(`/allenamento/2026-11-01/simulazione/${s.id}`, {
       servizio: servizioFinto().servizio,
     })
-    expect(
-      await screen.findByRole('heading', { level: 1, name: '18 m · Trispot' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: '18 m' })).toBeInTheDocument()
   })
 })

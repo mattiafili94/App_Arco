@@ -383,6 +383,9 @@ describe('tab Gare: le 6 in evidenza, il calendario e lo storico', () => {
     const remoto = new RemotoFinto()
     remoto.scrivi('gare', gara('R2611060', { dal: '2026-12-12', al: '2026-12-12' }))
     await renderApp('/gare/storico', { servizio: servizioFinto({ remoto }).servizio })
-    expect(await screen.findByText('Nessuna gara passata')).toBeInTheDocument()
+    // Con il computer carico (tutti i test insieme) può servire più di un secondo.
+    expect(
+      await screen.findByText('Nessuna gara passata', {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
   })
 })

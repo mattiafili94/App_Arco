@@ -14,9 +14,14 @@
   width: 100%;
   min-height: 140px;
   padding: var(--space-8);
-  background: var(--background-surface);
-  border: 1px solid var(--border-group);
+  border: 1px solid transparent;
   border-radius: var(--radius-surface);
+}
+
+/* Il riquadro si vede solo quando la lente è aperta: prima è solo spazio riservato. */
+.lenteAperta {
+  background: var(--background-surface);
+  border-color: var(--border-group);
 }
 
 .lenteSvg {
@@ -36,18 +41,17 @@
   color: var(--text-primary);
 }
 
-.aiuto {
-  margin: 0;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
+/*
+ * Gli anelli restano grandi come quando il bersaglio stava in un quadrato largo 100% (al massimo 420 px): la
+ * larghezza si moltiplica per --scala (quanto è più piccolo il disegno senza il quadrato attorno).
+ * Fuori dal cerchio il tocco non arriva al bersaglio (clip-path): la pagina si può scorrere.
+ */
 .bersaglio {
-  width: min(100%, 420px);
+  width: min(calc(100% * var(--scala, 1)), calc(420px * var(--scala, 1)));
   height: auto;
   aspect-ratio: 1;
-  background: var(--background-canvas);
-  border-radius: var(--radius-surface);
+  border-radius: 50%;
+  clip-path: circle(50%);
   /* Il dito trascina il punto: la pagina non deve scorrere. */
   touch-action: none;
   user-select: none;
@@ -78,6 +82,13 @@
 }
 .bianco {
   fill: var(--target-white);
+}
+
+/* L'anello della mancata (M): neutro, con il bordo, attorno agli anelli che danno punti. */
+.fuori {
+  fill: var(--background-canvas);
+  stroke: var(--border-strong);
+  stroke-width: 0.012;
 }
 
 /* Le frecce: un punto con un anello chiaro e uno scuro, leggibile su qualsiasi colore. */

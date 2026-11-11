@@ -12,7 +12,7 @@ import { ATLETA, servizioFinto } from '../test/servizioFinto'
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 10, 11, 10, 0))
-  // Il bersaglio si disegna 250 px per 250 px: (x, y) normalizzati → pixel = (valore + 1,25) × 100.
+  // Il bersaglio si disegna 250 px per 250 px (il suo viewBox dice quale zona del bersaglio occupa).
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
     left: 0,
     top: 0,
@@ -31,14 +31,18 @@ afterEach(() => {
   localStorage.clear()
 })
 
-/** Le coordinate dello schermo di un punto del bersaglio. */
-const px = (x: number, y: number) => ({
-  clientX: (x + 1.25) * 100,
-  clientY: (y + 1.25) * 100,
-  pointerId: 1,
-})
-
 const bersaglio = () => screen.getByRole('img', { name: /Bersaglio/ })
+
+/** Le coordinate dello schermo di un punto del bersaglio (dal viewBox del disegno, largo 250 px). */
+const px = (x: number, y: number, el: Element = bersaglio()) => {
+  const [mx, my, w, h] = el.getAttribute('viewBox')!.split(' ').map(Number) as [
+    number,
+    number,
+    number,
+    number,
+  ]
+  return { clientX: ((x - mx) / w) * 250, clientY: ((y - my) / h) * 250, pointerId: 1 }
+}
 
 describe('il bersaglio da toccare', () => {
   const costruisci = (bersaglioTipo: 'singolo' | 'trispot' | '122' | '80', compound = false) => {
@@ -68,7 +72,7 @@ describe('il bersaglio da toccare', () => {
       [0.07, 0],
       [0.45, 0],
       [0, -0.95],
-      [1.1, 0],
+      [1.05, 0], // l'anello della mancata
     ] as const) {
       fireEvent.pointerDown(bersaglio(), px(x, y))
       fireEvent.pointerUp(bersaglio(), px(x, y))
@@ -78,7 +82,8 @@ describe('il bersaglio da toccare', () => {
 
   it('tenendo premuto la lente mostra il valore; spostando il dito cambia; alzando lo segna', () => {
     const onSegna = costruisci('singolo')
-    expect(screen.getByText(/Tieni premuto sul bersaglio/)).toBeInTheDocument()
+    // Niente istruzioni scritte (Mattia, 11/11/2026).
+    expect(screen.queryByText(/Tieni premuto/)).not.toBeInTheDocument()
     fireEvent.pointerDown(bersaglio(), px(0.05, 0))
     expect(screen.getByRole('img', { name: "Lente d'ingrandimento" })).toBeInTheDocument()
     expect(screen.getByText('10', { selector: 'p' })).toBeInTheDocument()
@@ -107,13 +112,31 @@ describe('il bersaglio da toccare', () => {
     expect(onSegna).not.toHaveBeenCalled()
   })
 
-  it('un tocco lontanissimo diventa una mancata vicina, non un valore assurdo', () => {
+  it('un tocco fuori dall’anello della mancata non segna niente (si sta scorrendo la pagina)', () => {
     const onSegna = costruisci('singolo')
-    fireEvent.pointerDown(bersaglio(), { clientX: 5000, clientY: -3000, pointerId: 1 })
+    // Angolo del disegno: fuori dal cerchio.
+    fireEvent.pointerDown(bersaglio(), px(1.1, 1.1))
+    fireEvent.pointerUp(bersaglio(), px(1.1, 1.1))
+    expect(onSegna).not.toHaveBeenCalled()
+    expect(screen.queryByRole('img', { name: "Lente d'ingrandimento" })).not.toBeInTheDocument()
+  })
+
+  it('trascinando il dito molto fuori, la freccia resta una mancata sul bordo, non un valore assurdo', () => {
+    const onSegna = costruisci('singolo')
+    fireEvent.pointerDown(bersaglio(), px(0.9, 0))
     fireEvent.pointerUp(bersaglio(), { clientX: 5000, clientY: -3000, pointerId: 1 })
     const [posizione, valore] = onSegna.mock.calls[0]!
     expect(valore).toBe('M')
-    expect(Math.hypot(posizione[0], posizione[1])).toBeLessThanOrEqual(2.0001)
+    expect(Math.hypot(posizione[0], posizione[1])).toBeLessThanOrEqual(1.101)
+  })
+
+  it('attorno agli anelli c’è l’anello della mancata, largo come un anello', () => {
+    costruisci('trispot')
+    const cerchi = [...bersaglio().querySelectorAll('circle')].map((c) =>
+      Number(c.getAttribute('r')),
+    )
+    // Trispot: 5 anelli larghi 0,2; la mancata arriva a 1,2.
+    expect(Math.max(...cerchi)).toBeCloseTo(1.2)
   })
 
   it('compound indoor: il 10 è solo il centro; fuori dal centro vale 9', () => {
@@ -142,7 +165,8 @@ describe('il bersaglio da toccare', () => {
     render(
       <BersaglioTocco bersaglio="singolo" compound={false} punti={[]} etichetta="Bersaglio B" />,
     )
-    expect(screen.getByText('Bersaglio con le frecce segnate.')).toBeInTheDocument()
+    // Di sola lettura: nessuna lente e nessuna scritta.
+    expect(screen.queryByText(/frecce segnate/)).not.toBeInTheDocument()
     fireEvent.pointerDown(screen.getByRole('img', { name: 'Bersaglio B' }), px(0, 0))
     expect(screen.queryByRole('img', { name: "Lente d'ingrandimento" })).not.toBeInTheDocument()
   })
@@ -201,8 +225,8 @@ const passaAlBersaglio = async () => {
 }
 const tocca = (x: number, y: number) => {
   const b = screen.getByRole('img', { name: /Bersaglio: tocca/ })
-  fireEvent.pointerDown(b, px(x, y))
-  fireEvent.pointerUp(b, px(x, y))
+  fireEvent.pointerDown(b, px(x, y, b))
+  fireEvent.pointerUp(b, px(x, y, b))
 }
 
 describe('segnare toccando il bersaglio, nella pagina', () => {
@@ -368,7 +392,6 @@ describe('segnare toccando il bersaglio, nella pagina', () => {
     )
     const mappa = screen.getByRole('region', { name: 'Dove sono arrivate le frecce' })
     expect(within(mappa).getByRole('img', { name: 'Bersaglio con 2 frecce' })).toBeInTheDocument()
-    expect(within(mappa).getByText('Bersaglio con le frecce segnate.')).toBeInTheDocument()
   })
 
   it('25+18: una mappa per ogni prova, solo con le sue frecce', async () => {
@@ -415,5 +438,31 @@ describe('scelta dell’arco compound nella nuova simulazione', () => {
     await screen.findByRole('radiogroup', { name: 'Come segni le frecce' })
     const salvate = await dbPredefinito().simulazioni.toArray()
     expect(salvate.find((x) => x.formato === '70m')).toMatchObject({ compound: false })
+  })
+})
+
+describe('com’è fatta la pagina della simulazione', () => {
+  it('titolo con la sola gara e "Avvia timer" accanto; poi elenco delle volée, riepilogo e in fondo il bersaglio', async () => {
+    await apri(
+      await preparaSimulazione({
+        frecce: ['10', '9', '8'],
+        posizioni: [
+          [0, 0],
+          [0.15, 0],
+          [0.3, 0],
+        ],
+      }),
+    )
+    expect(screen.getByRole('heading', { level: 1, name: '18 m' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Avvia timer' }).closest('header')).not.toBeNull()
+    expect(screen.queryByText(/facoltativ/i)).not.toBeInTheDocument()
+
+    const elenco = screen.getByRole('region', { name: 'Tutte le volée' })
+    const riepilogo = screen.getByRole('region', { name: 'Riepilogo' })
+    const mappa = screen.getByRole('region', { name: 'Dove sono arrivate le frecce' })
+    const dopo = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(dopo(elenco, riepilogo)).toBe(true)
+    expect(dopo(riepilogo, mappa)).toBe(true)
   })
 })

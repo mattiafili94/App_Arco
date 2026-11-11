@@ -74,23 +74,31 @@ describe('timer nella simulazione', () => {
 })
 
 describe('note per volée', () => {
-  it('la nota della volée in corso si scrive e si salva sul telefono', async () => {
+  /** Apre la nota della volée N nell'elenco (con "Aggiungi" o "Modifica"). */
+  const apriNota = async (lista: HTMLElement, n: number) => {
+    await userEvent.click(
+      within(lista).getByRole('button', { name: new RegExp(`Nota della volée ${n}:`) }),
+    )
+    return within(lista).getByLabelText(`Nota della volée ${n}`)
+  }
+
+  it('sopra il tastierino non c’è la nota: si scrive dall’elenco delle volée e si salva sul telefono', async () => {
     const s = await preparaSimulazione({ frecce: ['10', '9', '8', '7'] })
     await apri(s)
-    expect(screen.getByText('Nota della volée 2 (facoltativa)')).toBeInTheDocument()
-    await userEvent.type(screen.getByLabelText('Nota della volée 2'), 'vento da destra')
+    expect(screen.queryByText(/facoltativa/)).not.toBeInTheDocument()
+    const lista = screen.getByRole('list', { name: 'Volée' })
+    await userEvent.type(await apriNota(lista, 2), 'vento da destra')
     await waitFor(async () =>
       expect((await leggiSimulazione(dbPredefinito(), s.id))?.note).toEqual({
         '1': 'vento da destra',
       }),
     )
-    expect(await screen.findByText('Nota della volée 2: vento da destra')).toBeInTheDocument()
   })
 
   it('cancellando il testo la nota sparisce', async () => {
     const s = await preparaSimulazione({ frecce: ['10'], note: { '0': 'prova' } })
     await apri(s)
-    await userEvent.clear(screen.getByLabelText('Nota della volée 1'))
+    await userEvent.clear(await apriNota(screen.getByRole('list', { name: 'Volée' }), 1))
     await waitFor(async () =>
       expect((await leggiSimulazione(dbPredefinito(), s.id))?.note).toEqual({}),
     )
@@ -129,9 +137,8 @@ describe('note per volée', () => {
       frecce: [...ripeti('9', 60), '10'],
     })
     await apri(s)
-    // La volée in corso è la prima della seconda prova.
-    expect(screen.getByText('Nota della volée 1 (facoltativa)')).toBeInTheDocument()
-    await userEvent.type(screen.getByLabelText('Nota della volée 1'), 'cambio luce')
+    const lista = screen.getByRole('list', { name: 'Volée della prova 2' })
+    await userEvent.type(await apriNota(lista, 1), 'cambio luce')
     await waitFor(async () =>
       expect((await leggiSimulazione(dbPredefinito(), s.id))?.note).toEqual({
         '20': 'cambio luce',
@@ -142,7 +149,7 @@ describe('note per volée', () => {
   it('le note si inviano al server insieme alla simulazione', async () => {
     const s = await preparaSimulazione({ frecce: ['10'] })
     const finto = await apri(s)
-    await userEvent.type(screen.getByLabelText('Nota della volée 1'), 'ok')
+    await userEvent.type(await apriNota(screen.getByRole('list', { name: 'Volée' }), 1), 'ok')
     await waitFor(
       () =>
         expect(finto.remoto.righe.simulazioni[0]).toMatchObject({ id: s.id, note: { '0': 'ok' } }),
@@ -154,6 +161,6 @@ describe('note per volée', () => {
 
   it('una simulazione vecchia senza note si apre lo stesso', async () => {
     await apri(await preparaSimulazione({ frecce: ['10'] }))
-    expect(screen.getByLabelText('Nota della volée 1')).toHaveValue('')
+    expect(await apriNota(screen.getByRole('list', { name: 'Volée' }), 1)).toHaveValue('')
   })
 })

@@ -95,8 +95,15 @@ export const arrotondaPosizione = (p: Posizione): Posizione => [
 ]
 
 /** Porta un punto troppo lontano al limite (un tocco lontano dal bersaglio resta una mancata vicina). */
-export function limitaPosizione(p: Posizione): Posizione {
+export function limitaPosizione(p: Posizione, massimo = DISTANZA_MASSIMA): Posizione {
   const r = distanzaDalCentro(p)
-  if (r <= DISTANZA_MASSIMA) return p
-  return [(p[0] / r) * DISTANZA_MASSIMA, (p[1] / r) * DISTANZA_MASSIMA]
+  if (r <= massimo) return p
+  return [(p[0] / r) * massimo, (p[1] / r) * massimo]
 }
+
+/**
+ * Il raggio dell'anello della **mancata** (M) disegnato attorno al bersaglio (Mattia, 11/11/2026): largo come un
+ * anello del bersaglio (singolo e 122 cm 0,1; trispot 0,2; 80 cm 1/6). Fuori da qui il tocco non segna niente
+ * (così si può scorrere la pagina senza segnare M per sbaglio).
+ */
+export const raggioMancata = (bersaglio: BersaglioConAnelli) => 1 + 1 / NUMERO_ANELLI[bersaglio]

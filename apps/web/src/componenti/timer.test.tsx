@@ -54,7 +54,8 @@ describe('timer della volée', () => {
   it('è facoltativo: all’inizio c’è solo il pulsante, e niente suona', () => {
     const { suoni } = avvia()
     expect(screen.getByRole('button', { name: 'Avvia timer' })).toBeInTheDocument()
-    expect(screen.getByText(/Facoltativo/)).toBeInTheDocument()
+    // Niente spiegazione scritta sotto il pulsante (Mattia, 11/11/2026).
+    expect(screen.queryByText(/Facoltativo/)).not.toBeInTheDocument()
     expect(screen.queryByRole('timer')).not.toBeInTheDocument()
     expect(suoni.fischi).not.toHaveBeenCalled()
   })
