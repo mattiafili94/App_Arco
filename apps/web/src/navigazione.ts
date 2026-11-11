@@ -1,4 +1,4 @@
-import { Calendar, Target, Trophy, Users } from 'lucide-react'
+import { Calendar, ClipboardList, Target, Trophy, Users } from 'lucide-react'
 import type { Destination } from './componenti/NavigationBar'
 
 /** I quattro tab dell'app, sempre in questo ordine (icone: design-system/README.md). */
@@ -9,11 +9,25 @@ export const DESTINAZIONI: readonly Destination[] = [
   { id: 'allenamento', label: 'Allenamento', icon: Target, href: '/allenamento' },
 ]
 
+/** Il quinto tab, solo per chi ha il ruolo di allenatore (Fase 7). */
+export const DESTINAZIONE_ALLENATORE: Destination = {
+  id: 'allenatore',
+  label: 'I miei atleti',
+  icon: ClipboardList,
+  href: '/allenatore',
+}
+
+/** I tab da mostrare: i quattro di sempre, più "I miei atleti" per un allenatore. */
+export const destinazioniPer = (allenatore: boolean): readonly Destination[] =>
+  allenatore ? [...DESTINAZIONI, DESTINAZIONE_ALLENATORE] : DESTINAZIONI
+
 export const PERCORSO_IMPOSTAZIONI = '/impostazioni'
 
 /** Il tab a cui appartiene un indirizzo, se c'è. */
 export function destinazioneDi(percorso: string): Destination | undefined {
-  return DESTINAZIONI.find((d) => percorso === d.href || percorso.startsWith(`${d.href}/`))
+  return [...DESTINAZIONI, DESTINAZIONE_ALLENATORE].find(
+    (d) => percorso === d.href || percorso.startsWith(`${d.href}/`),
+  )
 }
 
 /** Titolo della finestra/scheda del browser per un indirizzo. */

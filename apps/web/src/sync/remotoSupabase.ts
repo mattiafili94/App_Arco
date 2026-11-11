@@ -41,6 +41,8 @@ export function creaRemotoSupabase(supabase: SupabaseClient): Remoto {
           p_frecce_libere: g.frecce_libere,
           p_nota: g.nota,
           p_modificato_il: g.modificato_il,
+          // La data del programma (Fase 7): le righe vecchie non ce l'hanno e il server lo sa gestire.
+          p_programma_modificato_il: g.programma_modificato_il ?? null,
         }),
       ) as Riga
     },

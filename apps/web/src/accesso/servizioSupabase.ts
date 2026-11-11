@@ -13,9 +13,10 @@ interface RigaAtleta {
   ruolo: 'atleta' | 'amministratore'
   attivo: boolean
   utente_id: string | null
+  allenatore?: boolean
 }
 
-const COLONNE = 'id, matricola, nome, cognome, ruolo, attivo, utente_id'
+const COLONNE = 'id, matricola, nome, cognome, ruolo, attivo, allenatore, utente_id'
 
 const daRiga = (r: RigaAtleta): Atleta => ({
   id: r.id,
@@ -25,6 +26,7 @@ const daRiga = (r: RigaAtleta): Atleta => ({
   ruolo: r.ruolo,
   attivo: r.attivo,
   haAccesso: r.utente_id !== null,
+  allenatore: r.allenatore ?? false,
 })
 
 const senzaRete = () => typeof navigator !== 'undefined' && !navigator.onLine
@@ -132,6 +134,18 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
         p_auth: i.auth,
       })
       if (error) throw new Error(error.message)
+    },
+
+    async seguiAtleta(atletaId, segui) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase.rpc('segui_atleta', { p_atleta: atletaId, p_segui: segui })
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
+    },
+
+    async impostaAllenatore(atletaId, allenatore) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase.from('atleti').update({ allenatore }).eq('id', atletaId)
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
     },
 
     async rimuoviPush(endpoint) {

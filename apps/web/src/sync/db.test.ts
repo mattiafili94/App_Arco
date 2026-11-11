@@ -18,7 +18,7 @@ describe('database del telefono', () => {
 
     const db = new ArcoDb(NOME)
     await db.open()
-    expect(db.verno).toBe(5)
+    expect(db.verno).toBe(6)
     expect(db.tables.map((t) => t.name)).not.toContain('ranking')
     db.close()
   })

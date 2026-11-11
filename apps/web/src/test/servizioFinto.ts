@@ -102,6 +102,21 @@ export function servizioFinto({
     }),
     registraPush: vi.fn<(i: IscrizionePush) => Promise<void>>(async () => {}),
     rimuoviPush: vi.fn<(endpoint: string) => Promise<void>>(async () => {}),
+    // Come il server: la riga di "chi segue chi" arriva ai telefoni con la sincronizzazione.
+    seguiAtleta: vi.fn(async (atletaId: string, segui: boolean) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const riga = { allenatore_id: utente!, atleta_id: atletaId }
+      if (segui)
+        remoto.scrivi('allenatori_atleti', { ...riga, aggiornato_il: new Date().toISOString() })
+      else remoto.elimina('allenatori_atleti', riga)
+    }),
+    impostaAllenatore: vi.fn(async (atletaId: string, allenatore: boolean) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      elenco.find((x) => x.id === atletaId)!.allenatore = allenatore
+      const riga = remoto.righe.atleti.find((r) => r.id === atletaId)
+      if (riga)
+        remoto.scrivi('atleti', { ...riga, allenatore, aggiornato_il: new Date().toISOString() })
+    }),
   } satisfies ServizioAccesso
 
   return {

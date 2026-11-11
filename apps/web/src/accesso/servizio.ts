@@ -15,6 +15,8 @@ export interface Atleta {
   attivo: boolean
   /** Vero se l'atleta ha un accesso (un link personale valido). */
   haAccesso: boolean
+  /** Ha anche il ruolo di allenatore (Fase 7). */
+  allenatore?: boolean
 }
 
 export type EsitoAccedi =
@@ -51,6 +53,10 @@ export interface ServizioAccesso {
   registraPush(iscrizione: IscrizionePush): Promise<void>
   /** Toglie la registrazione di questo telefono. */
   rimuoviPush(endpoint: string): Promise<void>
+  /** L'allenatore collegato inizia o smette di seguire un atleta. Lancia un errore con un messaggio da mostrare. */
+  seguiAtleta(atletaId: string, segui: boolean): Promise<void>
+  /** L'amministratore dà o toglie il ruolo di allenatore. Lancia un errore se non riesce. */
+  impostaAllenatore(atletaId: string, allenatore: boolean): Promise<void>
 }
 
 export const nomeCompleto = (a: Pick<Atleta, 'nome' | 'cognome'>) => `${a.nome} ${a.cognome}`

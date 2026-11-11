@@ -8,10 +8,19 @@ import {
 import { useAtletaCorrente } from '../accesso/contesto'
 import { useSincronizzazione } from '../sync/contesto'
 
-/** I giorni di allenamento di una settimana (da lunedì `inizio`), dal telefono. `undefined` finché si leggono. */
-export function useSettimanaAllenamento(inizio: string): GiornoAllenamento[] | undefined {
-  const { db } = useSincronizzazione()
+/** L'atleta di cui si guarda l'allenamento: quello collegato, o un atleta seguito (allenatore). */
+function useAtletaScelto(atletaId?: string): string {
   const { id } = useAtletaCorrente()
+  return atletaId ?? id
+}
+
+/** I giorni di allenamento di una settimana (da lunedì `inizio`), dal telefono. `undefined` finché si leggono. */
+export function useSettimanaAllenamento(
+  inizio: string,
+  atletaId?: string,
+): GiornoAllenamento[] | undefined {
+  const { db } = useSincronizzazione()
+  const id = useAtletaScelto(atletaId)
   return useLiveQuery(
     () =>
       db.allenamento_giorni
@@ -23,9 +32,12 @@ export function useSettimanaAllenamento(inizio: string): GiornoAllenamento[] | u
 }
 
 /** Un giorno: `null` se non c'è ancora niente, `undefined` finché si legge. */
-export function useGiornoAllenamento(giorno: string): GiornoAllenamento | null | undefined {
+export function useGiornoAllenamento(
+  giorno: string,
+  atletaId?: string,
+): GiornoAllenamento | null | undefined {
   const { db } = useSincronizzazione()
-  const { id } = useAtletaCorrente()
+  const id = useAtletaScelto(atletaId)
   return useLiveQuery(
     async () =>
       ((await db.allenamento_giorni.get([id, giorno])) as unknown as
@@ -41,9 +53,9 @@ export function useModificheDaInviare(): number | undefined {
 }
 
 /** Le simulazioni di un giorno (non cancellate), le più recenti per prime. */
-export function useSimulazioniGiorno(giorno: string): Simulazione[] | undefined {
+export function useSimulazioniGiorno(giorno: string, atletaId?: string): Simulazione[] | undefined {
   const { db } = useSincronizzazione()
-  const { id } = useAtletaCorrente()
+  const id = useAtletaScelto(atletaId)
   return useLiveQuery(
     async () =>
       simulazioniVisibili(
@@ -54,9 +66,12 @@ export function useSimulazioniGiorno(giorno: string): Simulazione[] | undefined 
 }
 
 /** Le simulazioni di una settimana (non cancellate): servono alle frecce del riepilogo. */
-export function useSimulazioniSettimana(inizio: string): Simulazione[] | undefined {
+export function useSimulazioniSettimana(
+  inizio: string,
+  atletaId?: string,
+): Simulazione[] | undefined {
   const { db } = useSincronizzazione()
-  const { id } = useAtletaCorrente()
+  const id = useAtletaScelto(atletaId)
   return useLiveQuery(
     async () =>
       simulazioniVisibili(
@@ -70,9 +85,12 @@ export function useSimulazioniSettimana(inizio: string): Simulazione[] | undefin
 }
 
 /** Una simulazione: `null` se non esiste o è cancellata, `undefined` finché si legge. */
-export function useSimulazione(idSimulazione: string): Simulazione | null | undefined {
+export function useSimulazione(
+  idSimulazione: string,
+  atletaId?: string,
+): Simulazione | null | undefined {
   const { db } = useSincronizzazione()
-  const { id } = useAtletaCorrente()
+  const id = useAtletaScelto(atletaId)
   return useLiveQuery(async () => {
     const s = (await db.simulazioni.get(idSimulazione)) as unknown as Simulazione | undefined
     return s && !s.eliminata && s.atleta_id === id ? s : null

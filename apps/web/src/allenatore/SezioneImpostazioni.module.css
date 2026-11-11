@@ -1,0 +1,27 @@
+.sezione {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  scroll-margin-top: var(--space-16);
+}
+
+.titolo {
+  color: var(--text-secondary);
+  padding-inline: var(--space-16);
+}
+
+.riquadro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-16);
+  background: var(--background-surface);
+  border: 1px solid var(--border-group);
+  border-radius: var(--radius-surface);
+  color: var(--text-primary);
+}
+
+.aiuto {
+  margin: 0;
+  color: var(--text-secondary);
+}

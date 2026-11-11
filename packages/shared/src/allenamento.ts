@@ -19,6 +19,13 @@ export interface GiornoAllenamento {
   nota: string
   /** Quando è stato modificato l'ultima volta (ora del telefono, ISO): vince la più recente. */
   modificato_il: string
+  /**
+   * Quando è stato cambiato il programma (ora del telefono, ISO): il programma lo possono scrivere l'atleta e i
+   * suoi allenatori, e vince la modifica più recente del programma (Fase 7). Le righe vecchie non ce l'hanno.
+   */
+  programma_modificato_il?: string
+  /** Chi ha cambiato il programma per ultimo (id dell'atleta o dell'allenatore). */
+  programma_modificato_da?: string | null
 }
 
 export const FRECCE_MASSIME = 9999
@@ -138,4 +145,26 @@ export function leggiFrecce(testo: string): number | null {
   if (!/^\d+$/.test(pulito)) return null
   const n = Number(pulito)
   return n <= FRECCE_MASSIME ? n : null
+}
+
+/**
+ * "Copia il programma su altri atleti" (Fase 7, allenatore): i programmi dei giorni di una settimana, da scrivere
+ * negli stessi giorni di un altro atleta. I giorni dove l'altro atleta ha già un programma si lasciano com'erano,
+ * a meno di `sostituisci`; i programmi uguali non si riscrivono.
+ */
+export function programmiDaCopiare(
+  sorgente: readonly Pick<GiornoAllenamento, 'giorno' | 'programma'>[],
+  destinazione: readonly Pick<GiornoAllenamento, 'giorno' | 'programma'>[],
+  sostituisci: boolean,
+): { giorno: string; programma: string }[] {
+  const presenti = new Map(destinazione.map((g) => [g.giorno, g.programma]))
+  return sorgente
+    .filter((g) => g.programma.trim() !== '')
+    .filter((g) => {
+      const attuale = presenti.get(g.giorno) ?? ''
+      if (attuale === g.programma) return false
+      return sostituisci || attuale.trim() === ''
+    })
+    .map((g) => ({ giorno: g.giorno, programma: g.programma }))
+    .sort((a, b) => a.giorno.localeCompare(b.giorno))
 }

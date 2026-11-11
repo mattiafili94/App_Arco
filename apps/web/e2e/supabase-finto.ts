@@ -15,6 +15,8 @@ export interface AtletaProva {
   ruolo: 'atleta' | 'amministratore'
   attivo: boolean
   utente_id: string | null
+  /** Ruolo di allenatore (Fase 7). */
+  allenatore?: boolean
 }
 
 export const AMMINISTRATORE_PROVA: AtletaProva = {
@@ -292,9 +294,22 @@ const json = (route: Route, corpo: unknown, status = 200) =>
  */
 export async function simulaSupabase(
   page: Page,
-  { collegato = ATLETA_PROVA as AtletaProva | null } = {},
+  {
+    collegato = ATLETA_PROVA as AtletaProva | null,
+    /** Gli id degli atleti che l'atleta collegato (allenatore) segue già. */
+    segue = [] as string[],
+  } = {},
 ) {
-  const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({ ...a }))
+  const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({
+    ...a,
+    allenatore: a.id === collegato?.id ? (collegato.allenatore ?? false) : false,
+  }))
+  /** Chi segue chi (Fase 7). */
+  const allenatoriAtleti = segue.map((atleta_id) => ({
+    allenatore_id: collegato!.id,
+    atleta_id,
+    aggiornato_il: new Date().toISOString(),
+  }))
   /** Le simulazioni di gara salvate dal telefono di prova (vuote all'inizio). */
   const simulazioni: Record<string, unknown>[] = []
   /** L'allenamento salvato dal telefono di prova (vuoto all'inizio). */
@@ -306,6 +321,8 @@ export async function simulaSupabase(
     frecce_libere: number
     nota: string
     modificato_il: string
+    programma_modificato_il?: string
+    programma_modificato_da?: string | null
     aggiornato_il: string
   }[] = []
   const richiesteFunzione: unknown[] = []
@@ -348,6 +365,15 @@ export async function simulaSupabase(
 
     // Tabella atleti.
     if (url.pathname === '/rest/v1/atleti') {
+      // L'amministratore dà o toglie il ruolo di allenatore.
+      if (richiesta.method() === 'PATCH') {
+        const id = url.searchParams.get('id')?.replace(/^eq./, '')
+        const campi = richiesta.postDataJSON() as { allenatore?: boolean }
+        const atleta = atleti.find((a) => a.id === id)
+        if (atleta) Object.assign(atleta, campi)
+        richiesteFunzione.push({ azione: 'ruolo', id, ...campi })
+        return route.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': '*' } })
+      }
       if (richiesta.method() === 'POST') {
         const nuovo = richiesta.postDataJSON() as Pick<
           AtletaProva,
@@ -362,6 +388,7 @@ export async function simulaSupabase(
           ruolo: 'atleta',
           attivo: true,
           utente_id: null,
+          allenatore: false,
         })
         return route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' } })
       }
@@ -417,7 +444,24 @@ export async function simulaSupabase(
       )
     }
 
-    // Allenamento di Bruno (privato): si legge e si salva come sul server, vince la modifica più recente.
+    // Chi segue chi: l'allenatore sceglie da solo (segui_atleta).
+    if (tabella === 'allenatori_atleti') return json(route, allenatoriAtleti)
+    if (url.pathname === '/rest/v1/rpc/segui_atleta') {
+      const p = richiesta.postDataJSON() as { p_atleta: string; p_segui: boolean }
+      richiesteFunzione.push({ azione: 'segui', ...p })
+      const i = allenatoriAtleti.findIndex((r) => r.atleta_id === p.p_atleta)
+      if (p.p_segui && i < 0) {
+        allenatoriAtleti.push({
+          allenatore_id: collegato!.id,
+          atleta_id: p.p_atleta,
+          aggiornato_il: new Date().toISOString(),
+        })
+      }
+      if (!p.p_segui && i >= 0) allenatoriAtleti.splice(i, 1)
+      return json(route, p.p_segui)
+    }
+
+    // Allenamento (privato): si legge e si salva come sul server, vince la modifica più recente.
     if (tabella === 'allenamento_giorni') return json(route, allenamento)
     if (url.pathname === '/rest/v1/rpc/salva_allenamento_giorno') {
       const p = richiesta.postDataJSON() as {
@@ -428,8 +472,11 @@ export async function simulaSupabase(
         p_frecce_libere: number
         p_nota: string
         p_modificato_il: string
+        p_programma_modificato_il?: string | null
       }
-      const esistente = allenamento.find((r) => r.giorno === p.p_giorno)
+      const esistente = allenamento.find(
+        (r) => r.atleta_id === p.p_atleta && r.giorno === p.p_giorno,
+      )
       if (esistente && Date.parse(esistente.modificato_il) >= Date.parse(p.p_modificato_il)) {
         return json(route, esistente)
       }
@@ -441,6 +488,8 @@ export async function simulaSupabase(
         frecce_libere: p.p_frecce_libere,
         nota: p.p_nota,
         modificato_il: p.p_modificato_il,
+        programma_modificato_il: p.p_programma_modificato_il ?? p.p_modificato_il,
+        programma_modificato_da: collegato?.id ?? null,
         aggiornato_il: new Date().toISOString(),
       }
       if (esistente) Object.assign(esistente, nuova)
@@ -507,5 +556,5 @@ export async function simulaSupabase(
     return json(route, { message: `Non simulato: ${url.pathname}` }, 404)
   })
 
-  return { atleti, richiesteFunzione, allenamento, simulazioni }
+  return { atleti, richiesteFunzione, allenamento, simulazioni, allenatoriAtleti }
 }

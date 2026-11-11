@@ -63,6 +63,13 @@ describe('primo giro', () => {
     expect(await ultimaSincronizzazione(db)).toBe(ORA)
   })
 
+  it('se chi l’ha chiesta non c’è più (app chiusa) non scrive più niente sul telefono', async () => {
+    remoto.scrivi('gare', gara('R1'))
+    await sincronizza(remoto, db, adesso, () => true)
+    expect(await db.gare.count()).toBe(0)
+    expect(await ultimaSincronizzazione(db)).toBeNull()
+  })
+
   it('non applica le vecchie eliminazioni: la copia è vuota, parte dall’ultima', async () => {
     remoto.scrivi('gare', gara('R1'))
     remoto.elimina('gare', { codice: 'R0' })

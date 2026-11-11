@@ -18,6 +18,8 @@ export class ArcoDb extends Dexie {
   partecipazioni!: Table<Riga>
   classifiche!: Table<Riga>
   /** Allenamento dell'atleta (privato). Le righe con `da_inviare: 1` hanno modifiche non ancora sul server. */
+  /** Chi segue chi (allenatori e atleti seguiti). */
+  allenatori_atleti!: Table<Riga>
   allenamento_giorni!: Table<Riga>
   /** Simulazioni di gara (privato, come l'allenamento): `da_inviare: 1` segna le modifiche da mandare. */
   simulazioni!: Table<Riga>
@@ -53,6 +55,10 @@ export class ArcoDb extends Dexie {
     })
     // Pulizia (11/11/2026): la vecchia tabella `ranking` non c'è più (le classifiche stanno in classifiche_ranking).
     this.version(5).stores({ ranking: null })
+    // Fase 7: il ruolo allenatore (chi segue chi).
+    this.version(6).stores({
+      allenatori_atleti: '[allenatore_id+atleta_id], allenatore_id, atleta_id',
+    })
   }
 
   tabella(nome: NomeTabella): Table<Riga> {
