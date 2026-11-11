@@ -2,10 +2,8 @@ import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Target } from 'lucide-react'
 import {
-  ETICHETTE_BERSAGLIO,
   allineaPosizioni,
   durataTiroMs,
-  eAPiazzole,
   eBersaglioConAnelli,
   etichetteConteggi,
   haTimer,
@@ -40,7 +38,8 @@ import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
 import { Scelte } from '../componenti/Scelte'
 import { Textarea } from '../componenti/Textarea'
-import { TimerVolee } from '../componenti/TimerVolee'
+import { PannelloTimer, PulsanteTimer } from '../componenti/TimerVolee'
+import { useTimerVolee } from '../componenti/useTimerVolee'
 import { oggi as oggiIn } from '../gare/dati'
 import { useSincronizzazione } from '../sync/contesto'
 import styles from './SimulazionePagina.module.css'
@@ -160,6 +159,8 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   const [conferma, setConferma] = useState(false)
   const [notaAperta, setNotaAperta] = useState<number | null>(null)
   const [modo, impostaModo] = useModoSegnapunti()
+  // Il timer: il pulsante sta accanto al titolo, il riquadro con il tempo sotto (Mattia, 11/11/2026).
+  const timer = useTimerVolee({ durataTiro: durataTiroMs(s.formato) })
   const annoCorrente = Number(oggiIn().slice(0, 4))
 
   const r = riepilogoSimulazione(s)
@@ -201,11 +202,6 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
     .slice(0, stato.prova)
     .reduce((t, p) => t + p.prova.frecceTotali, 0)
   const primaDellaVolee = primaDellaProva + (stato.volee - 1) * provaInCorso.prova.frecceVolee
-  // Numero della volée in corso contato da zero su tutta la simulazione (le note si legano a questo).
-  const voleePrimaDellaProva = r.prove
-    .slice(0, stato.prova)
-    .reduce((t, p) => t + p.prova.frecceTotali / p.prova.frecceVolee, 0)
-  const indiceVoleeInCorso = voleePrimaDellaProva + stato.volee - 1
   // Le frecce della prova in corso con la loro posizione (se segnate toccando il bersaglio).
   const posizioni = allineaPosizioni(s.posizioni, s.frecce.length)
   const puntiProva: PuntoSuBersaglio[] = s.frecce.flatMap((v, i) => {
@@ -236,11 +232,8 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
   return (
     <>
       <PageHeader
-        title={
-          eAPiazzole(s.formato)
-            ? nomeSimulazione(s)
-            : `${nomeSimulazione(s)} · ${ETICHETTE_BERSAGLIO[s.bersaglio]}`
-        }
+        title={nomeSimulazione(s)}
+        action={haTimer(s.formato) && !stato.finita ? <PulsanteTimer timer={timer} /> : undefined}
         back={{
           label: etichettaGiorno(s.giorno, annoCorrente),
           href: `/allenamento/${s.giorno}`,
@@ -248,6 +241,7 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
         description={dove}
       />
       <div className={styles.pagina}>
+        <PannelloTimer timer={timer} />
         <section className={styles.volee} aria-label={`${unita.maiuscolo} in corso`}>
           <div className={styles.frecce}>
             {Array.from({ length: provaInCorso.prova.frecceVolee }, (_, i) => (
@@ -265,24 +259,6 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
             {`${unita.maiuscolo}: ${totaleVolee}${precedente === undefined ? '' : ` · ${unita.maiuscolo} precedente: ${precedente}`} · Totale: ${r.totale} · ${r.frecceSegnate} frecce su ${r.frecceTotali}`}
           </p>
         </section>
-
-        {!stato.finita && haTimer(s.formato) && <TimerVolee durataTiro={durataTiroMs(s.formato)} />}
-
-        <details className={styles.dettagli}>
-          <summary>
-            {notaVolee(s, indiceVoleeInCorso) === ''
-              ? `Nota della ${unita.minuscolo} ${stato.volee} (facoltativa)`
-              : `Nota della ${unita.minuscolo} ${stato.volee}: ${notaVolee(s, indiceVoleeInCorso)}`}
-          </summary>
-          {/* `key`: cambiando volée si riparte dalla nota di quella volée. */}
-          <NotaVolee
-            key={indiceVoleeInCorso}
-            indice={indiceVoleeInCorso}
-            testo={notaVolee(s, indiceVoleeInCorso)}
-            etichetta={`Nota della ${unita.minuscolo} ${stato.volee}`}
-            onSalva={salvaNota}
-          />
-        </details>
 
         {selezionata !== null && (
           <Notice status="warning">
@@ -345,65 +321,6 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
 
         {r.frecceSegnate > 0 && (
           <>
-            <ListGroup title="Riepilogo">
-              {r.prove.map((p, i) => (
-                <ListRow
-                  key={i}
-                  label={
-                    r.prove.length > 1 ? `Prova ${i + 1}${metri(p.prova.distanza)}` : 'Punteggio'
-                  }
-                  value={String(p.totale)}
-                  description={`Parziali ${p.parziali[0]} + ${p.parziali[1]}`}
-                />
-              ))}
-              {r.prove.length > 1 && <ListRow label="Totale" value={String(r.totale)} />}
-              <ListRow
-                label={`${nome1} e ${nome2}`}
-                value={`${r.conteggi[0]} · ${r.conteggi[1]}`}
-              />
-              {r.media !== null && (
-                <ListRow label="Media per freccia" value={String(r.media).replace('.', ',')} />
-              )}
-            </ListGroup>
-
-            <ConfrontoMedie simulazione={s} />
-
-            {r.prove.map((p, i) => {
-              const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
-              const punti: PuntoSuBersaglio[] = s.frecce.flatMap((v, k) => {
-                const pos = posizioni[k]
-                return pos && k >= prima && k < prima + p.prova.frecceTotali
-                  ? [
-                      {
-                        posizione: pos,
-                        etichetta: `Freccia ${k - prima + 1}: ${v}`,
-                        stato: 'prima' as const,
-                      },
-                    ]
-                  : []
-              })
-              if (punti.length === 0 || conAnelli === null) return null
-              return (
-                <section
-                  key={i}
-                  className={styles.mappa}
-                  aria-label={`Dove sono arrivate le frecce${r.prove.length > 1 ? ` · prova ${i + 1}` : ''}`}
-                >
-                  <h2 className={`type-label ${styles.titolo}`}>
-                    {r.prove.length > 1
-                      ? `Dove sono arrivate · prova ${i + 1}`
-                      : 'Dove sono arrivate le frecce'}
-                  </h2>
-                  <BersaglioTocco
-                    bersaglio={conAnelli}
-                    compound={s.compound ?? false}
-                    punti={punti}
-                    etichetta={`Bersaglio con ${punti.length} frecce`}
-                  />
-                </section>
-              )
-            })}
-
             <section className={styles.elenco} aria-label={`Tutte le ${unita.plurale}`}>
               {r.prove.map((p, i) => {
                 const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
@@ -485,6 +402,65 @@ function Tiro({ simulazione: s }: { simulazione: Simulazione }) {
                 )
               })}
             </section>
+
+            <ListGroup title="Riepilogo">
+              {r.prove.map((p, i) => (
+                <ListRow
+                  key={i}
+                  label={
+                    r.prove.length > 1 ? `Prova ${i + 1}${metri(p.prova.distanza)}` : 'Punteggio'
+                  }
+                  value={String(p.totale)}
+                  description={`Parziali ${p.parziali[0]} + ${p.parziali[1]}`}
+                />
+              ))}
+              {r.prove.length > 1 && <ListRow label="Totale" value={String(r.totale)} />}
+              <ListRow
+                label={`${nome1} e ${nome2}`}
+                value={`${r.conteggi[0]} · ${r.conteggi[1]}`}
+              />
+              {r.media !== null && (
+                <ListRow label="Media per freccia" value={String(r.media).replace('.', ',')} />
+              )}
+            </ListGroup>
+
+            <ConfrontoMedie simulazione={s} />
+
+            {r.prove.map((p, i) => {
+              const prima = r.prove.slice(0, i).reduce((t, x) => t + x.prova.frecceTotali, 0)
+              const punti: PuntoSuBersaglio[] = s.frecce.flatMap((v, k) => {
+                const pos = posizioni[k]
+                return pos && k >= prima && k < prima + p.prova.frecceTotali
+                  ? [
+                      {
+                        posizione: pos,
+                        etichetta: `Freccia ${k - prima + 1}: ${v}`,
+                        stato: 'prima' as const,
+                      },
+                    ]
+                  : []
+              })
+              if (punti.length === 0 || conAnelli === null) return null
+              return (
+                <section
+                  key={i}
+                  className={styles.mappa}
+                  aria-label={`Dove sono arrivate le frecce${r.prove.length > 1 ? ` · prova ${i + 1}` : ''}`}
+                >
+                  <h2 className={`type-label ${styles.titolo}`}>
+                    {r.prove.length > 1
+                      ? `Dove sono arrivate · prova ${i + 1}`
+                      : 'Dove sono arrivate le frecce'}
+                  </h2>
+                  <BersaglioTocco
+                    bersaglio={conAnelli}
+                    compound={s.compound ?? false}
+                    punti={punti}
+                    etichetta={`Bersaglio con ${punti.length} frecce`}
+                  />
+                </section>
+              )
+            })}
           </>
         )}
 

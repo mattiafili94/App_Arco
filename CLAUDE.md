@@ -580,6 +580,15 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         della stessa prova con **un solo arco** (il compound se la simulazione è compound, altrimenti l'arco
         dell'ultima gara). Per le gare il numero di frecce è quello del formato della simulazione. Non compare
         se non c'è niente con cui confrontare. Tutto dai dati del telefono, anche offline.
+      - **6.3c ✅** pagina della simulazione più semplice (Mattia, 11/11/2026): titolo con la sola gara ("18 m", senza
+        il bersaglio); **"Avvia timer" accanto al titolo** (`useTimerVolee` in `componenti/useTimerVolee.ts`,
+        `PulsanteTimer` nell'intestazione, `PannelloTimer` sotto quando va); tolti i testi di spiegazione (timer,
+        bersaglio, "Bersaglio con le frecce segnate") e la nota della volée in corso (le note si scrivono
+        dall'elenco delle volée). **Bersaglio**: anelli grandi come prima, ma attorno solo l'**anello della mancata**
+        largo come un anello (`raggioMancata`), non più il quadrato; fuori dal cerchio il tocco non segna niente e
+        la pagina si scorre (`clip-path: circle` e controllo della distanza); le frecce vecchie più lontane si
+        disegnano sul bordo. **Ordine**: volée in corso, scelta tastierino/bersaglio, "Annulla ultima freccia",
+        **elenco delle volée**, **riepilogo** (con il confronto), in fondo **"Dove sono arrivate le frecce"**.
 7. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

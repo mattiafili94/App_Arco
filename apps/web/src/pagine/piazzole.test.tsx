@@ -208,10 +208,12 @@ describe('segnare per piazzola', () => {
   it('la nota è "della piazzola"', async () => {
     const s = await preparaSimulazione({ ...TRE_D, frecce: ['11', '10', '8'] })
     await apri(s)
-    await userEvent.click(screen.getByText('Nota della piazzola 2 (facoltativa)'))
-    await userEvent.type(screen.getByLabelText('Nota della piazzola 2'), 'salita')
+    // La nota si scrive dall'elenco delle piazzole.
+    const lista = screen.getByRole('list', { name: 'Piazzola' })
+    await userEvent.click(within(lista).getByRole('button', { name: /Nota della piazzola 1:/ }))
+    await userEvent.type(within(lista).getByLabelText('Nota della piazzola 1'), 'salita')
     await waitFor(async () =>
-      expect((await leggiSimulazione(dbPredefinito(), s.id))?.note).toEqual({ '1': 'salita' }),
+      expect((await leggiSimulazione(dbPredefinito(), s.id))?.note).toEqual({ '0': 'salita' }),
     )
   })
 

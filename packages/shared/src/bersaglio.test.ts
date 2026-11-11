@@ -6,6 +6,7 @@ import {
   distanzaDalCentro,
   limitaPosizione,
   posizioneValida,
+  raggioMancata,
   valoreDaPosizione,
   type Posizione,
 } from './bersaglio'
@@ -256,5 +257,20 @@ describe('frecce con la posizione', () => {
       posizioni: [[0.1, 0]],
     })
     expect(togliUltimaConPosizione(s([]))).toEqual({ frecce: [], posizioni: [] })
+  })
+})
+
+describe('anello della mancata', () => {
+  it('largo come un anello del bersaglio', () => {
+    expect(raggioMancata('singolo')).toBeCloseTo(1.1)
+    expect(raggioMancata('122')).toBeCloseTo(1.1)
+    expect(raggioMancata('trispot')).toBeCloseTo(1.2)
+    expect(raggioMancata('80')).toBeCloseTo(1 + 1 / 6)
+  })
+
+  it('un punto si può riportare entro un limite a scelta', () => {
+    const [x, y] = limitaPosizione([3, 4], 1.1)
+    expect(Math.hypot(x, y)).toBeCloseTo(1.1)
+    expect(limitaPosizione([0.3, 0.4], 1.1)).toEqual([0.3, 0.4])
   })
 })

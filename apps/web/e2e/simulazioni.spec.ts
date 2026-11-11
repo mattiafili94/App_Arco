@@ -16,6 +16,9 @@ async function controllaAccessibilita(page: Page) {
   ).toEqual([])
 }
 
+/** Trispot: l'anello della mancata arriva a 1,2 (5 anelli larghi 0,2), più 0,02 di bordo nel disegno. */
+const MEZZO = 1.22
+
 const tasto = (page: Page, valore: string) =>
   page
     .getByRole('group', { name: 'Valore della freccia' })
@@ -40,7 +43,7 @@ test.describe('segnapunti', () => {
   }) => {
     const { simulazioni } = await simulaSupabase(page)
     await iniziaSimulazione(page)
-    await expect(page.getByRole('heading', { level: 1, name: '18 m · Trispot' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: '18 m' })).toBeVisible()
 
     await tasto(page, '10').click()
     await tasto(page, '9').click()
@@ -161,8 +164,8 @@ test.describe('segnapunti', () => {
     await bersaglio.scrollIntoViewIfNeeded()
     const r = (await bersaglio.boundingBox())!
     const punto = (x: number, y: number) => ({
-      x: r.x + ((x + 1.25) / 2.5) * r.width,
-      y: r.y + ((y + 1.25) / 2.5) * r.height,
+      x: r.x + ((x + MEZZO) / (2 * MEZZO)) * r.width,
+      y: r.y + ((y + MEZZO) / (2 * MEZZO)) * r.height,
     })
 
     // Tenendo premuto la lente mostra il valore, e si può trascinare; alzando il dito si segna.
@@ -183,6 +186,13 @@ test.describe('segnapunti', () => {
     await page.mouse.click(centro.x, centro.y)
     await expect(page.getByText(/Totale: 18 · 2 frecce su 60/)).toBeVisible()
 
+    // Un tocco nell'angolo in alto a sinistra, fuori dall'anello della mancata, non segna niente.
+    // (In basso c'è la barra dei tab, che il tocco aprirebbe.)
+    const angolo = punto(-1.21, -1.21)
+    await page.mouse.click(angolo.x, angolo.y)
+    await page.waitForTimeout(300)
+    await expect(page.getByText(/Totale: 18 · 2 frecce su 60/)).toBeVisible()
+
     await expect
       .poll(() => (simulazioni[0] as { frecce?: string[] } | undefined)?.frecce?.join(','), {
         timeout: 15_000,
@@ -198,8 +208,10 @@ test.describe('segnapunti', () => {
     const { simulazioni } = await simulaSupabase(page)
     await iniziaSimulazione(page)
     await tasto(page, '10').click()
-    await page.getByText('Nota della volée 1 (facoltativa)').click()
-    await page.getByLabel('Nota della volée 1', { exact: true }).fill('vento da destra')
+    // La nota si scrive dall'elenco delle volée.
+    const lista = page.getByRole('list', { name: 'Volée' })
+    await lista.getByRole('button', { name: /Nota della volée 1:/ }).click()
+    await lista.getByLabel('Nota della volée 1', { exact: true }).fill('vento da destra')
     await expect
       .poll(() => (simulazioni[0] as { note?: Record<string, string> } | undefined)?.note?.['0'], {
         timeout: 15_000,
@@ -224,8 +236,8 @@ test.describe('segnapunti', () => {
         await expect(bersaglio).toBeVisible()
         const r = (await bersaglio.boundingBox())!
         const dove = (x: number, y: number) => ({
-          x: r.x + ((x + 1.25) / 2.5) * r.width,
-          y: r.y + ((y + 1.25) / 2.5) * r.height,
+          x: r.x + ((x + MEZZO) / (2 * MEZZO)) * r.width,
+          y: r.y + ((y + MEZZO) / (2 * MEZZO)) * r.height,
         })
         // Qualche freccia in zone diverse, poi la lente aperta (dito premuto).
         for (const [x, y] of [
