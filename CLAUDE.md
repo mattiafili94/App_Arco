@@ -462,9 +462,8 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       tetto di 10 letture all'ora per tutti, pausa se Fitarco non risponde; risposte 200/400/403/429/502/503
       con `riprovaDopo`). Una combinazione senza atleti si salva vuota. Pubblicazione:
       `npx supabase functions deploy aggiorna-classifica --use-api` e `… aggiorna-fitarco …`.
-      **La tabella `ranking` e `salva_ranking` restano** (vuote, inutilizzate): i telefoni con la versione vecchia
-      dell'app le chiedono ancora; si tolgono in una migrazione successiva, insieme alla sincronizzazione
-      di `ranking` nell'app;
+      La vecchia tabella `ranking` e `salva_ranking` sono state **tolte** l'11/11/2026 (migrazione `20261117120000`,
+      Dexie versione 5 la toglie dal telefono, la sincronizzazione non la chiede più);
    2. app ✅ (`pagine/Classifica.tsx`, `pagine/ClassificaCompleta.tsx`, dati in `classifica/dati.ts`):
       - tab: "La tua posizione" in primo piano (una riga per classifica in cui compari: posto, punti, le due
         gare; funzione `mie_classifiche(matricola)`, migrazione `20261110150000`, restituisce solo la tua riga) e
@@ -483,8 +482,6 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         legge prima solo `aggiornato_il` (pochi byte) e si riscarica la classifica (~150 KB) solo se è cambiata.
       - nuovi componenti `Select` e `Scelte` (gruppo di scelte alternative). Nei test del browser Supabase è
         simulato anche per classifiche, `mie_classifiche` e `aggiorna-classifica`.
-      Per la versione vecchia dell'app: dopo l'aggiornamento di tutti i telefoni si può togliere la tabella
-      `ranking` (vedi 5.1).
 6. **Tab Allenamento**, una PR per passo (piano approvato l'11/11/2026):
    1. settimana e sincronizzazione nei due sensi ✅. Note:
       - tabella `allenamento_giorni` (una riga per atleta e giorno: `programma`, `fatto`, `frecce_libere`, `nota`,

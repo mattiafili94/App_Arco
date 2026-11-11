@@ -10,7 +10,6 @@ export type NomeTabella =
   | 'inviti'
   | 'partecipazioni'
   | 'classifiche'
-  | 'ranking'
   | 'allenamento_giorni'
   | 'simulazioni'
 
@@ -34,7 +33,6 @@ export const TABELLE: readonly DefinizioneTabella[] = [
   { nome: 'inviti', chiave: ['gara_codice'], colonne: '*' },
   { nome: 'partecipazioni', chiave: ['atleta_id', 'gara_codice', 'divisione'], colonne: '*' },
   { nome: 'classifiche', chiave: ['gara_codice', 'categoria', 'ordine'], colonne: '*' },
-  { nome: 'ranking', chiave: ['atleta_id', 'tipo', 'divisione'], colonne: '*' },
   // Privato: il server restituisce solo le righe dell'atleta collegato. Si scrive anche dal telefono
   // (vedi motore.ts, "inviaModifiche").
   { nome: 'allenamento_giorni', chiave: ['atleta_id', 'giorno'], colonne: '*' },

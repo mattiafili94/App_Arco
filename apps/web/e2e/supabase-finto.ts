@@ -391,7 +391,7 @@ export async function simulaSupabase(
       // maybeSingle(): il server risponde con un elenco di 0 o 1 righe.
       return json(route, ricercata ? [corpo] : [])
     }
-    if (['ranking', 'eliminazioni'].includes(tabella ?? '')) {
+    if (tabella === 'eliminazioni') {
       return json(route, [])
     }
 
