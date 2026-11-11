@@ -446,6 +446,8 @@ export async function simulaSupabase(
 
     // Chi segue chi: l'allenatore sceglie da solo (segui_atleta).
     if (tabella === 'allenatori_atleti') return json(route, allenatoriAtleti)
+    // Quali avvisi riceve il telefono (Fase 7.3).
+    if (url.pathname === '/rest/v1/rpc/imposta_avvisi') return json(route, true)
     if (url.pathname === '/rest/v1/rpc/segui_atleta') {
       const p = richiesta.postDataJSON() as { p_atleta: string; p_segui: boolean }
       richiesteFunzione.push({ azione: 'segui', ...p })

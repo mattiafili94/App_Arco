@@ -45,6 +45,7 @@ export const servizioPredefinito: ServizioAccesso =
           throw new Error('App non collegata al server.')
         },
         rimuoviPush: async () => {},
+        impostaAvvisi: async () => {},
         seguiAtleta: async () => {
           throw new Error('App non collegata al server.')
         },

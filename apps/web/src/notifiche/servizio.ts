@@ -20,10 +20,23 @@ export type StatoNotifiche =
 
 export type EsitoAttiva = 'ok' | 'negato' | 'errore'
 
+/** Quali avvisi riceve questo telefono (Fase 7.3): i nuovi inviti e/o i cambi del programma dell'allenatore. */
+export interface Avvisi {
+  inviti: boolean
+  programma: boolean
+}
+
+/** Di base un telefono registrato riceve tutti gli avvisi (come sul server). */
+export const AVVISI_PREDEFINITI: Avvisi = { inviti: true, programma: true }
+
 export interface ServizioNotifiche {
   stato(): Promise<StatoNotifiche>
   attiva(): Promise<EsitoAttiva>
   disattiva(): Promise<void>
+  /** Quali avvisi riceve questo telefono (il telefono se lo ricorda). */
+  avvisi(): Avvisi
+  /** Cambia quali avvisi riceve questo telefono, sul server e sul telefono. Lancia un errore se non riesce. */
+  imposta(avvisi: Avvisi): Promise<void>
 }
 
 /** Cosa serve dal browser (Notification, Service Worker, PushManager). */
@@ -44,6 +57,36 @@ export interface Ambiente {
 export interface RegistroPush {
   registraPush(iscrizione: IscrizionePush): Promise<void>
   rimuoviPush(endpoint: string): Promise<void>
+  impostaAvvisi(endpoint: string, inviti: boolean, programma: boolean): Promise<void>
+}
+
+/** Dove il telefono si ricorda quali avvisi ha scelto. */
+export interface Memoria {
+  leggi(): Avvisi | null
+  scrivi(avvisi: Avvisi): void
+}
+
+const CHIAVE_AVVISI = 'arco.avvisi'
+
+/** La memoria del browser (in una finestra privata può non esserci: allora valgono quelli di base). */
+export const memoriaBrowser: Memoria = {
+  leggi() {
+    try {
+      const dati = JSON.parse(
+        localStorage.getItem(CHIAVE_AVVISI) ?? 'null',
+      ) as Partial<Avvisi> | null
+      return dati ? { inviti: dati.inviti !== false, programma: dati.programma !== false } : null
+    } catch {
+      return null
+    }
+  },
+  scrivi(avvisi) {
+    try {
+      localStorage.setItem(CHIAVE_AVVISI, JSON.stringify(avvisi))
+    } catch {
+      // Senza memoria del browser la scelta vale solo sul server.
+    }
+  },
 }
 
 export function creaServizioNotifiche(
@@ -51,8 +94,20 @@ export function creaServizioNotifiche(
   ambiente: Ambiente,
   /** Chiave pubblica VAPID (non è un segreto). Senza, le notifiche non si possono accendere. */
   chiavePubblica: string | undefined,
+  memoria: Memoria = memoriaBrowser,
 ): ServizioNotifiche {
   return {
+    avvisi() {
+      return memoria.leggi() ?? AVVISI_PREDEFINITI
+    },
+
+    async imposta(avvisi) {
+      const iscrizione = await ambiente.iscrizione()
+      if (iscrizione)
+        await registro.impostaAvvisi(iscrizione.endpoint, avvisi.inviti, avvisi.programma)
+      memoria.scrivi(avvisi)
+    },
+
     async stato() {
       if (ambiente.daAggiungereAllaHome()) return 'serve-home'
       if (!ambiente.supportato() || !chiavePubblica) return 'non-supportate'
@@ -77,6 +132,8 @@ export function creaServizioNotifiche(
     async disattiva() {
       const iscrizione = await ambiente.iscrizione()
       await ambiente.annulla()
+      // La prossima volta che si accende, si riparte dagli avvisi di base.
+      memoria.scrivi(AVVISI_PREDEFINITI)
       // Senza rete la registrazione resta sul server: sparirà al primo invio (telefono non più valido).
       if (iscrizione) await registro.rimuoviPush(iscrizione.endpoint).catch(() => {})
     },

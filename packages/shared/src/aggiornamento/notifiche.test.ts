@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ATTESA_AVVISO_PROGRAMMA_MS,
+  inviaAvvisiProgramma,
   inviaNotifiche,
+  messaggioAvvisoProgramma,
   messaggioPush,
   notificaInvito,
   vaNotificato,
   VALIDITA_NOTIFICA_MS,
+  type ArchivioAvvisi,
   type ArchivioNotifiche,
   type Inviatore,
   type Iscrizione,
@@ -149,5 +153,108 @@ describe('inviaNotifiche', () => {
     await inviaNotifiche(archivio, async () => (mandate++, 'ok'), ADESSO)
     expect(mandate).toBe(0)
     expect(stato.inviate).toEqual([1])
+  })
+})
+
+describe('avvisi del programma all’atleta', () => {
+  const AVVISO = {
+    id: 1,
+    atleta_id: 'carla',
+    allenatore: 'Bruno Prova',
+    settimana: '2026-11-16',
+    creato_il: '2026-11-10T07:00:00Z',
+    ultima_modifica_il: '2026-11-10T07:40:00Z',
+  }
+
+  function archivioAvvisi(avvisi: (typeof AVVISO)[], telefoni: Record<string, Iscrizione[]>) {
+    const stato = { inviati: [] as number[], tolte: [] as string[], prima: [] as Date[] }
+    const archivio: ArchivioAvvisi = {
+      avvisiDaInviare: async (primaDi) => {
+        stato.prima.push(primaDi)
+        return avvisi.filter(
+          (a) =>
+            !stato.inviati.includes(a.id) && Date.parse(a.ultima_modifica_il) <= primaDi.getTime(),
+        )
+      },
+      iscrizioniDi: async (atleta) => telefoni[atleta] ?? [],
+      segnaAvvisoInviato: async (id) => void stato.inviati.push(id),
+      togliIscrizioni: async (e) => void stato.tolte.push(...e),
+    }
+    return { archivio, stato }
+  }
+
+  it('il messaggio dice chi e quale settimana, e apre quella settimana', () => {
+    expect(JSON.parse(messaggioAvvisoProgramma(AVVISO))).toEqual({
+      titolo: 'Programma aggiornato',
+      testo:
+        'Bruno Prova ha aggiornato il tuo programma della settimana 16–22 nov 2026. Tocca per vederlo.',
+      url: '/allenamento?settimana=2026-11-16',
+    })
+  })
+
+  it('parte solo ai telefoni di quell’atleta', async () => {
+    const { archivio, stato } = archivioAvvisi([AVVISO], {
+      carla: [tel(1), tel(2)],
+      dario: [tel(3)],
+    })
+    const mandati: string[] = []
+    const invia: Inviatore = async (i) => {
+      mandati.push(i.endpoint)
+      return 'ok'
+    }
+    const r = await inviaAvvisiProgramma(archivio, invia, ADESSO)
+    expect(mandati).toEqual([tel(1).endpoint, tel(2).endpoint])
+    expect(r).toEqual({ notifiche: 1, inviate: 2, scadute: 0, errori: 0 })
+    expect(stato.inviati).toEqual([1])
+  })
+
+  it('aspetta che l’allenatore abbia finito di scrivere (10 minuti)', async () => {
+    expect(ATTESA_AVVISO_PROGRAMMA_MS).toBe(600_000)
+    const appenaScritto = { ...AVVISO, ultima_modifica_il: '2026-11-10T07:55:00Z' }
+    const { archivio, stato } = archivioAvvisi([appenaScritto], { carla: [tel(1)] })
+    const r = await inviaAvvisiProgramma(archivio, async () => 'ok', ADESSO)
+    expect(r.notifiche).toBe(0)
+    expect(stato.prima[0]).toEqual(new Date('2026-11-10T07:50:00Z'))
+  })
+
+  it('senza telefoni si chiude; consegna fallita: riprova; telefono scaduto: si toglie', async () => {
+    const senza = archivioAvvisi([AVVISO], {})
+    await inviaAvvisiProgramma(senza.archivio, async () => 'ok', ADESSO)
+    expect(senza.stato.inviati).toEqual([1])
+
+    const fallita = archivioAvvisi([AVVISO], { carla: [tel(1)] })
+    const r = await inviaAvvisiProgramma(fallita.archivio, async () => 'errore', ADESSO)
+    expect(r.errori).toBe(1)
+    expect(fallita.stato.inviati).toEqual([])
+
+    const scaduta = archivioAvvisi([AVVISO], { carla: [tel(1)] })
+    await inviaAvvisiProgramma(scaduta.archivio, async () => 'scaduta', ADESSO)
+    expect(scaduta.stato.tolte).toEqual([tel(1).endpoint])
+    expect(scaduta.stato.inviati).toEqual([1])
+
+    const errore = archivioAvvisi([AVVISO], { carla: [tel(1)] })
+    const rotto: Inviatore = async () => {
+      throw new Error('rete')
+    }
+    expect((await inviaAvvisiProgramma(errore.archivio, rotto, ADESSO)).errori).toBe(1)
+  })
+
+  it('un avviso troppo vecchio non parte più', async () => {
+    const vecchio = {
+      ...AVVISO,
+      creato_il: new Date(ADESSO.getTime() - VALIDITA_NOTIFICA_MS - 1).toISOString(),
+    }
+    const { archivio, stato } = archivioAvvisi([vecchio], { carla: [tel(1)] })
+    const mandati: string[] = []
+    await inviaAvvisiProgramma(
+      archivio,
+      async (i) => {
+        mandati.push(i.endpoint)
+        return 'ok'
+      },
+      ADESSO,
+    )
+    expect(mandati).toEqual([])
+    expect(stato.inviati).toEqual([1])
   })
 })

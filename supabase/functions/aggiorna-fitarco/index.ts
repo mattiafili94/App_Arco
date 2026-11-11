@@ -13,10 +13,11 @@ import {
   accodaRanking,
   giornoItaliano,
   giro,
+  inviaAvvisiProgramma,
   inviaNotifiche,
 } from '../_shared/aggiornamento/index.ts'
 import { creaClientFitarco } from '../_shared/fitarco/index.ts'
-import { archivioNotificheSupabase, archivioSupabase } from './archivio.ts'
+import { archivioAvvisiSupabase, archivioNotificheSupabase, archivioSupabase } from './archivio.ts'
 import { creaInviatorePush } from './push.ts'
 
 /** Limiti di ogni chiamata: il piano gratuito dà poco tempo di calcolo, e Fitarco va trattato bene. */
@@ -74,7 +75,12 @@ async function mandaNotifiche(db: SupabaseClient) {
   try {
     const invia = creaInviatorePush()
     if (!invia) return 'chiavi VAPID mancanti'
-    return await inviaNotifiche(archivioNotificheSupabase(db), invia, new Date())
+    const adesso = new Date()
+    return {
+      inviti: await inviaNotifiche(archivioNotificheSupabase(db), invia, adesso),
+      // Gli avvisi all'atleta quando un suo allenatore cambia il programma (Fase 7.3).
+      programma: await inviaAvvisiProgramma(archivioAvvisiSupabase(db), invia, adesso),
+    }
   } catch (errore) {
     return { errore: errore instanceof Error ? errore.message : String(errore) }
   }

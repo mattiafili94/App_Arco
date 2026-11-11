@@ -619,6 +619,17 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       programma (`programma_modificato_il`, `programma_modificato_da`) e manda `p_programma_modificato_il`.
       La sincronizzazione smette di scrivere sul telefono quando la schermata si chiude (`fermato` di `sincronizza`):
       toglie anche i test "ballerini" dove una sincronizzazione del test prima scriveva dopo la pulizia.
+   3. avviso all'atleta ✅ (migrazione `20261119120000_avvisi_programma.sql`): quando un allenatore cambia il programma
+      (trigger su `allenamento_giorni`, solo se `programma_modificato_da` non è l'atleta) si mette in coda **un avviso per
+      atleta, allenatore e settimana** (`avvisi_programma`; tante modifiche di fila = un avviso). Parte alla fine di
+      un giro di `aggiorna-fitarco` (`inviaAvvisiProgramma` in `_shared/aggiornamento/notifiche.ts`) quando dall'ultima
+      modifica sono passati **10 minuti**, **solo ai telefoni di quell'atleta**: "Mattia Rossi ha aggiornato il tuo
+      programma della settimana 16–22 nov. Tocca per vederlo." (apre `/allenamento?settimana=…`); stesse regole degli
+      inviti (2 giorni di validità, telefoni scaduti tolti). Ogni telefono sceglie i suoi avvisi: colonne
+      `iscrizioni_push.inviti` e `.programma` (di base tutti e due), `imposta_avvisi`; gli inviti partono solo ai
+      telefoni con `inviti`. App: in Impostazioni → Notifiche l'interruttore **"Programma dell'allenatore"** (solo per
+      chi ha un allenatore) accanto a "Nuovi inviti"; il telefono resta registrato finché un avviso è acceso
+      (`useNotifiche`, scelta ricordata in `localStorage` `arco.avvisi`).
 8. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system

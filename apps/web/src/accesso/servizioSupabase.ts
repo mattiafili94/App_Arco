@@ -136,6 +136,15 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
       if (error) throw new Error(error.message)
     },
 
+    async impostaAvvisi(endpoint, inviti, programma) {
+      const { error } = await supabase.rpc('imposta_avvisi', {
+        p_endpoint: endpoint,
+        p_inviti: inviti,
+        p_programma: programma,
+      })
+      if (error) throw new Error(error.message)
+    },
+
     async seguiAtleta(atletaId, segui) {
       if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
       const { error } = await supabase.rpc('segui_atleta', { p_atleta: atletaId, p_segui: segui })

@@ -102,6 +102,9 @@ export function servizioFinto({
     }),
     registraPush: vi.fn<(i: IscrizionePush) => Promise<void>>(async () => {}),
     rimuoviPush: vi.fn<(endpoint: string) => Promise<void>>(async () => {}),
+    impostaAvvisi: vi.fn<(endpoint: string, inviti: boolean, programma: boolean) => Promise<void>>(
+      async () => {},
+    ),
     // Come il server: la riga di "chi segue chi" arriva ai telefoni con la sincronizzazione.
     seguiAtleta: vi.fn(async (atletaId: string, segui: boolean) => {
       if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
