@@ -63,7 +63,7 @@ select lives_ok(
   'l''atleta scrive il suo programma'
 );
 select throws_ok(
-  $ select count(*) from public.avvisi_programma $,
+  $$ select count(*) from public.avvisi_programma $$,
   '42501', null, 'la coda degli avvisi la vede solo il server'
 );
 

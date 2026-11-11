@@ -152,7 +152,8 @@ describe('scheda gara', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '18 m' })).toBeInTheDocument()
     expect(screen.getByText('Perugia (PG) · 12–13 dic 2026')).toBeInTheDocument()
     expect(screen.getByText('ASD Arcieri Augusta Perusia')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /societa@example.com/ })).toHaveAttribute(
+    // L'invito arriva con la sincronizzazione, a volte dopo la gara.
+    expect(await screen.findByRole('link', { name: /societa@example.com/ })).toHaveAttribute(
       'href',
       'mailto:societa@example.com',
     )
