@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(28);
 
 -- Utenti e atleti di prova -------------------------------------------------------------------------
 insert into auth.users (id, email) values
@@ -23,8 +23,6 @@ insert into public.gare (codice, dal, al, calendario, localita, tipologia, stato
 insert into public.inviti (gara_codice, testo) values ('R0000002', 'Iscrizioni dal 1 al 31 gennaio');
 insert into public.partecipazioni (atleta_id, gara_codice, divisione, classe, rank, posizione, totale) values
   ('10000000-0000-0000-0000-0000000000b1', 'R0000001', 'OL', 'SM', 'SM', 4, 534);
-insert into public.ranking (atleta_id, tipo, divisione, classe, genere, categoria, posizione, punti) values
-  ('10000000-0000-0000-0000-0000000000b1', 'I', 'OL', 'S', 'M', 'Arco Ricurvo - Seniores Maschile', 133, 1060);
 insert into public.letture (tipo, chiave, esito) values ('calendario', '2027', 'ok');
 insert into public.coda_letture (tipo, chiave) values ('scheda-atleta', '900102');
 
@@ -67,14 +65,12 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000d1", "role": "authenticated"}';
 select is((select count(*)::int from public.gare), 0, 'chi non è atleta non vede le gare');
-select is((select count(*)::int from public.ranking), 0, 'chi non è atleta non vede il ranking');
 
 -- Atleta -------------------------------------------------------------------------------------------------
 set local request.jwt.claims = '{"sub": "00000000-0000-0000-0000-0000000000b1", "role": "authenticated"}';
 select is((select count(*)::int from public.gare), 2, 'un atleta vede le gare');
 select is((select count(*)::int from public.inviti), 1, 'un atleta vede gli inviti');
 select is((select count(*)::int from public.partecipazioni), 1, 'un atleta vede gli storici');
-select is((select count(*)::int from public.ranking), 1, 'un atleta vede il ranking');
 select is((select count(*)::int from public.letture), 0, 'un atleta non vede il diario delle letture');
 select throws_ok($$ select * from public.coda_letture $$, '42501', null, 'un atleta non vede la lista di lavoro');
 select throws_ok(
@@ -154,14 +150,9 @@ select is(
   ]$$::jsonb),
   2, 'il server sostituisce lo storico di un atleta'
 );
-select is(
-  public.salva_ranking('I', 'OL', array['10000000-0000-0000-0000-0000000000b1'::uuid], '[]'::jsonb), 0,
-  'un atleta uscito dalla ranking non ha più la sua riga'
-);
-select is((select count(*)::int from public.ranking), 0, 'la riga del ranking è stata tolta');
 reset role;
 
--- Eliminare un atleta: via storico e ranking, le classifiche restano senza collegamento ------------------
+-- Eliminare un atleta: via lo storico, le classifiche restano senza collegamento ------------------
 delete from public.atleti where id = '10000000-0000-0000-0000-0000000000b1';
 select is((select count(*)::int from public.partecipazioni), 0, 'eliminando l''atleta si elimina il suo storico');
 select is(

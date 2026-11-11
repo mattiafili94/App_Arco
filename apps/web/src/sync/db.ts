@@ -17,7 +17,6 @@ export class ArcoDb extends Dexie {
   inviti!: Table<Riga>
   partecipazioni!: Table<Riga>
   classifiche!: Table<Riga>
-  ranking!: Table<Riga>
   /** Allenamento dell'atleta (privato). Le righe con `da_inviare: 1` hanno modifiche non ancora sul server. */
   allenamento_giorni!: Table<Riga>
   /** Simulazioni di gara (privato, come l'allenamento): `da_inviare: 1` segna le modifiche da mandare. */
@@ -52,6 +51,8 @@ export class ArcoDb extends Dexie {
     this.version(4).stores({
       simulazioni: 'id, atleta_id, giorno, da_inviare',
     })
+    // Pulizia (11/11/2026): la vecchia tabella `ranking` non c'è più (le classifiche stanno in classifiche_ranking).
+    this.version(5).stores({ ranking: null })
   }
 
   tabella(nome: NomeTabella): Table<Riga> {
