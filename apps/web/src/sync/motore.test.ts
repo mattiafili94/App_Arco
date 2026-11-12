@@ -70,6 +70,15 @@ describe('primo giro', () => {
     expect(await ultimaSincronizzazione(db)).toBeNull()
   })
 
+  it('se chi l’ha chiesta smette a metà, non scrive nemmeno i segnalibri delle tabelle', async () => {
+    remoto.scrivi('atleti', { id: 'a1', nome: 'Anna', aggiornato_il: quando(100) })
+    // Fermo subito dopo aver scritto la prima pagina degli atleti.
+    let controlli = 0
+    await sincronizza(remoto, db, adesso, () => ++controlli > 1)
+    expect(await db.atleti.count()).toBe(1)
+    expect(await db.meta.get('cursore:atleti')).toBeUndefined()
+  })
+
   it('non applica le vecchie eliminazioni: la copia è vuota, parte dall’ultima', async () => {
     remoto.scrivi('gare', gara('R1'))
     remoto.elimina('gare', { codice: 'R0' })

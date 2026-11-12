@@ -36,9 +36,16 @@ export interface AnomaliaClassifica {
  */
 export function controllaClassifica(
   righe: readonly { atleta_id: string | null; divisione: string; totale: number }[],
-  attesi: readonly { atletaId: string; divisione: string; totale: number | null }[],
+  attesi: readonly {
+    atletaId: string
+    divisione: string
+    totale: number | null
+    /** Senza posizione nello storico ("fuori classifica", es. il campionato regionale di un'altra regione) il PDF può non averlo. */
+    posizione?: number | null
+  }[],
 ): AnomaliaClassifica[] {
   return attesi.flatMap((a): AnomaliaClassifica[] => {
+    if (a.posizione === null) return []
     const trovate = righe.filter((r) => r.atleta_id === a.atletaId && r.divisione === a.divisione)
     const { atletaId, divisione } = a
     if (trovate.length === 0) return [{ atletaId, divisione, motivo: 'non-trovato' }]

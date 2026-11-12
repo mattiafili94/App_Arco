@@ -22,6 +22,9 @@ import type { RigaTesto } from './pdf-testo.ts'
  */
 export const CODICE_SOCIETA_ESTERA = '00000'
 
+/** Il codice di un club estero fatto di lettere e numeri ("ROU01"). */
+const CODICE_ESTERO = /^[A-Z]{3}\d{1,3}$/
+
 /** Divisioni come le scrive il PDF → codice Fitarco. Nei PDF vecchi il ricurvo è "Arco Olimpico". */
 export const DIVISIONI_PDF: Record<string, string> = {
   'Arco Ricurvo': 'OL',
@@ -151,15 +154,17 @@ function leggiAtleta(riga: RigaTesto, categoria: CategoriaRisultati): AtletaRisu
   let categoriaEta = s > 0 && /^\d{2}$/.test(t[s - 1]!) ? t[s - 1]! : null
   let finoNome = categoriaEta ? s - 1 : s
   let codice = t[s]!
-  // Club estero: niente codice, dopo la categoria c'è il paese in maiuscolo ("ESTONIA",
-  // "SAN MARINO") e poi il nome del club. Il paese resta nel nome della società.
+  // Club estero: niente codice a 5 cifre. Dopo la categoria c'è il paese in maiuscolo ("ESTONIA",
+  // "SAN MARINO") e poi il nome del club (il paese resta nel nome della società), oppure un codice estero
+  // di lettere e numeri ("ROU01", visto l'11/11/2026) che nel nome della società si salta.
+  let inizioSocieta = s + 1
   if (s < 0) {
-    finoNome = t.findIndex(
-      (p, k) => k >= 3 && /^\d{2}$/.test(p) && /^\p{Lu}[\p{Lu}'-]*$/u.test(t[k + 1] ?? ''),
-    )
+    const estero = (p: string) => /^\p{Lu}[\p{Lu}'-]*$/u.test(p) || CODICE_ESTERO.test(p)
+    finoNome = t.findIndex((p, k) => k >= 3 && /^\d{2}$/.test(p) && estero(t[k + 1] ?? ''))
     s = finoNome
     categoriaEta = t[s] ?? null
     codice = CODICE_SOCIETA_ESTERA
+    inizioSocieta = CODICE_ESTERO.test(t[s + 1] ?? '') ? s + 2 : s + 1
   }
   const n = categoria.colonneParziali.length
   const fine = t.length - 3 - n
@@ -182,7 +187,7 @@ function leggiAtleta(riga: RigaTesto, categoria: CategoriaRisultati): AtletaRisu
     nomeCompleto: nomeParti.join(' '),
     ...dividiNome(nomeParti),
     categoria: categoriaEta,
-    societa: { codice, nome: t.slice(s + 1, fine).join(' ') },
+    societa: { codice, nome: t.slice(inizioSocieta, fine).join(' ') },
     parziali,
     prove: [],
     totale: tot,

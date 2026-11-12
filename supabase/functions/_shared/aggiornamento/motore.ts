@@ -139,7 +139,9 @@ export interface Archivio {
   /** I nostri atleti nello storico di una gara: uno per arco (divisione). */
   partecipanti(
     codiceGara: string,
-  ): Promise<{ atletaId: string; divisione: string; totale: number | null }[]>
+  ): Promise<
+    { atletaId: string; divisione: string; totale: number | null; posizione?: number | null }[]
+  >
   /**
    * Toglie dalle classifiche delle gare iniziate prima di `primaDel` le righe degli altri atleti
    * (restano i nostri). Restituisce quante righe ha tolto.

@@ -224,7 +224,12 @@ export class ArchivioFinto implements Archivio {
     return [...this.storici.entries()].flatMap(([atletaId, righe]) =>
       righe
         .filter((r) => r.gara_codice === codiceGara)
-        .map((r) => ({ atletaId, divisione: r.divisione, totale: r.totale })),
+        .map((r) => ({
+          atletaId,
+          divisione: r.divisione,
+          totale: r.totale,
+          posizione: r.posizione,
+        })),
     )
   }
 
@@ -246,7 +251,7 @@ export class ArchivioFinto implements Archivio {
     return codiciGare.flatMap((codice) =>
       (this.classifiche.get(codice)?.righe ?? [])
         .map(riga)
-        .filter((r) => r.atleta_id === null && r.societa_codice === '11003')
+        .filter((r) => r.atleta_id === null && ['11003', '11000'].includes(r.societa_codice))
         .map(({ categoria, ordine, cognome, nome }) => ({
           gara_codice: codice,
           categoria,

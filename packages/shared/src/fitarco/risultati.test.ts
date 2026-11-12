@@ -279,6 +279,25 @@ describe('lettore dei PDF dei risultati: formati inattesi', () => {
     ).toThrow('Riga atleta non riconosciuta')
   })
 
+  it('accetta i club esteri con un codice di lettere e numeri ("ROU01")', () => {
+    // Riga vera della gara R2609082 (11/11/2026), con nomi finti: il club rumeno ha il codice "ROU01".
+    const estero = semplice(
+      r(680, ATLETA),
+      r(
+        670,
+        '2 1- 2A ESEMPIO Prova Seconda 01 ROU01 CSM Esempio 2020 Romania 280/ 2 272/ 2 552 5 21',
+      ),
+    ).categorie[0]!.atleti
+    expect(estero[1]).toMatchObject({
+      nomeCompleto: 'ESEMPIO Prova Seconda',
+      cognome: 'ESEMPIO',
+      nome: 'Prova Seconda',
+      categoria: '01',
+      societa: { codice: CODICE_SOCIETA_ESTERA, nome: 'CSM Esempio 2020 Romania' },
+      totale: 552,
+    })
+  })
+
   it('si ferma se una riga atleta non torna', () => {
     expect(() => semplice(r(680, '1 1- 1A PROVA Mario Arcieri 280/ 1 272/ 1 552 21 26'))).toThrow(
       'Riga atleta non riconosciuta',

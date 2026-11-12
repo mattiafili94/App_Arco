@@ -182,7 +182,7 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       const righe = controlla(
         await db
           .from('partecipazioni')
-          .select('atleta_id, divisione, totale')
+          .select('atleta_id, divisione, totale, posizione')
           .eq('gara_codice', codiceGara),
         'partecipanti',
       )
@@ -190,6 +190,7 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
         atletaId: r.atleta_id as string,
         divisione: r.divisione as string,
         totale: r.totale as number | null,
+        posizione: r.posizione as number | null,
       }))
     },
 
@@ -211,7 +212,8 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
           .from('classifiche')
           .select('gara_codice, categoria, ordine, cognome, nome')
           .in('gara_codice', codiciGare)
-          .eq('societa_codice', '11003')
+          // Anche le righe della rappresentativa dell'Umbria (Coppa Italia delle Regioni).
+          .in('societa_codice', ['11003', '11000'])
           .is('atleta_id', null),
         'righe da collegare',
       ) as {

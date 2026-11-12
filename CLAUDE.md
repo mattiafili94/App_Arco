@@ -338,6 +338,12 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           `V1` (codice divisione `^[A-Z][A-Z0-9]$`). Altre categorie nuove fermano la lettura: aggiungerle
           a `DIVISIONI_PDF` dopo aver visto il PDF;
         - un PDF senza atleti è un'anomalia (non si salva, si riprova ogni 3 giorni);
+        - **12/11/2026**: club esteri con un codice di lettere e numeri (`ROU01 CSM Iasi 2020 Romania`): il codice
+          si salta e la società resta `CODICE_SOCIETA_ESTERA`; nella **Coppa Italia delle Regioni** la "società" è il
+          comitato regionale (`11000 Umbria`, `CODICE_RAPPRESENTATIVA_UMBRIA`): i nostri atleti si riconoscono anche
+          lì (`CODICI_NOSTRI`, anche in `collega_righe`); chi nello storico è **senza posizione** (999, "fuori
+          classifica", es. il campionato regionale di un'altra regione, dove il PDF ha solo i locali) non è più
+          "atteso" dalla sentinella;
         - **dopo circa 100 richieste in mezz'ora (giri lanciati uno dopo l'altro) Fitarco ha risposto 503.**
           Da allora: se Fitarco non risponde, TUTTE le letture si fermano per 6 ore (`PAUSA_DOPO_BLOCCO_MS`,
           diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li

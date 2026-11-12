@@ -33,6 +33,23 @@ describe('sentinella', () => {
     ])
   })
 
+  it('non si aspetta nel PDF chi nello storico è fuori classifica (senza posizione)', () => {
+    // Campionato regionale di un'altra regione: i nostri atleti tirano ma il PDF ha solo i locali (12/11/2026).
+    expect(
+      controllaClassifica(
+        [{ atleta_id: null, divisione: 'OL', totale: 359 }],
+        [{ atletaId: 'a1', divisione: 'OL', totale: 299, posizione: null }],
+      ),
+    ).toEqual([])
+    // Con la posizione, invece, deve esserci.
+    expect(
+      controllaClassifica(
+        [{ atleta_id: null, divisione: 'OL', totale: 359 }],
+        [{ atletaId: 'a1', divisione: 'OL', totale: 299, posizione: 4 }],
+      ),
+    ).toEqual([{ atletaId: 'a1', divisione: 'OL', motivo: 'non-trovato' }])
+  })
+
   it('stesso arciere, stessa gara, due archi: ogni arco col suo totale', () => {
     // Due sessioni: ricurvo (534) e nudo (480).
     const righe = [
