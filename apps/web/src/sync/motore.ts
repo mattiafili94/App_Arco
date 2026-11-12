@@ -119,7 +119,8 @@ async function scaricaTabella(
     }
     if (pagina.length < DIMENSIONE_PAGINA) break
   }
-  if (massimo > 0) await scriviMeta(db, chiaveCursore(def), massimo)
+  // Anche il segnalibro (cursore) non si scrive più se chi ha chiesto la sincronizzazione non c'è più.
+  if (massimo > 0 && !fermato()) await scriviMeta(db, chiaveCursore(def), massimo)
   return scritte
 }
 

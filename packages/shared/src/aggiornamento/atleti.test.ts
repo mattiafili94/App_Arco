@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CODICE_SOCIETA, genereDaClasse, normalizzaNome, trovaAtleta } from '../aggiornamento'
+import {
+  CODICE_RAPPRESENTATIVA_UMBRIA,
+  CODICE_SOCIETA,
+  genereDaClasse,
+  normalizzaNome,
+  trovaAtleta,
+} from '../aggiornamento'
 
 const ATLETI = [
   { id: 'a1', matricola: '900001', nome: 'Giulia', cognome: 'Neri' },
@@ -33,6 +39,14 @@ describe('riconoscere gli atleti della compagnia nei PDF', () => {
     expect(trovaAtleta(riga('NERI', 'Giulia', '11004'), ATLETI)).toBeNull()
     expect(trovaAtleta(riga('ROSSI', 'Paolo'), ATLETI)).toBeNull()
     expect(trovaAtleta(riga('VERDI', 'Anna'), ATLETI)).toBeNull()
+  })
+
+  it('riconosce un Eugubino nella rappresentativa dell’Umbria (Coppa Italia delle Regioni)', () => {
+    // In quelle gare la "società" è il comitato regionale: "11000 Umbria" (visto il 12/11/2026).
+    expect(trovaAtleta(riga('NERI', 'Giulia', CODICE_RAPPRESENTATIVA_UMBRIA), ATLETI)).toBe('a1')
+    expect(CODICE_RAPPRESENTATIVA_UMBRIA).toBe('11000')
+    // Le rappresentative delle altre regioni no.
+    expect(trovaAtleta(riga('NERI', 'Giulia', '10000'), ATLETI)).toBeNull()
   })
 
   it('ricava il genere dalla classe', () => {
