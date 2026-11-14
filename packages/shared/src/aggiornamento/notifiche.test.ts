@@ -2,14 +2,18 @@ import { describe, expect, it } from 'vitest'
 import {
   ATTESA_AVVISO_PROGRAMMA_MS,
   inviaAvvisiProgramma,
+  inviaAvvisiSondaggi,
   inviaNotifiche,
   messaggioAvvisoProgramma,
+  messaggioAvvisoSondaggio,
   messaggioPush,
   notificaInvito,
   vaNotificato,
   VALIDITA_NOTIFICA_MS,
   type ArchivioAvvisi,
   type ArchivioNotifiche,
+  type ArchivioSondaggi,
+  type AvvisoSondaggio,
   type Inviatore,
   type Iscrizione,
   type NotificaDaInviare,
@@ -256,5 +260,133 @@ describe('avvisi del programma all’atleta', () => {
     )
     expect(mandati).toEqual([])
     expect(stato.inviati).toEqual([1])
+  })
+})
+
+describe('avvisi dei sondaggi', () => {
+  const APERTO: AvvisoSondaggio = {
+    id: 1,
+    tipo: 'aperto',
+    gara: {
+      codice: GARA.codice,
+      dal: GARA.dal,
+      al: GARA.al,
+      localita: 'Perugia',
+      tipologia: '18 m',
+    },
+    aperto: true,
+    escluso_id: 'anna',
+    risposte: 0,
+    creato_il: '2026-11-10T07:00:00Z',
+  }
+  const RISPOSTE: AvvisoSondaggio = {
+    ...APERTO,
+    id: 2,
+    tipo: 'risposte',
+    escluso_id: null,
+    risposte: 3,
+  }
+
+  function archivioSondaggi(avvisi: AvvisoSondaggio[], telefoni: Record<string, Iscrizione[]>) {
+    const stato = { inviati: [] as number[], tolte: [] as string[] }
+    const archivio: ArchivioSondaggi = {
+      avvisiSondaggioDaInviare: async () => avvisi.filter((a) => !stato.inviati.includes(a.id)),
+      destinatariSondaggio: async (a) => telefoni[a.tipo] ?? [],
+      segnaAvvisoSondaggioInviato: async (id) => void stato.inviati.push(id),
+      togliIscrizioni: async (e) => void stato.tolte.push(...e),
+    }
+    return { archivio, stato }
+  }
+
+  it('i messaggi dicono la gara e aprono la sua scheda', () => {
+    expect(JSON.parse(messaggioAvvisoSondaggio(APERTO))).toEqual({
+      titolo: 'Partecipi alla gara?',
+      testo: 'È aperto il sondaggio per 18 m · Perugia (12 dic 2026). Tocca per rispondere.',
+      url: '/gare/R2611040',
+    })
+    expect(JSON.parse(messaggioAvvisoSondaggio(RISPOSTE))).toEqual({
+      titolo: 'Risposte al sondaggio',
+      testo: '3 nuove risposte al sondaggio di 18 m · Perugia (12 dic 2026). Tocca per vederle.',
+      url: '/gare/R2611040',
+    })
+    expect(JSON.parse(messaggioAvvisoSondaggio({ ...RISPOSTE, risposte: 1 })).testo).toMatch(
+      /^1 nuova risposta al sondaggio/,
+    )
+  })
+
+  it('ogni avviso parte ai suoi destinatari', async () => {
+    const { archivio, stato } = archivioSondaggi([APERTO, RISPOSTE], {
+      aperto: [tel(1), tel(2)],
+      risposte: [tel(3)],
+    })
+    const mandati: string[] = []
+    const r = await inviaAvvisiSondaggi(
+      archivio,
+      async (i, m) => {
+        mandati.push(`${i.endpoint}:${JSON.parse(m).titolo}`)
+        return 'ok'
+      },
+      ADESSO,
+    )
+    expect(mandati).toEqual([
+      `${tel(1).endpoint}:Partecipi alla gara?`,
+      `${tel(2).endpoint}:Partecipi alla gara?`,
+      `${tel(3).endpoint}:Risposte al sondaggio`,
+    ])
+    expect(r).toEqual({ notifiche: 2, inviate: 3, scadute: 0, errori: 0 })
+    expect(stato.inviati).toEqual([1, 2])
+  })
+
+  it('un sondaggio già chiuso non manda più "aperto"; uno troppo vecchio niente', async () => {
+    const vecchio = {
+      ...RISPOSTE,
+      creato_il: new Date(ADESSO.getTime() - VALIDITA_NOTIFICA_MS - 1).toISOString(),
+    }
+    const { archivio, stato } = archivioSondaggi([{ ...APERTO, aperto: false }, vecchio], {
+      aperto: [tel(1)],
+      risposte: [tel(2)],
+    })
+    const mandati: string[] = []
+    await inviaAvvisiSondaggi(
+      archivio,
+      async (i) => {
+        mandati.push(i.endpoint)
+        return 'ok'
+      },
+      ADESSO,
+    )
+    expect(mandati).toEqual([])
+    expect(stato.inviati).toEqual([1, 2])
+  })
+
+  it('senza telefoni si chiude; consegna fallita: riprova; telefono scaduto: si toglie', async () => {
+    const senza = archivioSondaggi([APERTO], {})
+    await inviaAvvisiSondaggi(senza.archivio, async () => 'ok', ADESSO)
+    expect(senza.stato.inviati).toEqual([1])
+
+    const fallita = archivioSondaggi([APERTO], { aperto: [tel(1)] })
+    const r = await inviaAvvisiSondaggi(fallita.archivio, async () => 'errore', ADESSO)
+    expect(r.errori).toBe(1)
+    expect(fallita.stato.inviati).toEqual([])
+
+    const scaduta = archivioSondaggi([APERTO, RISPOSTE], { aperto: [tel(1)], risposte: [tel(1)] })
+    const mandati: string[] = []
+    const r2 = await inviaAvvisiSondaggi(
+      scaduta.archivio,
+      async (i) => {
+        mandati.push(i.endpoint)
+        return 'scaduta'
+      },
+      ADESSO,
+    )
+    expect(mandati).toEqual([tel(1).endpoint])
+    expect(r2.scadute).toBe(1)
+    expect(scaduta.stato.tolte).toEqual([tel(1).endpoint])
+
+    const errore = archivioSondaggi([APERTO], { aperto: [tel(1)] })
+    const rotto: Inviatore = async () => {
+      throw new Error('rete')
+    }
+    expect((await inviaAvvisiSondaggi(errore.archivio, rotto, ADESSO)).errori).toBe(1)
   })
 })
