@@ -148,3 +148,38 @@ test.describe('risultati di una gara', () => {
     }
   })
 })
+
+test.describe('sondaggio "Partecipo / Non partecipo"', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('l’atleta risponde "Partecipo" e la gara diventa verde con "Partecipi"', async ({
+    page,
+  }) => {
+    const finto = await simulaSupabase(page, { sondaggioAperto: true })
+    await page.goto('/gare')
+    await page.getByRole('link', { name: /Perugia/ }).click()
+    await page.getByRole('radio', { name: 'Partecipo', exact: true }).click()
+    await expect(page.getByText('Partecipi a questa gara.')).toBeVisible()
+    await expect.poll(() => finto.risposte.length).toBe(1)
+    expect(finto.risposte[0]).toMatchObject({ partecipa: true })
+
+    await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
+    await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Partecipi')
+  })
+
+  for (const { scelta } of TEMI) {
+    test(`accessibilità del sondaggio e della gara in verde, tema ${scelta}`, async ({ page }) => {
+      await simulaSupabase(page, { sondaggioAperto: true })
+      await conTema(page, scelta)
+      await page.setViewportSize({ width: 390, height: 2200 })
+      await page.goto('/gare')
+      await page.getByRole('link', { name: /Perugia/ }).click()
+      await page.getByRole('radio', { name: 'Partecipo', exact: true }).click()
+      await expect(page.getByText('Partecipi a questa gara.')).toBeVisible()
+      await controllaAccessibilita(page)
+      await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
+      await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Partecipi')
+      await controllaAccessibilita(page)
+    })
+  }
+})

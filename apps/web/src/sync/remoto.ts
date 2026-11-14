@@ -1,4 +1,4 @@
-import type { GiornoAllenamento, Simulazione } from '@arco/shared'
+import type { GiornoAllenamento, RispostaSondaggio, Simulazione } from '@arco/shared'
 import type { Eliminazione, NomeTabella, Riga } from './tabelle'
 
 /** Cosa serve alla sincronizzazione dal server. L'implementazione vera usa Supabase; i test una finta. */
@@ -19,4 +19,9 @@ export interface Remoto {
   salvaAllenamento(giorno: GiornoAllenamento): Promise<Riga>
   /** Come `salvaAllenamento`, per una simulazione di gara: vince la modifica più recente. */
   salvaSimulazione(simulazione: Simulazione): Promise<Riga>
+  /**
+   * Salva la propria risposta a un sondaggio: vince la più recente. Restituisce la risposta che vale adesso, o
+   * `null` se non ce n'è (il sondaggio era già chiuso: la risposta non si è salvata).
+   */
+  salvaRisposta(risposta: RispostaSondaggio): Promise<Riga | null>
 }

@@ -298,6 +298,8 @@ export async function simulaSupabase(
     collegato = ATLETA_PROVA as AtletaProva | null,
     /** Gli id degli atleti che l'atleta collegato (allenatore) segue già. */
     segue = [] as string[],
+    /** Il sondaggio "Partecipo / Non partecipo" della gara futura (Perugia) è già aperto. */
+    sondaggioAperto = false,
   } = {},
 ) {
   const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({
@@ -326,6 +328,20 @@ export async function simulaSupabase(
     aggiornato_il: string
   }[] = []
   const richiesteFunzione: unknown[] = []
+  /** Il sondaggio della gara futura e le risposte (Fase 3.5). */
+  const sondaggi: Record<string, unknown>[] = sondaggioAperto
+    ? [
+        {
+          gara_codice: GARE_PROVA[1]!.codice,
+          aperto: true,
+          aperto_da: AMMINISTRATORE_PROVA.id,
+          aperto_il: new Date().toISOString(),
+          chiuso_il: null,
+          aggiornato_il: new Date().toISOString(),
+        },
+      ]
+    : []
+  const risposte: Record<string, unknown>[] = []
 
   if (collegato?.utente_id) {
     await page.addInitScript((s) => {
@@ -444,6 +460,34 @@ export async function simulaSupabase(
       )
     }
 
+    // Il sondaggio delle gare: come sul server, ognuno risponde per sé e vince la risposta più recente.
+    if (tabella === 'sondaggi') return json(route, sondaggi)
+    if (tabella === 'risposte_sondaggio') return json(route, risposte)
+    if (url.pathname === '/rest/v1/rpc/rispondi_sondaggio') {
+      const p = richiesta.postDataJSON() as {
+        p_gara: string
+        p_partecipa: boolean
+        p_modificato_il: string
+      }
+      const aperto = sondaggi.some((x) => x.gara_codice === p.p_gara && x.aperto)
+      let mia = risposte.find((x) => x.gara_codice === p.p_gara && x.atleta_id === collegato?.id)
+      if (
+        aperto &&
+        (!mia || Date.parse(String(mia.modificato_il)) < Date.parse(p.p_modificato_il))
+      ) {
+        const nuova = {
+          gara_codice: p.p_gara,
+          atleta_id: collegato!.id,
+          partecipa: p.p_partecipa,
+          modificato_il: p.p_modificato_il,
+          aggiornato_il: new Date().toISOString(),
+        }
+        if (mia) Object.assign(mia, nuova)
+        else risposte.push((mia = nuova))
+      }
+      return json(route, mia ?? { gara_codice: null, atleta_id: null, partecipa: null })
+    }
+
     // Chi segue chi: l'allenatore sceglie da solo (segui_atleta).
     if (tabella === 'allenatori_atleti') return json(route, allenatoriAtleti)
     // Quali avvisi riceve il telefono (Fase 7.3).
@@ -558,5 +602,5 @@ export async function simulaSupabase(
     return json(route, { message: `Non simulato: ${url.pathname}` }, 404)
   })
 
-  return { atleti, richiesteFunzione, allenamento, simulazioni, allenatoriAtleti }
+  return { atleti, richiesteFunzione, allenamento, simulazioni, allenatoriAtleti, risposte }
 }

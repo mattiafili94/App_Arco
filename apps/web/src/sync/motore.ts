@@ -6,11 +6,11 @@
  * - Il primo giro scarica tutto. Un telefono fermo da troppo tempo riparte da zero: il registro delle
  *   eliminazioni non tiene tracce così vecchie.
  * Dati condivisi: solo dal server al telefono, mai il contrario.
- * Allenamento e simulazioni (privati): nei due sensi. Prima si mandano al server le modifiche fatte sul telefono, poi si
+ * Allenamento, simulazioni (privati) e risposte ai sondaggi: nei due sensi. Prima si mandano al server le modifiche fatte sul telefono, poi si
  *   scaricano le novità; una riga con modifiche non ancora inviate non si sovrascrive mai con quella del
  *   server (al giro dopo il server sceglie la più recente).
  */
-import type { GiornoAllenamento, Simulazione } from '@arco/shared'
+import type { GiornoAllenamento, RispostaSondaggio, Simulazione } from '@arco/shared'
 import { svuotaDb, type ArcoDb } from './db'
 import type { Remoto } from './remoto'
 import { chiaveDi, TABELLE, type DefinizioneTabella, type NomeTabella, type Riga } from './tabelle'
@@ -47,7 +47,8 @@ export async function ultimaSincronizzazione(db: ArcoDb): Promise<number | null>
 /** Le tabelle che si scrivono anche dal telefono, e come si salva una riga sul server. */
 const SCRIVIBILI: {
   nome: NomeTabella
-  salva: (remoto: Remoto, riga: Riga) => Promise<Riga>
+  /** La riga che vale sul server; `null` = non c'è (la copia sul telefono si toglie). */
+  salva: (remoto: Remoto, riga: Riga) => Promise<Riga | null>
 }[] = [
   {
     nome: 'allenamento_giorni',
@@ -56,6 +57,11 @@ const SCRIVIBILI: {
   {
     nome: 'simulazioni',
     salva: (remoto, riga) => remoto.salvaSimulazione(riga as unknown as Simulazione),
+  },
+  {
+    // La risposta a un sondaggio ormai chiuso non si salva: il server non ne ha, e il telefono la toglie.
+    nome: 'risposte_sondaggio',
+    salva: (remoto, riga) => remoto.salvaRisposta(riga as unknown as RispostaSondaggio),
   },
 ]
 
@@ -84,8 +90,11 @@ async function inviaModifiche(
       try {
         const vincente = await salva(remoto, dati)
         await db.transaction('rw', tabella, async () => {
-          const attuale = await tabella.get(chiaveDi(def, riga) as string)
-          if (attuale && attuale.modificato_il === riga.modificato_il) await tabella.put(vincente)
+          const chiave = chiaveDi(def, riga) as string
+          const attuale = await tabella.get(chiave)
+          if (!attuale || attuale.modificato_il !== riga.modificato_il) return
+          if (vincente) await tabella.put(vincente)
+          else await tabella.delete(chiave)
         })
         inviate++
       } catch (e) {

@@ -49,7 +49,9 @@ export function Impostazioni() {
   // L'avviso del programma ha senso solo se qualcuno segue l'atleta (Fase 7.3).
   const chiMiSegue = useChiMiSegue()
   const haAllenatore = (chiMiSegue?.length ?? 0) > 0
-  const notifiche = useNotifiche(haAllenatore)
+  const amministratore = atleta.ruolo === 'amministratore'
+  const notifiche = useNotifiche(haAllenatore, amministratore)
+  const altriInterruttori = notifiche.stato === 'spente' || notifiche.stato === 'accese'
   const daInviare = useModificheDaInviare()
   const interruttoreUtilizzabile =
     !notifiche.occupato && (notifiche.stato === 'spente' || notifiche.stato === 'accese')
@@ -95,7 +97,35 @@ export function Impostazioni() {
             description={descrizioneNotifiche(notifiche.stato, notifiche.acceso('inviti'))}
             onSelect={interruttoreUtilizzabile ? () => void notifiche.cambia('inviti') : undefined}
           />
-          {haAllenatore && (notifiche.stato === 'spente' || notifiche.stato === 'accese') && (
+          {altriInterruttori && (
+            <ListRow
+              label="Sondaggi delle gare"
+              value={notifiche.acceso('sondaggi') ? 'Accese' : 'Spente'}
+              description={
+                notifiche.acceso('sondaggi')
+                  ? 'Ti avvisiamo quando si apre il sondaggio di una gara. Tocca per spegnerle.'
+                  : 'Ricevi un avviso quando si apre il sondaggio di una gara. Tocca per accenderle.'
+              }
+              onSelect={
+                interruttoreUtilizzabile ? () => void notifiche.cambia('sondaggi') : undefined
+              }
+            />
+          )}
+          {amministratore && altriInterruttori && (
+            <ListRow
+              label="Risposte ai sondaggi"
+              value={notifiche.acceso('risposte') ? 'Accese' : 'Spente'}
+              description={
+                notifiche.acceso('risposte')
+                  ? 'Ti avvisiamo quando arrivano risposte ai sondaggi. Tocca per spegnerle.'
+                  : 'Ricevi un avviso quando arrivano risposte ai sondaggi. Tocca per accenderle.'
+              }
+              onSelect={
+                interruttoreUtilizzabile ? () => void notifiche.cambia('risposte') : undefined
+              }
+            />
+          )}
+          {haAllenatore && altriInterruttori && (
             <ListRow
               label="Programma dell’allenatore"
               value={notifiche.acceso('programma') ? 'Accese' : 'Spente'}

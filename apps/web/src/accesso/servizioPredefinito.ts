@@ -22,6 +22,9 @@ export const servizioPredefinito: ServizioAccesso =
           salvaSimulazione: async () => {
             throw new Error('App non collegata al server.')
           },
+          salvaRisposta: async () => {
+            throw new Error('App non collegata al server.')
+          },
         },
         classifica: {
           miePosizioni: async () => [],
@@ -50,6 +53,12 @@ export const servizioPredefinito: ServizioAccesso =
           throw new Error('App non collegata al server.')
         },
         impostaAllenatore: async () => {
+          throw new Error('App non collegata al server.')
+        },
+        apriSondaggio: async () => {
+          throw new Error('App non collegata al server.')
+        },
+        chiudiSondaggio: async () => {
           throw new Error('App non collegata al server.')
         },
       }

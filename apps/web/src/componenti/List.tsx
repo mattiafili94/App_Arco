@@ -38,6 +38,11 @@ export interface ListRowProps {
   state?: unknown
   /** Riga da far notare (es. un atleta della compagnia in una classifica): bordo e testo in grassetto. */
   evidenziata?: boolean
+  /**
+   * Riga "positiva" (es. una gara a cui partecipi): fondo e bordo verdi. Il significato va detto anche a parole
+   * (nella riga), mai solo con il colore.
+   */
+  positiva?: boolean
   /** Con `href`: l'indirizzo è fuori dall'app (sito, email, file): si apre a parte, con l'icona dedicata. */
   esterno?: boolean
   /** Riga di scelta: `selected` indica la scelta attuale, `onSelect` la cambia. */
@@ -54,6 +59,7 @@ export function ListRow({
   value,
   description,
   evidenziata,
+  positiva,
   href,
   state,
   esterno,
@@ -61,7 +67,9 @@ export function ListRow({
   onSelect,
 }: ListRowProps) {
   const classeRiga = (extra?: string) =>
-    [styles.row, extra, evidenziata && styles.evidenziata].filter(Boolean).join(' ')
+    [styles.row, extra, evidenziata && styles.evidenziata, positiva && styles.positiva]
+      .filter(Boolean)
+      .join(' ')
 
   const contenuto = (
     <>

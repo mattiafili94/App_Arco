@@ -84,3 +84,9 @@
   border-inline-start: 4px solid var(--accent-default);
   font-weight: 600;
 }
+
+/* Una riga "positiva" (es. una gara a cui partecipi): il testo resta nei colori del testo. */
+.positiva {
+  background: var(--status-success-subtle);
+  border-inline-start: 4px solid var(--status-success);
+}

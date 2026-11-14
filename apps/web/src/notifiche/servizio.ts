@@ -20,14 +20,32 @@ export type StatoNotifiche =
 
 export type EsitoAttiva = 'ok' | 'negato' | 'errore'
 
-/** Quali avvisi riceve questo telefono (Fase 7.3): i nuovi inviti e/o i cambi del programma dell'allenatore. */
+/**
+ * Quali avvisi riceve questo telefono: i nuovi inviti, i cambi del programma dell'allenatore (Fase 7.3), i sondaggi
+ * aperti e, per l'amministratore, le risposte ai sondaggi (Fase 3.5).
+ */
 export interface Avvisi {
   inviti: boolean
   programma: boolean
+  sondaggi: boolean
+  risposte: boolean
 }
 
 /** Di base un telefono registrato riceve tutti gli avvisi (come sul server). */
-export const AVVISI_PREDEFINITI: Avvisi = { inviti: true, programma: true }
+export const AVVISI_PREDEFINITI: Avvisi = {
+  inviti: true,
+  programma: true,
+  sondaggi: true,
+  risposte: true,
+}
+
+/** Nessun avviso: il punto di partenza quando si accende il telefono per un avviso solo. */
+export const NESSUN_AVVISO: Avvisi = {
+  inviti: false,
+  programma: false,
+  sondaggi: false,
+  risposte: false,
+}
 
 export interface ServizioNotifiche {
   stato(): Promise<StatoNotifiche>
@@ -57,7 +75,7 @@ export interface Ambiente {
 export interface RegistroPush {
   registraPush(iscrizione: IscrizionePush): Promise<void>
   rimuoviPush(endpoint: string): Promise<void>
-  impostaAvvisi(endpoint: string, inviti: boolean, programma: boolean): Promise<void>
+  impostaAvvisi(endpoint: string, avvisi: Avvisi): Promise<void>
 }
 
 /** Dove il telefono si ricorda quali avvisi ha scelto. */
@@ -75,7 +93,15 @@ export const memoriaBrowser: Memoria = {
       const dati = JSON.parse(
         localStorage.getItem(CHIAVE_AVVISI) ?? 'null',
       ) as Partial<Avvisi> | null
-      return dati ? { inviti: dati.inviti !== false, programma: dati.programma !== false } : null
+      // Gli avvisi che il telefono non conosceva ancora (salvati da una versione vecchia) sono accesi, come sul server.
+      return dati
+        ? {
+            inviti: dati.inviti !== false,
+            programma: dati.programma !== false,
+            sondaggi: dati.sondaggi !== false,
+            risposte: dati.risposte !== false,
+          }
+        : null
     } catch {
       return null
     }
@@ -103,8 +129,7 @@ export function creaServizioNotifiche(
 
     async imposta(avvisi) {
       const iscrizione = await ambiente.iscrizione()
-      if (iscrizione)
-        await registro.impostaAvvisi(iscrizione.endpoint, avvisi.inviti, avvisi.programma)
+      if (iscrizione) await registro.impostaAvvisi(iscrizione.endpoint, avvisi)
       memoria.scrivi(avvisi)
     },
 

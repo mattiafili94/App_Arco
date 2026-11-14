@@ -12,6 +12,8 @@ import { AMMINISTRATORE, ATLETA, servizioFinto } from '../test/servizioFinto'
 import { chiaveInByte, daSottoscrizione } from './browser'
 import { ContestoNotifiche } from './contesto'
 import {
+  AVVISI_PREDEFINITI,
+  NESSUN_AVVISO,
   creaServizioNotifiche,
   memoriaBrowser,
   type Ambiente,
@@ -137,9 +139,13 @@ describe('browser', () => {
 
 // --- Impostazioni -----------------------------------------------------------------------------
 
-function notificheFinte(stato: StatoNotifiche, esitoAttiva: 'ok' | 'negato' | 'errore' = 'ok') {
+function notificheFinte(
+  stato: StatoNotifiche,
+  esitoAttiva: 'ok' | 'negato' | 'errore' = 'ok',
+  iniziali: Avvisi = AVVISI_PREDEFINITI,
+) {
   let corrente = stato
-  let avvisi: Avvisi = { inviti: true, programma: true }
+  let avvisi: Avvisi = { ...iniziali }
   const servizio: ServizioNotifiche = {
     stato: vi.fn(async () => corrente),
     attiva: vi.fn(async () => {
@@ -153,10 +159,10 @@ function notificheFinte(stato: StatoNotifiche, esitoAttiva: 'ok' | 'negato' | 'e
   return servizio
 }
 
-async function apriImpostazioni(notifiche: ServizioNotifiche) {
+async function apriImpostazioni(notifiche: ServizioNotifiche, collegato = ATLETA) {
   render(
     <MemoryRouter initialEntries={['/impostazioni']}>
-      <AccessoProvider servizio={servizioFinto().servizio}>
+      <AccessoProvider servizio={servizioFinto({ collegato }).servizio}>
         <ContestoNotifiche.Provider value={notifiche}>
           <App />
         </ContestoNotifiche.Provider>
@@ -177,12 +183,44 @@ describe('Impostazioni → Notifiche', () => {
     expect(await screen.findByText(/Tocca per spegnerle/)).toBeInTheDocument()
   })
 
-  it('accese: si spengono con un tocco', async () => {
-    const notifiche = notificheFinte('accese')
+  it('accese (solo gli inviti): si spengono con un tocco', async () => {
+    const notifiche = notificheFinte('accese', 'ok', { ...NESSUN_AVVISO, inviti: true })
     await apriImpostazioni(notifiche)
     await userEvent.click(await interruttore())
     expect(notifiche.disattiva).toHaveBeenCalled()
-    expect(await screen.findByText(/Tocca per accenderle/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Tocca per accenderle/))[0]).toBeInTheDocument()
+  })
+
+  it('"Sondaggi delle gare" per tutti, "Risposte ai sondaggi" solo per l’amministratore', async () => {
+    const notifiche = notificheFinte('accese')
+    await apriImpostazioni(notifiche)
+    await userEvent.click(await screen.findByRole('button', { name: /Sondaggi delle gare/ }))
+    await waitFor(() =>
+      expect(notifiche.imposta).toHaveBeenCalledWith({
+        inviti: true,
+        programma: false,
+        sondaggi: false,
+        risposte: false,
+      }),
+    )
+    expect(screen.queryByRole('button', { name: /Risposte ai sondaggi/ })).not.toBeInTheDocument()
+  })
+
+  it('l’amministratore spegne le risposte e tiene il resto', async () => {
+    const notifiche = notificheFinte('accese')
+    await apriImpostazioni(notifiche, AMMINISTRATORE)
+    await userEvent.click(await screen.findByRole('button', { name: /Risposte ai sondaggi/ }))
+    await waitFor(() =>
+      expect(notifiche.imposta).toHaveBeenCalledWith({
+        inviti: true,
+        programma: false,
+        sondaggi: true,
+        risposte: false,
+      }),
+    )
+    expect(
+      await screen.findByText(/arrivano risposte ai sondaggi. Tocca per accenderle/),
+    ).toBeInTheDocument()
   })
 
   it('permesso negato dal telefono: avviso per riprovare', async () => {
@@ -215,7 +253,7 @@ describe('Impostazioni → Notifiche', () => {
       throw new Error('boh')
     })
     await apriImpostazioni(notifiche)
-    expect(await screen.findByText(/Tocca per accenderle/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Tocca per accenderle/))[0]).toBeInTheDocument()
   })
 })
 
@@ -232,27 +270,31 @@ describe('servizio notifiche: quali avvisi riceve il telefono', () => {
     const { servizio } = servizioFinto()
     const memoria = memoriaFinta()
     const n = creaServizioNotifiche(servizio, ambienteFinto(), 'chiave', memoria)
-    expect(n.avvisi()).toEqual({ inviti: true, programma: true })
+    expect(n.avvisi()).toEqual(AVVISI_PREDEFINITI)
     await n.attiva()
-    await n.imposta({ inviti: false, programma: true })
-    expect(servizio.impostaAvvisi).toHaveBeenCalledWith(TELEFONO.endpoint, false, true)
-    expect(n.avvisi()).toEqual({ inviti: false, programma: true })
+    const scelti = { ...AVVISI_PREDEFINITI, inviti: false, risposte: false }
+    await n.imposta(scelti)
+    expect(servizio.impostaAvvisi).toHaveBeenCalledWith(TELEFONO.endpoint, scelti)
+    expect(n.avvisi()).toEqual(scelti)
     // Spegnendo tutto si riparte da quelli di base.
     await n.disattiva()
-    expect(n.avvisi()).toEqual({ inviti: true, programma: true })
+    expect(n.avvisi()).toEqual(AVVISI_PREDEFINITI)
   })
 
   it('la memoria del browser: legge, scrive, e senza memoria non si rompe', () => {
     localStorage.clear()
     expect(memoriaBrowser.leggi()).toBeNull()
-    memoriaBrowser.scrivi({ inviti: true, programma: false })
-    expect(memoriaBrowser.leggi()).toEqual({ inviti: true, programma: false })
+    memoriaBrowser.scrivi({ ...AVVISI_PREDEFINITI, programma: false })
+    expect(memoriaBrowser.leggi()).toEqual({ ...AVVISI_PREDEFINITI, programma: false })
+    // Una scelta salvata da una versione vecchia (senza sondaggi): i sondaggi sono accesi, come sul server.
+    localStorage.setItem('arco.avvisi', JSON.stringify({ inviti: false, programma: true }))
+    expect(memoriaBrowser.leggi()).toEqual({ ...AVVISI_PREDEFINITI, inviti: false })
     localStorage.setItem('arco.avvisi', 'non è json')
     expect(memoriaBrowser.leggi()).toBeNull()
     const scrivi = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('finestra privata')
     })
-    expect(() => memoriaBrowser.scrivi({ inviti: true, programma: true })).not.toThrow()
+    expect(() => memoriaBrowser.scrivi(AVVISI_PREDEFINITI)).not.toThrow()
     scrivi.mockRestore()
   })
 })
@@ -309,7 +351,7 @@ describe('Impostazioni → avviso del programma dell’allenatore', () => {
     await apri(notifiche)
     await userEvent.click(await programma())
     await waitFor(() =>
-      expect(notifiche.imposta).toHaveBeenCalledWith({ inviti: false, programma: true }),
+      expect(notifiche.imposta).toHaveBeenCalledWith({ ...NESSUN_AVVISO, programma: true }),
     )
     expect(notifiche.attiva).toHaveBeenCalled()
     expect(await screen.findByText(/cambia il programma. Tocca per spegnerle/)).toBeInTheDocument()
@@ -317,13 +359,13 @@ describe('Impostazioni → avviso del programma dell’allenatore', () => {
   })
 
   it('con tutti e due accesi, spegnerne uno lascia l’altro; spegnere l’ultimo toglie il telefono', async () => {
-    const notifiche = notificheFinte('accese')
+    const notifiche = notificheFinte('accese', 'ok', { ...AVVISI_PREDEFINITI, sondaggi: false })
     await apri(notifiche)
     // Prima che arrivi chi segue l'atleta, l'interruttore del programma non c'è.
     await programma()
     await userEvent.click(await screen.findByRole('button', { name: /Nuovi inviti/ }))
     await waitFor(() =>
-      expect(notifiche.imposta).toHaveBeenCalledWith({ inviti: false, programma: true }),
+      expect(notifiche.imposta).toHaveBeenCalledWith({ ...NESSUN_AVVISO, programma: true }),
     )
     expect(notifiche.disattiva).not.toHaveBeenCalled()
     await userEvent.click(await programma())

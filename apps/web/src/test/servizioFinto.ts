@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 import type { Atleta, IscrizionePush, ServizioAccesso } from '../accesso/servizio'
+import type { Avvisi } from '../notifiche/servizio'
 import { ClassificaFinta } from './classificaFinta'
 import { RemotoFinto } from './remotoFinto'
 
@@ -102,9 +103,34 @@ export function servizioFinto({
     }),
     registraPush: vi.fn<(i: IscrizionePush) => Promise<void>>(async () => {}),
     rimuoviPush: vi.fn<(endpoint: string) => Promise<void>>(async () => {}),
-    impostaAvvisi: vi.fn<(endpoint: string, inviti: boolean, programma: boolean) => Promise<void>>(
-      async () => {},
-    ),
+    impostaAvvisi: vi.fn<(endpoint: string, avvisi: Avvisi) => Promise<void>>(async () => {}),
+    // Come il server: il sondaggio arriva ai telefoni con la sincronizzazione.
+    apriSondaggio: vi.fn(async (garaCodice: string) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const esistente = remoto.righe.sondaggi.find((s) => s.gara_codice === garaCodice)
+      const adesso = new Date().toISOString()
+      remoto.scrivi('sondaggi', {
+        gara_codice: garaCodice,
+        aperto_da: esistente?.aperto_da ?? utente,
+        aperto_il: esistente?.aperto_il ?? adesso,
+        ...esistente,
+        aperto: true,
+        chiuso_il: null,
+        aggiornato_il: adesso,
+      })
+    }),
+    chiudiSondaggio: vi.fn(async (garaCodice: string) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const esistente = remoto.righe.sondaggi.find((s) => s.gara_codice === garaCodice)
+      const adesso = new Date().toISOString()
+      if (esistente)
+        remoto.scrivi('sondaggi', {
+          ...esistente,
+          aperto: false,
+          chiuso_il: adesso,
+          aggiornato_il: adesso,
+        })
+    }),
     // Come il server: la riga di "chi segue chi" arriva ai telefoni con la sincronizzazione.
     seguiAtleta: vi.fn(async (atletaId: string, segui: boolean) => {
       if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
