@@ -421,6 +421,21 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       - app: `apps/web/src/notifiche/` (regole in `servizio.ts`, browser vero in `browser.ts`), interruttore
         in Impostazioni; il service worker carica `apps/web/public/push.js` (`importScripts`), che mostra la
         notifica e apre la gara al tocco. Il test dei permessi (pgTAP) gira solo su GitHub (serve Docker).
+   5. **sondaggio "Partecipo / Non partecipo"** (Mattia, 15/11/2026), due PR:
+      - **3.5a ✅ server** (migrazione `20261120120000_sondaggi.sql`): l'amministratore apre il sondaggio di una gara
+        futura, non annullata, con l'invito (`apri_sondaggio`; un sondaggio per gara) e lo chiude quando vuole
+        (`chiudi_sondaggio`, si può riaprire). Ogni atleta risponde solo per sé (`rispondi_sondaggio`, anche offline:
+        vince la risposta più recente, `modificato_il`; a sondaggio chiuso o gara passata non si salva e torna la
+        risposta che vale, anche vuota). **Tutti i membri vedono tutte le risposte** (`sondaggi`,
+        `risposte_sondaggio`, si sincronizzano). Niente "Forse". Avvisi in `avvisi_sondaggio` (solo server), mandati
+        alla fine di ogni giro di `aggiorna-fitarco` (`inviaAvvisiSondaggi`): **sondaggio aperto** (solo la prima
+        volta, non se nel frattempo è chiuso) a tutti i telefoni con `iscrizioni_push.sondaggi`, tranne chi l'ha
+        aperto; **risposte** raccolte in un avviso solo per gara ("3 nuove risposte al sondaggio di …": a Mattia
+        basta l'avviso, chi ha risposto lo vede nella scheda) agli amministratori con `iscrizioni_push.risposte`; le
+        risposte degli amministratori non si contano. `imposta_avvisi` ha una versione con 5 parametri (quella
+        vecchia a 3 resta per le app non aggiornate);
+      - **3.5b app**: sezione sondaggio nella scheda gara, gare a cui partecipi in **verde** (`status-success`, con
+        la scritta "Partecipi"), interruttori "Sondaggi delle gare" e "Risposte ai sondaggi".
 4. **Tab Atleti**, due PR (piano approvato il 10/11/2026):
    1. elenco, scheda con record e storico ✅. Note:
       - elenco (`pagine/Atleti.tsx`): gli atleti **attivi con l'accesso** (link generato, anche se non sono ancora

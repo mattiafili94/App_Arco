@@ -14,10 +14,16 @@ import {
   giornoItaliano,
   giro,
   inviaAvvisiProgramma,
+  inviaAvvisiSondaggi,
   inviaNotifiche,
 } from '../_shared/aggiornamento/index.ts'
 import { creaClientFitarco } from '../_shared/fitarco/index.ts'
-import { archivioAvvisiSupabase, archivioNotificheSupabase, archivioSupabase } from './archivio.ts'
+import {
+  archivioAvvisiSupabase,
+  archivioNotificheSupabase,
+  archivioSondaggiSupabase,
+  archivioSupabase,
+} from './archivio.ts'
 import { creaInviatorePush } from './push.ts'
 
 /** Limiti di ogni chiamata: il piano gratuito dà poco tempo di calcolo, e Fitarco va trattato bene. */
@@ -80,6 +86,8 @@ async function mandaNotifiche(db: SupabaseClient) {
       inviti: await inviaNotifiche(archivioNotificheSupabase(db), invia, adesso),
       // Gli avvisi all'atleta quando un suo allenatore cambia il programma (Fase 7.3).
       programma: await inviaAvvisiProgramma(archivioAvvisiSupabase(db), invia, adesso),
+      // I sondaggi "Partecipo / Non partecipo": aperti (a tutti) e risposte (agli amministratori), Fase 3.5.
+      sondaggi: await inviaAvvisiSondaggi(archivioSondaggiSupabase(db), invia, adesso),
     }
   } catch (errore) {
     return { errore: errore instanceof Error ? errore.message : String(errore) }

@@ -6,10 +6,13 @@ import type {
   Archivio,
   ArchivioAvvisi,
   ArchivioNotifiche,
+  ArchivioSondaggi,
   AvvisoProgramma,
+  AvvisoSondaggio,
   AtletaArchivio,
   ClassificaSalvata,
   GaraSalvata,
+  Iscrizione,
   RigaInvito,
   RigaPartecipazione,
   StatoArchivio,
@@ -381,6 +384,72 @@ export function archivioAvvisiSupabase(db: SupabaseClient): ArchivioAvvisi {
           .update({ inviato_il: new Date().toISOString() })
           .eq('id', id),
         'segna avviso inviato',
+      )
+    },
+
+    async togliIscrizioni(endpoint) {
+      controlla(
+        await db.from('iscrizioni_push').delete().in('endpoint', endpoint),
+        'toglie iscrizioni push',
+      )
+    },
+  }
+}
+
+/** Gli avvisi dei sondaggi (Fase 3.5) sul database vero. */
+export function archivioSondaggiSupabase(db: SupabaseClient): ArchivioSondaggi {
+  return {
+    async avvisiSondaggioDaInviare() {
+      const righe = controlla(
+        await db
+          .from('avvisi_sondaggio')
+          .select(
+            'id, tipo, escluso_id, risposte, creato_il, gara:gara_codice(codice, dal, al, localita, tipologia, sondaggi(aperto))',
+          )
+          .is('inviato_il', null)
+          .order('id'),
+        'avvisi dei sondaggi',
+      ) as unknown as (Omit<AvvisoSondaggio, 'aperto' | 'gara'> & {
+        // Il sondaggio ha la stessa chiave della gara: arriva come oggetto (o lista, secondo la versione).
+        gara: AvvisoSondaggio['gara'] & {
+          sondaggi: { aperto: boolean } | { aperto: boolean }[] | null
+        }
+      })[]
+      return righe.map(({ gara: { sondaggi, ...gara }, ...r }) => ({
+        ...r,
+        gara,
+        aperto: (Array.isArray(sondaggi) ? sondaggi[0]?.aperto : sondaggi?.aperto) ?? false,
+      }))
+    },
+
+    async destinatariSondaggio(a) {
+      if (a.tipo === 'aperto') {
+        let richiesta = db
+          .from('iscrizioni_push')
+          .select('endpoint, p256dh, auth')
+          .eq('sondaggi', true)
+        if (a.escluso_id) richiesta = richiesta.neq('atleta_id', a.escluso_id)
+        return controlla(await richiesta, 'iscrizioni push per i sondaggi')
+      }
+      const righe = controlla(
+        await db
+          .from('iscrizioni_push')
+          .select('endpoint, p256dh, auth, atleta:atleta_id!inner(ruolo, attivo)')
+          .eq('risposte', true)
+          .eq('atleta.ruolo', 'amministratore')
+          .eq('atleta.attivo', true),
+        'iscrizioni push degli amministratori',
+      ) as (Iscrizione & { atleta: unknown })[]
+      return righe.map(({ endpoint, p256dh, auth }) => ({ endpoint, p256dh, auth }))
+    },
+
+    async segnaAvvisoSondaggioInviato(id) {
+      controlla(
+        await db
+          .from('avvisi_sondaggio')
+          .update({ inviato_il: new Date().toISOString() })
+          .eq('id', id),
+        'segna avviso del sondaggio inviato',
       )
     },
 

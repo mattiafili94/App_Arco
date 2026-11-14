@@ -210,3 +210,86 @@ export async function inviaAvvisiProgramma(
   if (scadute.size > 0) await archivio.togliIscrizioni([...scadute])
   return riepilogo
 }
+
+// --- Avvisi dei sondaggi "Partecipo / Non partecipo" (Fase 3.5) -------------------------------------------
+
+/** Un avviso in coda (tabella `avvisi_sondaggio`), con i dati della gara. */
+export interface AvvisoSondaggio {
+  id: number
+  /** "aperto": a tutti (tranne chi l'ha aperto); "risposte": agli amministratori. */
+  tipo: 'aperto' | 'risposte'
+  gara: Omit<GaraPerNotifica, 'stato'>
+  /** Il sondaggio è ancora aperto? Se nel frattempo è stato chiuso, l'avviso "aperto" non parte più. */
+  aperto: boolean
+  /** Chi non riceve l'avviso "aperto" (chi ha aperto il sondaggio). */
+  escluso_id: string | null
+  /** Quante risposte nuove (solo "risposte"). */
+  risposte: number
+  creato_il: string
+}
+
+export interface ArchivioSondaggi {
+  avvisiSondaggioDaInviare(): Promise<AvvisoSondaggio[]>
+  /** I telefoni con l'avviso acceso: "aperto" = tutti tranne `escluso_id`; "risposte" = gli amministratori. */
+  destinatariSondaggio(avviso: AvvisoSondaggio): Promise<Iscrizione[]>
+  segnaAvvisoSondaggioInviato(id: number): Promise<void>
+  togliIscrizioni(endpoint: string[]): Promise<void>
+}
+
+/** Cosa riceve il telefono: toccando si apre la scheda della gara, dove c'è il sondaggio. */
+export function messaggioAvvisoSondaggio(a: Pick<AvvisoSondaggio, 'tipo' | 'gara' | 'risposte'>) {
+  const g = a.gara
+  const gara = `${riconosciTipologia(g.tipologia)?.etichetta ?? g.tipologia} · ${g.localita} (${formattaDate(g.dal, g.al)})`
+  const url = `/gare/${g.codice}`
+  if (a.tipo === 'aperto') {
+    return JSON.stringify({
+      titolo: 'Partecipi alla gara?',
+      testo: `È aperto il sondaggio per ${gara}. Tocca per rispondere.`,
+      url,
+    })
+  }
+  const quante = a.risposte === 1 ? '1 nuova risposta' : `${a.risposte} nuove risposte`
+  return JSON.stringify({
+    titolo: 'Risposte al sondaggio',
+    testo: `${quante} al sondaggio di ${gara}. Tocca per vederle.`,
+    url,
+  })
+}
+
+/**
+ * Manda gli avvisi dei sondaggi. Stesse regole delle altre notifiche: senza telefoni l'avviso si chiude; se la
+ * consegna fallisce per tutti riprova al giro dopo, ma per 2 giorni al massimo; i telefoni che non esistono più
+ * si tolgono. L'avviso "sondaggio aperto" di un sondaggio già chiuso non parte.
+ */
+export async function inviaAvvisiSondaggi(
+  archivio: ArchivioSondaggi,
+  invia: Inviatore,
+  adesso: Date,
+): Promise<RiepilogoInvio> {
+  const riepilogo: RiepilogoInvio = { notifiche: 0, inviate: 0, scadute: 0, errori: 0 }
+  const scadute = new Set<string>()
+  for (const a of await archivio.avvisiSondaggioDaInviare()) {
+    riepilogo.notifiche++
+    const vecchio = adesso.getTime() - Date.parse(a.creato_il) > VALIDITA_NOTIFICA_MS
+    if (vecchio || (a.tipo === 'aperto' && !a.aperto)) {
+      await archivio.segnaAvvisoSondaggioInviato(a.id)
+      continue
+    }
+    const messaggio = messaggioAvvisoSondaggio(a)
+    let riuscite = 0
+    let fallite = 0
+    for (const i of await archivio.destinatariSondaggio(a)) {
+      if (scadute.has(i.endpoint)) continue
+      const esito = await invia(i, messaggio).catch(() => 'errore' as const)
+      if (esito === 'ok') riuscite++
+      else if (esito === 'scaduta') scadute.add(i.endpoint)
+      else fallite++
+    }
+    riepilogo.inviate += riuscite
+    riepilogo.errori += fallite
+    if (riuscite > 0 || fallite === 0) await archivio.segnaAvvisoSondaggioInviato(a.id)
+  }
+  riepilogo.scadute = scadute.size
+  if (scadute.size > 0) await archivio.togliIscrizioni([...scadute])
+  return riepilogo
+}
