@@ -136,13 +136,27 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
       if (error) throw new Error(error.message)
     },
 
-    async impostaAvvisi(endpoint, inviti, programma) {
+    async impostaAvvisi(endpoint, avvisi) {
       const { error } = await supabase.rpc('imposta_avvisi', {
         p_endpoint: endpoint,
-        p_inviti: inviti,
-        p_programma: programma,
+        p_inviti: avvisi.inviti,
+        p_programma: avvisi.programma,
+        p_sondaggi: avvisi.sondaggi,
+        p_risposte: avvisi.risposte,
       })
       if (error) throw new Error(error.message)
+    },
+
+    async apriSondaggio(garaCodice) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase.rpc('apri_sondaggio', { p_gara: garaCodice })
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
+    },
+
+    async chiudiSondaggio(garaCodice) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase.rpc('chiudi_sondaggio', { p_gara: garaCodice })
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
     },
 
     async seguiAtleta(atletaId, segui) {

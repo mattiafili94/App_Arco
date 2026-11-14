@@ -19,6 +19,7 @@ import { PageHeader } from '../componenti/PageHeader'
 import { leggiIndietro } from '../navigazione'
 import { oggi as oggiIn, useClassifica, useGara, useInvito } from '../gare/dati'
 import { scaricaTesto } from '../gare/scarica'
+import { SezioneSondaggio } from '../gare/SezioneSondaggio'
 import styles from './Gare.module.css'
 
 /** "93 atleti · 9 dei nostri · provvisori" */
@@ -91,6 +92,8 @@ export function DettaglioGara() {
           {stato && <ListRow label="Stato" value={stato} />}
           {!gara.in_calendario_umbria && <ListRow label="Regione" value="Fuori regione" />}
         </ListGroup>
+
+        <SezioneSondaggio gara={gara} oggi={oggi} />
 
         {daAggiungere && (
           <ListGroup title="Aggiungi al calendario">

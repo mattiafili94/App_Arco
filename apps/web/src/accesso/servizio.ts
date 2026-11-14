@@ -4,6 +4,7 @@
  */
 
 import type { ServizioClassifica } from '../classifica/servizio'
+import type { Avvisi } from '../notifiche/servizio'
 import type { Remoto } from '../sync/remoto'
 
 export interface Atleta {
@@ -53,8 +54,12 @@ export interface ServizioAccesso {
   registraPush(iscrizione: IscrizionePush): Promise<void>
   /** Toglie la registrazione di questo telefono. */
   rimuoviPush(endpoint: string): Promise<void>
-  /** Quali avvisi riceve questo telefono (nuovi inviti, programma dell'allenatore). */
-  impostaAvvisi(endpoint: string, inviti: boolean, programma: boolean): Promise<void>
+  /** Quali avvisi riceve questo telefono (nuovi inviti, programma dell'allenatore, sondaggi, risposte). */
+  impostaAvvisi(endpoint: string, avvisi: Avvisi): Promise<void>
+  /** L'amministratore apre il sondaggio di una gara (o lo riapre). Lancia un errore con un messaggio da mostrare. */
+  apriSondaggio(garaCodice: string): Promise<void>
+  /** L'amministratore chiude il sondaggio di una gara. Lancia un errore con un messaggio da mostrare. */
+  chiudiSondaggio(garaCodice: string): Promise<void>
   /** L'allenatore collegato inizia o smette di seguire un atleta. Lancia un errore con un messaggio da mostrare. */
   seguiAtleta(atletaId: string, segui: boolean): Promise<void>
   /** L'amministratore dà o toglie il ruolo di allenatore. Lancia un errore se non riesce. */

@@ -70,6 +70,18 @@ export function creaRemotoSupabase(supabase: SupabaseClient): Remoto {
       ) as Riga
     },
 
+    async salvaRisposta(x) {
+      const riga = controlla(
+        await supabase.rpc('rispondi_sondaggio', {
+          p_gara: x.gara_codice,
+          p_partecipa: x.partecipa,
+          p_modificato_il: x.modificato_il,
+        }),
+      ) as Riga | null
+      // Senza risposta sul server il database restituisce una riga vuota (tutti i campi null).
+      return riga?.gara_codice ? riga : null
+    },
+
     async ultimaEliminazione() {
       const righe = controlla(
         await supabase.from('eliminazioni').select('id').order('id', { ascending: false }).limit(1),

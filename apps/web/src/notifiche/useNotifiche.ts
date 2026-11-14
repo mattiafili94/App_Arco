@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useServizioNotifiche } from './contesto'
-import type { Avvisi, EsitoAttiva, StatoNotifiche } from './servizio'
+import { NESSUN_AVVISO, type Avvisi, type EsitoAttiva, type StatoNotifiche } from './servizio'
 
 export type TipoAvviso = keyof Avvisi
 
 /**
- * Gli interruttori delle notifiche: "Nuovi inviti" e, per chi ha un allenatore, "Programma dell'allenatore"
- * (Fase 7.3). Il telefono è registrato finché almeno un avviso è acceso: spegnendo l'ultimo si toglie, accendendo
- * il primo si registra (e riceve solo quello).
- * `programmaPossibile`: falso se nessuno segue l'atleta (l'interruttore del programma non c'è e non conta).
+ * Gli interruttori delle notifiche: "Nuovi inviti", "Sondaggi delle gare" e, per chi ha un allenatore, "Programma
+ * dell'allenatore" (Fase 7.3); per l'amministratore "Risposte ai sondaggi" (Fase 3.5). Il telefono è registrato
+ * finché almeno un avviso è acceso: spegnendo l'ultimo si toglie, accendendo il primo si registra (e riceve solo
+ * quello).
+ * `programmaPossibile`: falso se nessuno segue l'atleta; `rispostePossibili`: falso se non è l'amministratore (in
+ * quei casi l'interruttore non c'è e non conta).
  */
-export function useNotifiche(programmaPossibile = false) {
+export function useNotifiche(programmaPossibile = false, rispostePossibili = false) {
   const servizio = useServizioNotifiche()
   const [stato, setStato] = useState<StatoNotifiche>('caricamento')
   const [avvisi, setAvvisi] = useState<Avvisi>(() => servizio.avvisi())
@@ -32,10 +34,12 @@ export function useNotifiche(programmaPossibile = false) {
     }
   }, [leggi])
 
-  /** Gli avvisi che contano davvero: senza allenatore il programma non c'è. */
+  /** Gli avvisi che contano davvero: senza allenatore il programma non c'è, le risposte solo per l'amministratore. */
   const effettivi = (a: Avvisi): Avvisi => ({
     inviti: a.inviti,
     programma: programmaPossibile && a.programma,
+    sondaggi: a.sondaggi,
+    risposte: rispostePossibili && a.risposte,
   })
 
   const cambia = useCallback(
@@ -46,13 +50,13 @@ export function useNotifiche(programmaPossibile = false) {
         const correnti = effettivi(servizio.avvisi())
         if (stato === 'accese') {
           const nuovi = { ...correnti, [tipo]: !correnti[tipo] }
-          if (!nuovi.inviti && !nuovi.programma) await servizio.disattiva()
+          if (!Object.values(nuovi).some(Boolean)) await servizio.disattiva()
           else await servizio.imposta(nuovi)
         } else {
           const esito = await servizio.attiva()
           if (esito !== 'ok') setErrore(esito)
           // Acceso il telefono per un avviso: riceve solo quello.
-          else await servizio.imposta({ inviti: false, programma: false, [tipo]: true })
+          else await servizio.imposta({ ...NESSUN_AVVISO, [tipo]: true })
         }
       } catch {
         setErrore('errore')
@@ -62,8 +66,8 @@ export function useNotifiche(programmaPossibile = false) {
         setOccupato(false)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `effettivi` dipende solo da programmaPossibile
-    [stato, servizio, leggi, programmaPossibile],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `effettivi` dipende solo da programmaPossibile e rispostePossibili
+    [stato, servizio, leggi, programmaPossibile, rispostePossibili],
   )
 
   const acceso = (tipo: TipoAvviso) => stato === 'accese' && effettivi(avvisi)[tipo]

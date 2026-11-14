@@ -25,6 +25,10 @@ export class ArcoDb extends Dexie {
   simulazioni!: Table<Riga>
   /** Le classifiche (ranking) complete già aperte: restano disponibili offline. */
   classifiche_ranking!: Table<Riga>
+  /** I sondaggi "Partecipo / Non partecipo" delle gare. */
+  sondaggi!: Table<Riga>
+  /** Le risposte ai sondaggi: `da_inviare: 1` segna la propria risposta non ancora sul server. */
+  risposte_sondaggio!: Table<Riga>
   /** La tua riga di ogni classifica in cui compari ("La tua posizione"). */
   mie_posizioni!: Table<Riga>
   meta!: Table<Meta, string>
@@ -58,6 +62,11 @@ export class ArcoDb extends Dexie {
     // Fase 7: il ruolo allenatore (chi segue chi).
     this.version(6).stores({
       allenatori_atleti: '[allenatore_id+atleta_id], allenatore_id, atleta_id',
+    })
+    // Fase 3.5: il sondaggio "Partecipo / Non partecipo" delle gare.
+    this.version(7).stores({
+      sondaggi: 'gara_codice',
+      risposte_sondaggio: '[gara_codice+atleta_id], gara_codice, atleta_id, da_inviare',
     })
   }
 

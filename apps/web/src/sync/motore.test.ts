@@ -493,3 +493,61 @@ describe('simulazioni: nei due sensi, come l’allenamento', () => {
     expect(await db.simulazioni.count()).toBe(0)
   })
 })
+
+describe('risposte ai sondaggi: nei due sensi, ognuno la sua', () => {
+  const sondaggio = (aperto: boolean) => ({
+    gara_codice: 'R1',
+    aperto,
+    aperto_da: 'admin',
+    aperto_il: quando(100),
+    chiuso_il: aperto ? null : quando(5),
+    aggiornato_il: quando(aperto ? 100 : 5),
+  })
+  const risposta = (partecipa: boolean, minutiFa: number) => ({
+    gara_codice: 'R1',
+    atleta_id: 'a1',
+    partecipa,
+    modificato_il: quando(minutiFa),
+  })
+
+  it('la risposta data sul telefono va al server e torna con l’ora del server', async () => {
+    remoto.scrivi('sondaggi', sondaggio(true))
+    await db.risposte_sondaggio.put({ ...risposta(true, 1), da_inviare: 1 })
+    const esito = await sincronizza(remoto, db, adesso)
+    expect(esito.inviate).toBe(1)
+    expect(remoto.salvataggiRisposte).toEqual([risposta(true, 1)])
+    const salvata = await db.risposte_sondaggio.get(['R1', 'a1'])
+    expect(salvata?.da_inviare).toBeUndefined()
+    expect(salvata?.aggiornato_il).toBeDefined()
+  })
+
+  it('scarica le risposte di tutti e i sondaggi', async () => {
+    remoto.scrivi('sondaggi', sondaggio(true))
+    remoto.scrivi('risposte_sondaggio', {
+      ...risposta(false, 10),
+      atleta_id: 'b2',
+      aggiornato_il: quando(10),
+    })
+    await sincronizza(remoto, db, adesso)
+    expect(await db.sondaggi.count()).toBe(1)
+    expect((await db.risposte_sondaggio.get(['R1', 'b2']))?.partecipa).toBe(false)
+  })
+
+  it('risposta data offline a un sondaggio poi chiuso: non si salva e sparisce dal telefono', async () => {
+    remoto.scrivi('sondaggi', sondaggio(false))
+    await db.risposte_sondaggio.put({ ...risposta(true, 1), da_inviare: 1 })
+    await sincronizza(remoto, db, adesso)
+    expect(await db.risposte_sondaggio.get(['R1', 'a1'])).toBeUndefined()
+    expect(remoto.righe.risposte_sondaggio).toEqual([])
+  })
+
+  it('a sondaggio chiuso resta la risposta che c’era sul server', async () => {
+    remoto.scrivi('sondaggi', sondaggio(false))
+    remoto.scrivi('risposte_sondaggio', { ...risposta(false, 30), aggiornato_il: quando(30) })
+    await db.risposte_sondaggio.put({ ...risposta(true, 1), da_inviare: 1 })
+    await sincronizza(remoto, db, adesso)
+    const r = await db.risposte_sondaggio.get(['R1', 'a1'])
+    expect(r?.partecipa).toBe(false)
+    expect(r?.da_inviare).toBeUndefined()
+  })
+})

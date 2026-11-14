@@ -434,8 +434,19 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         basta l'avviso, chi ha risposto lo vede nella scheda) agli amministratori con `iscrizioni_push.risposte`; le
         risposte degli amministratori non si contano. `imposta_avvisi` ha una versione con 5 parametri (quella
         vecchia a 3 resta per le app non aggiornate);
-      - **3.5b app**: sezione sondaggio nella scheda gara, gare a cui partecipi in **verde** (`status-success`, con
-        la scritta "Partecipi"), interruttori "Sondaggi delle gare" e "Risposte ai sondaggi".
+      - **3.5b ✅ app**: `gare/SezioneSondaggio.tsx` nella scheda gara, sotto "Gara". L'amministratore vede "Apri
+        sondaggio" (solo gare con l'invito, future, non annullate; serve la rete: `servizio.apriSondaggio`, poi
+        `aggiorna()`), poi "Chiudi sondaggio" / "Riapri sondaggio". Tutti: "Partecipi a questa gara?" con le
+        `Scelte` **Partecipo / Non partecipo** (solo a sondaggio aperto e gara non passata), riga "Partecipano" con
+        i nomi; l'amministratore vede anche "Non partecipano" e "Non hanno risposto" (gli atleti con l'accesso,
+        `riepilogoSondaggio` in `packages/shared/src/sondaggi.ts`). Chi partecipa vede l'avviso verde "Partecipi a
+        questa gara." e, negli elenchi delle gare future, la riga **verde** (`ListRow positiva`: fondo
+        `status-success-subtle`, bordo `status-success`) con la scritta "Partecipi" (`useGareCuiPartecipo`). La
+        risposta si salva sul telefono (`gare/sondaggio.ts`, `da_inviare`) e la manda la sincronizzazione
+        (`SCRIVIBILI`, `remoto.salvaRisposta`): se il server non la salva (sondaggio chiuso) la copia si toglie.
+        Dexie versione 7 (`sondaggi`, `risposte_sondaggio`). Impostazioni → Notifiche: **"Sondaggi delle gare"**
+        per tutti e **"Risposte ai sondaggi"** solo per l'amministratore (`Avvisi` ha 4 campi; `imposta_avvisi`
+        con 5 parametri; le scelte salvate dalle versioni vecchie hanno i sondaggi accesi).
 4. **Tab Atleti**, due PR (piano approvato il 10/11/2026):
    1. elenco, scheda con record e storico ✅. Note:
       - elenco (`pagine/Atleti.tsx`): gli atleti **attivi con l'accesso** (link generato, anche se non sono ancora

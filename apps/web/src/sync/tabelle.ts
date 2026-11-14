@@ -13,6 +13,8 @@ export type NomeTabella =
   | 'allenatori_atleti'
   | 'allenamento_giorni'
   | 'simulazioni'
+  | 'sondaggi'
+  | 'risposte_sondaggio'
 
 export interface DefinizioneTabella {
   nome: NomeTabella
@@ -41,6 +43,10 @@ export const TABELLE: readonly DefinizioneTabella[] = [
   { nome: 'allenamento_giorni', chiave: ['atleta_id', 'giorno'], colonne: '*' },
   // Privato e scrivibile come l'allenamento: le simulazioni di gara con tutte le frecce.
   { nome: 'simulazioni', chiave: ['id'], colonne: '*' },
+  // Il sondaggio "Partecipo / Non partecipo" delle gare (Fase 3.5): li vedono tutti i membri.
+  { nome: 'sondaggi', chiave: ['gara_codice'], colonne: '*' },
+  // Le risposte si scrivono anche dal telefono (ognuno la sua), come l'allenamento.
+  { nome: 'risposte_sondaggio', chiave: ['gara_codice', 'atleta_id'], colonne: '*' },
 ]
 
 export type Riga = Record<string, unknown>

@@ -1,4 +1,4 @@
-import type { GiornoAllenamento, Simulazione } from '@arco/shared'
+import type { GiornoAllenamento, RispostaSondaggio, Simulazione } from '@arco/shared'
 import type { Remoto } from '../sync/remoto'
 import { chiaveDi, TABELLE, type Eliminazione, type NomeTabella, type Riga } from '../sync/tabelle'
 
@@ -16,6 +16,8 @@ export class RemotoFinto implements Remoto {
     allenatori_atleti: [],
     allenamento_giorni: [],
     simulazioni: [],
+    sondaggi: [],
+    risposte_sondaggio: [],
   }
   registro: Eliminazione[] = []
   /** Le richieste ricevute, per controllare che non si scarichi più del necessario. */
@@ -79,6 +81,8 @@ export class RemotoFinto implements Remoto {
   salvataggi: GiornoAllenamento[] = []
   /** Le richieste di salvataggio delle simulazioni ricevute, nell'ordine. */
   salvataggiSimulazioni: Simulazione[] = []
+  /** Le risposte ai sondaggi ricevute, nell'ordine. */
+  salvataggiRisposte: RispostaSondaggio[] = []
   /** L'ora del server (per `aggiornato_il` delle righe scritte dal telefono). */
   orologio: () => number = Date.now
 
@@ -104,6 +108,25 @@ export class RemotoFinto implements Remoto {
     return this.salvaPiuRecente(
       'allenamento_giorni',
       giorno as unknown as Riga & { modificato_il: string },
+    )
+  }
+
+  /** Come il server vero: si salva solo se il sondaggio è aperto; senza risposta restituisce `null`. */
+  async salvaRisposta(risposta: RispostaSondaggio): Promise<Riga | null> {
+    this.controllaRete()
+    this.salvataggiRisposte.push({ ...risposta })
+    const aperto = this.righe.sondaggi.some(
+      (s) => s.gara_codice === risposta.gara_codice && s.aperto,
+    )
+    if (aperto)
+      return this.salvaPiuRecente(
+        'risposte_sondaggio',
+        risposta as unknown as Riga & { modificato_il: string },
+      )
+    return (
+      this.righe.risposte_sondaggio.find(
+        (r) => r.gara_codice === risposta.gara_codice && r.atleta_id === risposta.atleta_id,
+      ) ?? null
     )
   }
 

@@ -196,6 +196,34 @@ describe('sincronizzazione con Supabase', () => {
     ).rejects.toThrow('Accesso non valido')
   })
 
+  it('salva la risposta a un sondaggio; senza risposta sul server restituisce null', async () => {
+    const risposta = {
+      gara_codice: 'R1',
+      atleta_id: 'a1',
+      partecipa: true,
+      modificato_il: '2026-11-12T09:00:00.000Z',
+    }
+    const chiamate: [string, unknown][] = []
+    let data: unknown = { ...risposta, aggiornato_il: '2026-11-12T09:00:01+00:00' }
+    const cliente = {
+      rpc: async (nome: string, argomenti: unknown) => {
+        chiamate.push([nome, argomenti])
+        return { data, error: null }
+      },
+    } as unknown as SupabaseClient
+    const remoto = creaRemotoSupabase(cliente)
+    expect(await remoto.salvaRisposta(risposta)).toMatchObject({ partecipa: true })
+    expect(chiamate[0]).toEqual([
+      'rispondi_sondaggio',
+      { p_gara: 'R1', p_partecipa: true, p_modificato_il: '2026-11-12T09:00:00.000Z' },
+    ])
+    // Il sondaggio era chiuso e non c'era una risposta: il database dà una riga vuota.
+    data = { gara_codice: null, atleta_id: null, partecipa: null }
+    expect(await remoto.salvaRisposta(risposta)).toBeNull()
+    data = null
+    expect(await remoto.salvaRisposta(risposta)).toBeNull()
+  })
+
   it('un errore del server ferma la sincronizzazione', async () => {
     const { cliente } = clienteFinto({ data: null, error: { message: 'JWT scaduto' } })
     await expect(creaRemotoSupabase(cliente).cambiamenti('gare', null, 0, 10)).rejects.toThrow(
