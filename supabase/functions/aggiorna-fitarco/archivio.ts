@@ -137,7 +137,7 @@ export function archivioSupabase(db: SupabaseClient): Archivio {
       return controlla(
         await db
           .from('atleti')
-          .select('id, matricola, nome, cognome, classi_ranking')
+          .select('id, matricola, nome, cognome, classi_ranking, tecnico_regionale')
           .eq('attivo', true),
         'atleti',
       ) as AtletaArchivio[]

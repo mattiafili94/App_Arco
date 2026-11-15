@@ -163,3 +163,54 @@ export function valutaAggiornamento(dati: {
   }
   return { consentita: true }
 }
+
+// --- Coppa Italia delle Regioni (ruolo tecnico regionale, Mattia 15/11/2026) --------------------------------
+
+/** Una classifica della sezione "Coppa delle Regioni", con la distanza da scrivere accanto (Targa). */
+export interface ClassificaCoppa extends FiltroClassifica {
+  /** Metri della Targa per questa classe e divisione; `null` per la Campagna. */
+  distanza: number | null
+}
+
+const COPPA_TARGA: [divisione: string, classe: string, distanza: number][] = [
+  ['OL', 'S', 70],
+  ['OL', 'J', 70],
+  ['OL', 'A', 60],
+  ['OL', 'R', 40],
+  ['CO', 'S', 50],
+  ['CO', 'J', 50],
+  ['CO', 'A', 50],
+  ['CO', 'R', 50],
+]
+const COPPA_CAMPAGNA: [divisione: string, classe: string][] = [
+  ['AN', 'S'],
+  ['AN', 'J'],
+  ['AN', 'M'],
+  ['OL', 'S'],
+  ['OL', 'J'],
+  ['OL', 'M'],
+  ['CO', 'S'],
+  ['CO', 'J'],
+  ['CO', 'M'],
+]
+
+/**
+ * Le classifiche che servono al tecnico regionale per la Coppa Italia delle Regioni (regolamento 2024):
+ * - Targa (Campionati Italiani Targa): Olimpico e Compound, Senior, Junior, Allievi e Ragazzi (niente Master);
+ * - Campagna (Hunter & Field): Arco Nudo, Olimpico e Compound, Senior, Junior e Master.
+ * Ognuna maschile e femminile: 34 in tutto, nell'ordine in cui le mostra l'app.
+ */
+export const CLASSIFICHE_COPPA_REGIONI: readonly ClassificaCoppa[] = [
+  ...COPPA_TARGA.flatMap(([divisione, classe, distanza]) =>
+    GENERI_RANKING.map((genere) => ({ tipo: 'T' as const, divisione, classe, genere, distanza })),
+  ),
+  ...COPPA_CAMPAGNA.flatMap(([divisione, classe]) =>
+    GENERI_RANKING.map((genere) => ({
+      tipo: 'C' as const,
+      divisione,
+      classe,
+      genere,
+      distanza: null,
+    })),
+  ),
+]

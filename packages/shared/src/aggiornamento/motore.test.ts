@@ -653,6 +653,31 @@ describe('le singole letture', () => {
       expect(archivio.coda.map((c) => `${c.tipo} ${c.chiave}`)).toContain('ranking I|OL|S|M')
     })
 
+    it('con un tecnico regionale anche le 34 della Coppa delle Regioni, senza doppioni', async () => {
+      archivio.atletiSalvati[0]!.classi_ranking = { Targa: 'SM' }
+      archivio.storici.set('a1', [])
+      archivio.atletiSalvati.push({
+        id: 'a2',
+        matricola: '900002',
+        nome: 'Tea',
+        cognome: 'Verdi',
+        classi_ranking: {},
+        attivo: true,
+        tecnico_regionale: true,
+      })
+      const quante = await accodaRanking(ctx)
+      const chiavi = archivio.coda.map((c) => c.chiave)
+      expect(chiavi).toContain('T|CO|R|F')
+      expect(chiavi).toContain('C|AN|M|M')
+      expect(new Set(chiavi).size).toBe(chiavi.length)
+      expect(quante).toBeGreaterThanOrEqual(34)
+      // Senza tecnici regionali (anche se disattivato) non servono più.
+      archivio.coda = []
+      archivio.atletiSalvati[1]!.attivo = false
+      expect(await accodaRanking(ctx)).toBeLessThan(34)
+      expect(archivio.coda.map((c) => c.chiave)).not.toContain('C|AN|M|M')
+    })
+
     it('la legge intera (tutta Italia) e la salva con i suoi numeri', async () => {
       fonte.risposte.lista_ranking_gare_results = rankingCoerente()
       expect(await esegui('ranking', 'I|OL|S|M')).toMatchObject({
