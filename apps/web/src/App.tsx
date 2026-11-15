@@ -6,6 +6,7 @@ import { Amministrazione } from './pagine/Amministrazione'
 import { Atleti } from './pagine/Atleti'
 import { Classifica } from './pagine/Classifica'
 import { ClassificaCompleta } from './pagine/ClassificaCompleta'
+import { CoppaRegioni } from './pagine/CoppaRegioni'
 import { Benvenuto } from './pagine/Benvenuto'
 import { DettaglioAtleta } from './pagine/DettaglioAtleta'
 import { DettaglioGara } from './pagine/DettaglioGara'
@@ -60,6 +61,7 @@ export function App() {
           <Route path="atleti/:id/prova/:serie" element={<ProvaAtleta />} />
           <Route path="atleti/:id/gare" element={<GareAtleta />} />
           <Route path="classifica" element={<Classifica />} />
+          <Route path="classifica/coppa-regioni" element={<CoppaRegioni />} />
           <Route
             path="classifica/:tipo/:divisione/:classe/:genere"
             element={<ClassificaCompleta />}

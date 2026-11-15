@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useParams, useSearchParams } from 'react-router'
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router'
 import { Trophy } from 'lucide-react'
 import {
   CODICE_SOCIETA,
@@ -22,6 +22,7 @@ import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { PageHeader } from '../componenti/PageHeader'
 import { Scelte } from '../componenti/Scelte'
+import { leggiIndietro } from '../navigazione'
 import { useOnline } from '../stato/useOnline'
 import styles from './Classifica.module.css'
 
@@ -107,11 +108,13 @@ function Contenuto({ filtro }: { filtro: FiltroClassifica }) {
   const io = useAtletaCorrente()
   const online = useOnline()
   const [ricerca, impostaRicerca] = useSearchParams()
+  const posizione = useLocation()
   const { classifica, verificata, errore, inCorso, aggiorna } = useClassificaCompleta(filtro)
   const [testo, setTesto] = useState('')
   const [esito, setEsito] = useState<Esito | null>(null)
   const soloUmbria = ricerca.get('regione') === 'umbria'
   // Arrivando da "La tua posizione" la lista arriva fino a te (solo senza ricerche o filtri attivi).
+  const indietro = leggiIndietro(posizione.state) ?? INDIETRO
   const partiDaMe = ricerca.get('mia') === '1' && testo === '' && !soloUmbria
 
   const premiAggiorna = async () => {
@@ -122,7 +125,7 @@ function Contenuto({ filtro }: { filtro: FiltroClassifica }) {
   const intestazione = (
     <PageHeader
       title={titoloClassifica(filtro)}
-      back={INDIETRO}
+      back={indietro}
       description={
         classifica
           ? `${classifica.totale} atleti · letta da Fitarco ${descriviLettura(classifica.letta_il)}`
@@ -187,7 +190,7 @@ function Contenuto({ filtro }: { filtro: FiltroClassifica }) {
                   else nuova.delete('regione')
                   return nuova
                 },
-                { replace: true },
+                { replace: true, state: posizione.state },
               )
             }
           />

@@ -14,9 +14,11 @@ interface RigaAtleta {
   attivo: boolean
   utente_id: string | null
   allenatore?: boolean
+  tecnico_regionale?: boolean
 }
 
-const COLONNE = 'id, matricola, nome, cognome, ruolo, attivo, allenatore, utente_id'
+const COLONNE =
+  'id, matricola, nome, cognome, ruolo, attivo, allenatore, tecnico_regionale, utente_id'
 
 const daRiga = (r: RigaAtleta): Atleta => ({
   id: r.id,
@@ -27,6 +29,7 @@ const daRiga = (r: RigaAtleta): Atleta => ({
   attivo: r.attivo,
   haAccesso: r.utente_id !== null,
   allenatore: r.allenatore ?? false,
+  tecnicoRegionale: r.tecnico_regionale ?? false,
 })
 
 const senzaRete = () => typeof navigator !== 'undefined' && !navigator.onLine
@@ -168,6 +171,15 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
     async impostaAllenatore(atletaId, allenatore) {
       if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
       const { error } = await supabase.from('atleti').update({ allenatore }).eq('id', atletaId)
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
+    },
+
+    async impostaTecnicoRegionale(atletaId, tecnico) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase
+        .from('atleti')
+        .update({ tecnico_regionale: tecnico })
+        .eq('id', atletaId)
       if (error) throw new Error('Non riuscito. Riprova tra poco.')
     },
 

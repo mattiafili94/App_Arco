@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { conTema, TEMI } from './aiuti'
-import { simulaSupabase } from './supabase-finto'
+import { ATLETA_PROVA, simulaSupabase } from './supabase-finto'
 
 test.beforeEach(async ({ page }) => {
   await simulaSupabase(page)
@@ -87,4 +87,28 @@ test.describe('tab Classifica', () => {
       })
     }
   })
+})
+
+test.describe('Coppa delle Regioni (tecnico regionale)', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  for (const { scelta } of TEMI) {
+    test(`elenco e classifica umbra, accessibilità nel tema ${scelta}`, async ({ page }) => {
+      await simulaSupabase(page, { collegato: { ...ATLETA_PROVA, tecnico_regionale: true } })
+      await conTema(page, scelta)
+      await page.setViewportSize({ width: 390, height: 2600 })
+      await page.goto('/classifica')
+      await page.getByRole('link', { name: /Coppa delle Regioni/ }).click()
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Coppa delle Regioni' }),
+      ).toBeVisible()
+      await expect(page.getByRole('region', { name: 'Targa' }).getByRole('link')).toHaveCount(16)
+      await controllaAccessibilita(page)
+      await page.getByRole('link', { name: 'Ricurvo · Senior 70 m · Maschile' }).click()
+      await expect(page).toHaveURL(/\/classifica\/T\/OL\/S\/M\?regione=umbria/)
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Outdoor · Ricurvo · Senior M' }),
+      ).toBeVisible()
+    })
+  }
 })

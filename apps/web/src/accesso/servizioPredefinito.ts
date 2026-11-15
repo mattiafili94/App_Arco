@@ -55,6 +55,9 @@ export const servizioPredefinito: ServizioAccesso =
         impostaAllenatore: async () => {
           throw new Error('App non collegata al server.')
         },
+        impostaTecnicoRegionale: async () => {
+          throw new Error('App non collegata al server.')
+        },
         apriSondaggio: async () => {
           throw new Error('App non collegata al server.')
         },
