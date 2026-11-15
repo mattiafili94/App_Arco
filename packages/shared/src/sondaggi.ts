@@ -13,6 +13,8 @@ export interface Sondaggio {
   aperto_da: string | null
   aperto_il: string
   chiuso_il: string | null
+  /** I turni della gara (`AAAA-MM-GG:mattina|pomeriggio`); vuoto = senza turni. Manca nelle copie vecchie. */
+  turni?: string[]
   aggiornato_il: string
 }
 
@@ -21,6 +23,8 @@ export interface RispostaSondaggio {
   gara_codice: string
   atleta_id: string
   partecipa: boolean
+  /** Il turno scelto da chi partecipa (uno dei turni del sondaggio); vuoto se non partecipa o senza turni. */
+  turno?: string | null
   /** Ora del telefono quando l'atleta ha risposto: vince la più recente. */
   modificato_il: string
   /** Ora del server; manca finché la risposta non è arrivata al server. */
@@ -94,15 +98,94 @@ export const elencoNomi = (persone: readonly PersonaSondaggio[]) =>
  * - `partecipi` (verde) / `non-partecipi` (rosso): la tua risposta, anche a sondaggio chiuso.
  * `null`: niente da mostrare (gara passata, nessun sondaggio, sondaggio chiuso senza risposta).
  */
-export type StatoSondaggioGara = 'da-rispondere' | 'partecipi' | 'non-partecipi'
+export type StatoSondaggioGara = 'da-rispondere' | 'scegli-turno' | 'partecipi' | 'non-partecipi'
 
+/**
+ * `scegli-turno` (giallo): partecipi ma senza turno (risposta da un'app vecchia) a un sondaggio aperto con i turni.
+ */
 export function statoSondaggioGara(
-  s: Pick<Sondaggio, 'aperto'> | null | undefined,
-  risposta: Pick<RispostaSondaggio, 'partecipa'> | null | undefined,
+  s: Pick<Sondaggio, 'aperto' | 'turni'> | null | undefined,
+  risposta: Pick<RispostaSondaggio, 'partecipa' | 'turno'> | null | undefined,
   g: Pick<Gara, 'al'>,
   oggi: string,
 ): StatoSondaggioGara | null {
   if (garaPassata(g, oggi)) return null
-  if (risposta) return risposta.partecipa ? 'partecipi' : 'non-partecipi'
+  if (risposta) {
+    if (!risposta.partecipa) return 'non-partecipi'
+    if (s?.aperto && s.turni?.length && !risposta.turno) return 'scegli-turno'
+    return 'partecipi'
+  }
   return s?.aperto ? 'da-rispondere' : null
+}
+
+// I turni (Mattia, 15/11/2026): mattina e pomeriggio di ogni giorno della gara; chi partecipa ne sceglie uno.
+
+const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+
+const dataUtc = (giorno: string) => new Date(`${giorno}T00:00:00Z`)
+
+/** Tutti i turni che una gara può avere: mattina e pomeriggio di ogni giorno, in ordine (al massimo 14 giorni). */
+export function turniPossibili(g: Pick<Gara, 'dal' | 'al'>): string[] {
+  const turni: string[] = []
+  const fine = dataUtc(g.al).getTime()
+  for (
+    const d = dataUtc(g.dal);
+    d.getTime() <= fine && turni.length < 28;
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
+    const giorno = d.toISOString().slice(0, 10)
+    turni.push(`${giorno}:mattina`, `${giorno}:pomeriggio`)
+  }
+  return turni
+}
+
+/**
+ * "Sabato mattina"; con `conData` "Sabato 12 dic, mattina" (serve quando la gara dura più di una settimana e lo
+ * stesso giorno della settimana torna due volte).
+ */
+export function etichettaTurno(turno: string, conData = false): string {
+  const [giorno = '', parte = ''] = turno.split(':')
+  const d = dataUtc(giorno)
+  const nome = GIORNI[d.getUTCDay()] ?? giorno
+  return conData
+    ? `${nome} ${d.getUTCDate()} ${MESI[d.getUTCMonth()]}, ${parte}`
+    : `${nome} ${parte}`
+}
+
+/** Le etichette di un elenco di turni: con la data solo se un giorno della settimana si ripete. */
+export function etichetteTurni(turni: readonly string[]): Map<string, string> {
+  const giorni = [...new Set(turni.map((t) => t.split(':')[0] ?? ''))]
+  const nomi = giorni.map((g) => dataUtc(g).getUTCDay())
+  const conData = new Set(nomi).size < nomi.length
+  return new Map(turni.map((t) => [t, etichettaTurno(t, conData)]))
+}
+
+export interface TurnoConPersone<P extends PersonaSondaggio> {
+  turno: string
+  persone: P[]
+}
+
+/**
+ * Chi partecipa, turno per turno (nell'ordine dei turni del sondaggio, anche quelli senza nessuno), e chi partecipa
+ * senza un turno valido (risposte da un'app vecchia).
+ */
+export function partecipantiPerTurno<P extends PersonaSondaggio>(
+  partecipano: readonly P[],
+  risposte: readonly Pick<RispostaSondaggio, 'atleta_id' | 'partecipa' | 'turno'>[],
+  turni: readonly string[],
+): { perTurno: TurnoConPersone<P>[]; senzaTurno: P[] } {
+  const turnoDi = new Map(
+    risposte.filter((x) => x.partecipa).map((x) => [x.atleta_id, x.turno ?? null]),
+  )
+  return {
+    perTurno: turni.map((turno) => ({
+      turno,
+      persone: partecipano.filter((p) => turnoDi.get(p.id) === turno),
+    })),
+    senzaTurno: partecipano.filter((p) => {
+      const t = turnoDi.get(p.id)
+      return !t || !turni.includes(t)
+    }),
+  }
 }

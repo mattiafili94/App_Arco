@@ -449,6 +449,15 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         Dexie versione 7 (`sondaggi`, `risposte_sondaggio`). Impostazioni → Notifiche: **"Sondaggi delle gare"**
         per tutti e **"Risposte ai sondaggi"** solo per l'amministratore (`Avvisi` ha 4 campi; `imposta_avvisi`
         con 5 parametri; le scelte salvate dalle versioni vecchie hanno i sondaggi accesi).
+      - **3.5c ✅ turni** (Mattia, 15/11/2026: la gara si tira a turni). Migrazione `20261122120000_sondaggi_turni.sql`:
+        `sondaggi.turni` (`'AAAA-MM-GG:mattina|pomeriggio'`, giorni della gara; vuoto = senza turni, scelti all'apertura,
+        riaprire non li cambia) e `risposte_sondaggio.turno` (**uno solo**, per ora). `apri_sondaggio(gara, turni)` e
+        `rispondi_sondaggio(…, p_turno)` controllano i turni; le versioni vecchie restano (un "Partecipo" senza turno
+        lascia quello che c'era); anche il cambio di turno conta nell'avviso all'amministratore. App: "Apri sondaggio"
+        → caselle "Turni della gara" (`turniPossibili`); l'atleta sceglie tra i turni ("Sabato mattina"…,
+        `etichetteTurni`: con la data se un giorno della settimana si ripete) o "Non partecipo"; "Partecipano" diviso
+        per turno (`partecipantiPerTurno`, più "Turno non indicato"); riga verde "Partecipi · Sabato mattina";
+        gialla "Scegli il turno" se partecipi senza turno a un sondaggio aperto con i turni.
 4. **Tab Atleti**, due PR (piano approvato il 10/11/2026):
    1. elenco, scheda con record e storico ✅. Note:
       - elenco (`pagine/Atleti.tsx`): gli atleti **attivi con l'accesso** (link generato, anche se non sono ancora

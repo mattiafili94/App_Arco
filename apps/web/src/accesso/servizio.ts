@@ -59,7 +59,7 @@ export interface ServizioAccesso {
   /** Quali avvisi riceve questo telefono (nuovi inviti, programma dell'allenatore, sondaggi, risposte). */
   impostaAvvisi(endpoint: string, avvisi: Avvisi): Promise<void>
   /** L'amministratore apre il sondaggio di una gara (o lo riapre). Lancia un errore con un messaggio da mostrare. */
-  apriSondaggio(garaCodice: string): Promise<void>
+  apriSondaggio(garaCodice: string, turni: string[]): Promise<void>
   /** L'amministratore chiude il sondaggio di una gara. Lancia un errore con un messaggio da mostrare. */
   chiudiSondaggio(garaCodice: string): Promise<void>
   /** L'allenatore collegato inizia o smette di seguire un atleta. Lancia un errore con un messaggio da mostrare. */

@@ -176,6 +176,27 @@ test.describe('sondaggio "Partecipo / Non partecipo"', () => {
     await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Non partecipi')
   })
 
+  test("con i turni: l'atleta sceglie il suo turno, accessibilità nei 3 temi", async ({ page }) => {
+    const finto = await simulaSupabase(page, { sondaggioAperto: true, conTurni: true })
+    await page.setViewportSize({ width: 390, height: 2200 })
+    for (const { scelta } of TEMI) {
+      await conTema(page, scelta)
+      await page.goto('/gare')
+      await page.getByRole('link', { name: /Perugia/ }).click()
+      const gruppo = page.getByRole('radiogroup', { name: 'In che turno partecipi?' })
+      await expect(gruppo.getByRole('radio')).toHaveCount(3)
+      await gruppo.getByRole('radio').nth(1).click()
+      await expect(page.getByText(/Partecipi a questa gara: .+ pomeriggio./)).toBeVisible()
+      await controllaAccessibilita(page)
+    }
+    await expect.poll(() => finto.risposte.at(-1)).toMatchObject({ partecipa: true })
+    expect(String(finto.risposte.at(-1)!.turno)).toMatch(/:pomeriggio$/)
+    await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
+    await expect(page.getByRole('link', { name: /Perugia/ })).toContainText(
+      /Partecipi · .+ pomeriggio/,
+    )
+  })
+
   for (const { scelta } of TEMI) {
     test(`accessibilità del sondaggio e delle gare gialla, verde e rossa, tema ${scelta}`, async ({
       page,

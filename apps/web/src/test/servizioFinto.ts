@@ -116,7 +116,7 @@ export function servizioFinto({
         })
     }),
     // Come il server: il sondaggio arriva ai telefoni con la sincronizzazione.
-    apriSondaggio: vi.fn(async (garaCodice: string) => {
+    apriSondaggio: vi.fn(async (garaCodice: string, turni: string[] = []) => {
       if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
       const esistente = remoto.righe.sondaggi.find((s) => s.gara_codice === garaCodice)
       const adesso = new Date().toISOString()
@@ -124,6 +124,7 @@ export function servizioFinto({
         gara_codice: garaCodice,
         aperto_da: esistente?.aperto_da ?? utente,
         aperto_il: esistente?.aperto_il ?? adesso,
+        turni,
         ...esistente,
         aperto: true,
         chiuso_il: null,

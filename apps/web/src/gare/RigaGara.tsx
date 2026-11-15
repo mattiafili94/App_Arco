@@ -1,5 +1,6 @@
 import {
   descriviStato,
+  etichetteTurni,
   etichettaTipologia,
   formattaDate,
   statoSondaggioGara,
@@ -13,6 +14,7 @@ import { useSondaggiPerMe } from './sondaggio'
 /** Colore e scritta di una gara futura secondo il sondaggio (Mattia, 15/11/2026): mai solo il colore. */
 const ASPETTO: Record<StatoSondaggioGara, { tono: TonoRiga; testo: string }> = {
   'da-rispondere': { tono: 'avviso', testo: 'Sondaggio aperto: rispondi' },
+  'scegli-turno': { tono: 'avviso', testo: 'Scegli il turno' },
   partecipi: { tono: 'positivo', testo: 'Partecipi' },
   'non-partecipi': { tono: 'negativo', testo: 'Non partecipi' },
 }
@@ -40,19 +42,25 @@ export function RigaGara({
   const stato = perMe
     ? statoSondaggioGara(
         perMe,
-        perMe.partecipa === undefined ? null : { partecipa: perMe.partecipa },
+        perMe.partecipa === undefined ? null : { partecipa: perMe.partecipa, turno: perMe.turno },
         g,
         oggi,
       )
     : null
   const aspetto = stato ? ASPETTO[stato] : undefined
+  // "Partecipi · Sabato mattina": il turno scelto, se il sondaggio ha i turni.
+  const turno =
+    stato === 'partecipi' && perMe?.turno && perMe.turni.includes(perMe.turno)
+      ? etichetteTurni(perMe.turni).get(perMe.turno)
+      : undefined
+  const testo = turno ? `${aspetto?.testo} · ${turno}` : aspetto?.testo
   return (
     <ListRow
       label={`${etichettaTipologia(g.tipologia)} · ${g.localita}`}
       value={formattaDate(g.dal, g.al, annoCorrente)}
       description={
         [
-          aspetto?.testo,
+          testo,
           descriviStato(g, oggi),
           !g.in_calendario_umbria ? 'Fuori regione' : null,
           mie.has(g.codice) ? 'Hai partecipato' : null,

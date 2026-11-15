@@ -215,7 +215,12 @@ describe('sincronizzazione con Supabase', () => {
     expect(await remoto.salvaRisposta(risposta)).toMatchObject({ partecipa: true })
     expect(chiamate[0]).toEqual([
       'rispondi_sondaggio',
-      { p_gara: 'R1', p_partecipa: true, p_modificato_il: '2026-11-12T09:00:00.000Z' },
+      {
+        p_gara: 'R1',
+        p_partecipa: true,
+        p_modificato_il: '2026-11-12T09:00:00.000Z',
+        p_turno: null,
+      },
     ])
     // Il sondaggio era chiuso e non c'era una risposta: il database dà una riga vuota.
     data = { gara_codice: null, atleta_id: null, partecipa: null }
