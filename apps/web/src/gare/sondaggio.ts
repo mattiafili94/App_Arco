@@ -33,20 +33,39 @@ export function useRisposte(codice: string): RispostaSalvata[] | undefined {
   )
 }
 
-const NESSUNA: ReadonlySet<string> = new Set()
+/** Per una gara: il suo sondaggio è aperto? E la risposta dell’atleta collegato (se c’è). */
+export interface SondaggioPerMe {
+  aperto: boolean
+  partecipa?: boolean
+}
 
-/** I codici delle gare a cui l'atleta collegato ha risposto "Partecipo" (vuoto finché si legge). */
-export function useGareCuiPartecipo(): ReadonlySet<string> {
+const NESSUNO: ReadonlyMap<string, SondaggioPerMe> = new Map()
+
+/**
+ * Per ogni gara con un sondaggio o una risposta dell’atleta collegato: se il sondaggio è aperto e cosa ha risposto
+ * (vuoto finché si legge). Serve ai colori degli elenchi (`statoSondaggioGara`).
+ */
+export function useSondaggiPerMe(): ReadonlyMap<string, SondaggioPerMe> {
   const { db } = useSincronizzazione()
   const { id } = useAtletaCorrente()
   return (
     useLiveQuery(async () => {
+      const sondaggi = (await db.sondaggi.toArray()) as unknown as Sondaggio[]
       const mie = (await db.risposte_sondaggio
         .where('atleta_id')
         .equals(id)
         .toArray()) as unknown as RispostaSondaggio[]
-      return new Set(mie.filter((r) => r.partecipa).map((r) => r.gara_codice))
-    }, [db, id]) ?? NESSUNA
+      const mappa = new Map<string, SondaggioPerMe>(
+        sondaggi.map((x) => [x.gara_codice, { aperto: x.aperto }]),
+      )
+      for (const r of mie) {
+        mappa.set(r.gara_codice, {
+          aperto: mappa.get(r.gara_codice)?.aperto ?? false,
+          partecipa: r.partecipa,
+        })
+      }
+      return mappa
+    }, [db, id]) ?? NESSUNO
   )
 }
 

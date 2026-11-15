@@ -2,17 +2,25 @@ import {
   descriviStato,
   etichettaTipologia,
   formattaDate,
-  garaPassata,
+  statoSondaggioGara,
   type Gara,
+  type StatoSondaggioGara,
 } from '@arco/shared'
-import { ListRow } from '../componenti/List'
+import { ListRow, type TonoRiga } from '../componenti/List'
 import type { Indietro } from '../navigazione'
-import { useGareCuiPartecipo } from './sondaggio'
+import { useSondaggiPerMe } from './sondaggio'
+
+/** Colore e scritta di una gara futura secondo il sondaggio (Mattia, 15/11/2026): mai solo il colore. */
+const ASPETTO: Record<StatoSondaggioGara, { tono: TonoRiga; testo: string }> = {
+  'da-rispondere': { tono: 'avviso', testo: 'Sondaggio aperto: rispondi' },
+  partecipi: { tono: 'positivo', testo: 'Partecipi' },
+  'non-partecipi': { tono: 'negativo', testo: 'Non partecipi' },
+}
 
 /**
  * Una gara negli elenchi (tab Gare, calendario, storico): tipologia · luogo, date e sotto lo stato,
- * "Fuori regione" e "Hai partecipato". Le gare future a cui hai risposto "Partecipo" al sondaggio sono in verde, con
- * "Partecipi" (Fase 3.5). Apre la scheda della gara.
+ * "Fuori regione" e "Hai partecipato". Le gare future con un sondaggio (Fase 3.5) sono in giallo se il sondaggio è
+ * aperto e non hai risposto, in verde se partecipi, in rosso se non partecipi, con la scritta. Apre la scheda.
  */
 export function RigaGara({
   gara: g,
@@ -28,14 +36,23 @@ export function RigaGara({
   indietro?: Indietro
 }) {
   const annoCorrente = Number(oggi.slice(0, 4))
-  const partecipi = useGareCuiPartecipo().has(g.codice) && !garaPassata(g, oggi)
+  const perMe = useSondaggiPerMe().get(g.codice)
+  const stato = perMe
+    ? statoSondaggioGara(
+        perMe,
+        perMe.partecipa === undefined ? null : { partecipa: perMe.partecipa },
+        g,
+        oggi,
+      )
+    : null
+  const aspetto = stato ? ASPETTO[stato] : undefined
   return (
     <ListRow
       label={`${etichettaTipologia(g.tipologia)} · ${g.localita}`}
       value={formattaDate(g.dal, g.al, annoCorrente)}
       description={
         [
-          partecipi ? 'Partecipi' : null,
+          aspetto?.testo,
           descriviStato(g, oggi),
           !g.in_calendario_umbria ? 'Fuori regione' : null,
           mie.has(g.codice) ? 'Hai partecipato' : null,
@@ -43,7 +60,7 @@ export function RigaGara({
           .filter(Boolean)
           .join(' · ') || undefined
       }
-      positiva={partecipi}
+      tono={aspetto?.tono}
       href={`/gare/${g.codice}`}
       state={indietro ? { indietro } : undefined}
     />
