@@ -85,8 +85,18 @@
   font-weight: 600;
 }
 
-/* Una riga "positiva" (es. una gara a cui partecipi): il testo resta nei colori del testo. */
-.positiva {
+/* Righe colorate (es. le gare col sondaggio): il testo resta nei colori del testo. */
+.positivo {
   background: var(--status-success-subtle);
   border-inline-start: 4px solid var(--status-success);
+}
+
+.avviso {
+  background: var(--status-warning-subtle);
+  border-inline-start: 4px solid var(--status-warning);
+}
+
+.negativo {
+  background: var(--status-error-subtle);
+  border-inline-start: 4px solid var(--status-error);
 }

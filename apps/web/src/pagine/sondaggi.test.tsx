@@ -146,9 +146,13 @@ describe('sondaggio: l’atleta', () => {
     expect(screen.queryByRole('region', { name: 'Sondaggio' })).not.toBeInTheDocument()
   })
 
-  it('risponde "Partecipo": la gara diventa verde con "Partecipi", e può cambiare idea', async () => {
+  it('sondaggio aperto: gara gialla; "Partecipo" la fa verde, "Non partecipo" rossa', async () => {
     const remoto = remotoConGare({ sondaggio: 'aperto' })
-    await apriGara(servizioFinto({ remoto }).servizio)
+    await renderApp('/gare', { servizio: servizioFinto({ remoto }).servizio })
+    const gialla = await screen.findByRole('link', { name: /Perugia/ })
+    await waitFor(() => expect(gialla).toHaveTextContent('Sondaggio aperto: rispondi'))
+    expect(gialla.className).toMatch(/avviso/)
+    await userEvent.click(gialla)
     await userEvent.click(await screen.findByRole('radio', { name: 'Partecipo' }))
     expect(await screen.findByText('Partecipi a questa gara.')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Partecipo' })).toHaveAttribute('aria-checked', 'true')
@@ -165,8 +169,11 @@ describe('sondaggio: l’atleta', () => {
     await userEvent.click(screen.getAllByRole('link', { name: /Gare/ })[0]!)
     const riga = await screen.findByRole('link', { name: /Perugia/ })
     await waitFor(() => expect(riga).toHaveTextContent('Partecipi'))
-    expect(riga.className).toMatch(/positiva/)
-    expect(screen.getByRole('link', { name: /Terni/ }).className).not.toMatch(/positiva/)
+    expect(riga.className).toMatch(/positivo/)
+    expect(riga).not.toHaveTextContent('Sondaggio aperto')
+    expect(screen.getByRole('link', { name: /Terni/ }).className).not.toMatch(
+      /positivo|avviso|negativo/,
+    )
 
     await userEvent.click(riga)
     await userEvent.click(await screen.findByRole('radio', { name: 'Non partecipo' }))
@@ -174,6 +181,19 @@ describe('sondaggio: l’atleta', () => {
     await waitFor(() =>
       expect(remoto.righe.risposte_sondaggio).toMatchObject([{ partecipa: false }]),
     )
+    await userEvent.click(screen.getAllByRole('link', { name: /Gare/ })[0]!)
+    const rossa = await screen.findByRole('link', { name: /Perugia/ })
+    await waitFor(() => expect(rossa).toHaveTextContent('Non partecipi'))
+    expect(rossa.className).toMatch(/negativo/)
+  })
+
+  it('a sondaggio chiuso senza risposta la gara non è colorata', async () => {
+    await renderApp('/gare', {
+      servizio: servizioFinto({ remoto: remotoConGare({ sondaggio: 'chiuso' }) }).servizio,
+    })
+    const riga = await screen.findByRole('link', { name: /Perugia/ })
+    expect(riga.className).not.toMatch(/positivo|avviso|negativo/)
+    expect(riga).not.toHaveTextContent('Sondaggio')
   })
 
   it('offline: la risposta resta sul telefono e si invia appena c’è la rete', async () => {

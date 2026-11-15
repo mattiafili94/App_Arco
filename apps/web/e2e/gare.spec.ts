@@ -152,11 +152,14 @@ test.describe('risultati di una gara', () => {
 test.describe('sondaggio "Partecipo / Non partecipo"', () => {
   test.use({ reducedMotion: 'reduce' })
 
-  test('l’atleta risponde "Partecipo" e la gara diventa verde con "Partecipi"', async ({
+  test('gara gialla col sondaggio aperto, verde con "Partecipo", rossa con "Non partecipo"', async ({
     page,
   }) => {
     const finto = await simulaSupabase(page, { sondaggioAperto: true })
     await page.goto('/gare')
+    await expect(page.getByRole('link', { name: /Perugia/ })).toContainText(
+      'Sondaggio aperto: rispondi',
+    )
     await page.getByRole('link', { name: /Perugia/ }).click()
     await page.getByRole('radio', { name: 'Partecipo', exact: true }).click()
     await expect(page.getByText('Partecipi a questa gara.')).toBeVisible()
@@ -165,20 +168,35 @@ test.describe('sondaggio "Partecipo / Non partecipo"', () => {
 
     await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
     await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Partecipi')
+
+    await page.getByRole('link', { name: /Perugia/ }).click()
+    await page.getByRole('radio', { name: 'Non partecipo' }).click()
+    await expect.poll(() => finto.risposte.at(-1)).toMatchObject({ partecipa: false })
+    await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
+    await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Non partecipi')
   })
 
   for (const { scelta } of TEMI) {
-    test(`accessibilità del sondaggio e della gara in verde, tema ${scelta}`, async ({ page }) => {
+    test(`accessibilità del sondaggio e delle gare gialla, verde e rossa, tema ${scelta}`, async ({
+      page,
+    }) => {
       await simulaSupabase(page, { sondaggioAperto: true })
       await conTema(page, scelta)
       await page.setViewportSize({ width: 390, height: 2200 })
       await page.goto('/gare')
+      await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Sondaggio aperto')
+      await controllaAccessibilita(page)
       await page.getByRole('link', { name: /Perugia/ }).click()
       await page.getByRole('radio', { name: 'Partecipo', exact: true }).click()
       await expect(page.getByText('Partecipi a questa gara.')).toBeVisible()
       await controllaAccessibilita(page)
       await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
       await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Partecipi')
+      await controllaAccessibilita(page)
+      await page.getByRole('link', { name: /Perugia/ }).click()
+      await page.getByRole('radio', { name: 'Non partecipo' }).click()
+      await page.getByRole('main').getByRole('link', { name: /Gare/ }).click()
+      await expect(page.getByRole('link', { name: /Perugia/ })).toContainText('Non partecipi')
       await controllaAccessibilita(page)
     })
   }

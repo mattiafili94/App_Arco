@@ -87,3 +87,22 @@ export function riepilogoSondaggio<P extends PersonaSondaggio>(
 /** "Mario Rossi, Anna Verdi" (nome e cognome, nell'ordine dato). */
 export const elencoNomi = (persone: readonly PersonaSondaggio[]) =>
   persone.map((p) => `${p.nome} ${p.cognome}`).join(', ')
+
+/**
+ * Come si mostra una gara negli elenchi per chi guarda (Mattia, 15/11/2026): solo le gare future.
+ * - `da-rispondere` (giallo): il sondaggio è aperto e non hai ancora risposto;
+ * - `partecipi` (verde) / `non-partecipi` (rosso): la tua risposta, anche a sondaggio chiuso.
+ * `null`: niente da mostrare (gara passata, nessun sondaggio, sondaggio chiuso senza risposta).
+ */
+export type StatoSondaggioGara = 'da-rispondere' | 'partecipi' | 'non-partecipi'
+
+export function statoSondaggioGara(
+  s: Pick<Sondaggio, 'aperto'> | null | undefined,
+  risposta: Pick<RispostaSondaggio, 'partecipa'> | null | undefined,
+  g: Pick<Gara, 'al'>,
+  oggi: string,
+): StatoSondaggioGara | null {
+  if (garaPassata(g, oggi)) return null
+  if (risposta) return risposta.partecipa ? 'partecipi' : 'non-partecipi'
+  return s?.aperto ? 'da-rispondere' : null
+}

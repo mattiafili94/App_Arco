@@ -4,6 +4,7 @@ import {
   puoAprireSondaggio,
   riepilogoSondaggio,
   sondaggioRispondibile,
+  statoSondaggioGara,
 } from './sondaggi'
 
 const OGGI = '2026-11-15'
@@ -63,5 +64,24 @@ describe('riepilogoSondaggio', () => {
   it('elencoNomi', () => {
     expect(elencoNomi([anna, bruno])).toBe('Anna Verdi, Bruno Bianchi')
     expect(elencoNomi([])).toBe('')
+  })
+})
+
+describe('statoSondaggioGara', () => {
+  const aperto = { aperto: true }
+  const chiuso = { aperto: false }
+  it('sondaggio aperto senza risposta: da rispondere (giallo)', () => {
+    expect(statoSondaggioGara(aperto, undefined, GARA, OGGI)).toBe('da-rispondere')
+  })
+  it('la risposta decide verde o rosso, anche a sondaggio chiuso', () => {
+    expect(statoSondaggioGara(aperto, { partecipa: true }, GARA, OGGI)).toBe('partecipi')
+    expect(statoSondaggioGara(aperto, { partecipa: false }, GARA, OGGI)).toBe('non-partecipi')
+    expect(statoSondaggioGara(chiuso, { partecipa: false }, GARA, OGGI)).toBe('non-partecipi')
+  })
+  it('niente: senza sondaggio, a sondaggio chiuso senza risposta, a gara passata', () => {
+    expect(statoSondaggioGara(null, undefined, GARA, OGGI)).toBeNull()
+    expect(statoSondaggioGara(chiuso, undefined, GARA, OGGI)).toBeNull()
+    expect(statoSondaggioGara(aperto, { partecipa: true }, { al: '2026-11-14' }, OGGI)).toBeNull()
+    expect(statoSondaggioGara(aperto, undefined, { al: '2026-11-14' }, OGGI)).toBeNull()
   })
 })
