@@ -6,6 +6,9 @@
  * Orario scelto da Mattia (9/11/2026): ogni 15 minuti dalle 7:00 alle 22:45, ora italiana.
  * Dal 15/11/2026 il lunedì ogni 5 minuti (è il giorno delle classifiche): il cron sveglia il Worker ogni 5 minuti
  * e gli altri giorni si chiama la funzione solo ai minuti 0, 15, 30 e 45.
+ * Dal 15/11/2026 (Mattia) il cron sveglia il Worker ogni minuto: tra un giro e l'altro chiede alla funzione di
+ * mandare solo le notifiche in coda (`{"azione":"notifiche"}`, nessuna richiesta a Fitarco), così sondaggi, inviti
+ * e avvisi del programma arrivano entro un minuto.
  */
 
 export interface Ambiente {
@@ -47,7 +50,7 @@ export function eLunedi(istante: Date): boolean {
 export const MINUTI_LUNEDI = 5
 export const MINUTI_ALTRI_GIORNI = 15
 
-/** Questo risveglio del cron (ogni 5 minuti) deve chiamare la funzione? */
+/** Questo risveglio del cron (ogni minuto) deve fare un giro di letture? */
 export function daChiamare(istante: Date): boolean {
   if (!inOrario(istante)) return false
   // I minuti sono gli stessi in Italia e in UTC (il fuso cambia di ore intere).
@@ -68,23 +71,42 @@ interface RiepilogoFunzione {
   fermato?: string | null
 }
 
+interface RiepilogoInvio {
+  inviate?: number
+}
+
+interface RispostaNotifiche {
+  notifiche?: string | { errore?: string; [tipo: string]: RiepilogoInvio | string | undefined }
+}
+
+/** "Solo notifiche: 2 inviate" (o perché non sono partite). */
+function riassumiNotifiche(r: RispostaNotifiche): string {
+  const n = r.notifiche
+  if (typeof n === 'string') return `Solo notifiche: ${n}`
+  if (n?.errore) return `Solo notifiche: errore ${n.errore}`
+  const inviate = Object.values(n ?? {}).reduce(
+    (somma, v) => somma + (typeof v === 'object' ? (v.inviate ?? 0) : 0),
+    0,
+  )
+  return `Solo notifiche: ${inviate} inviate`
+}
+
 export async function controlla(
   env: Ambiente,
   istante: Date,
   f: typeof fetch = fetch,
 ): Promise<EsitoControllo> {
   if (!inOrario(istante)) return { chiamata: false, esito: 'Fuori orario: niente da fare' }
-  if (!daChiamare(istante)) {
-    return { chiamata: false, esito: 'Non è lunedì: si chiama ogni 15 minuti' }
-  }
   if (!env.AGGIORNA_CHIAVE) {
     return { chiamata: false, esito: 'Manca il segreto AGGIORNA_CHIAVE del Worker' }
   }
+  // Ai minuti del giro: letture + notifiche; gli altri minuti solo le notifiche.
+  const giro = daChiamare(istante)
   try {
     const risposta = await f(env.URL_FUNZIONE, {
       method: 'POST',
       headers: { 'x-aggiorna-chiave': env.AGGIORNA_CHIAVE, 'content-type': 'application/json' },
-      body: '{}',
+      body: giro ? '{}' : '{"azione":"notifiche"}',
     })
     const testo = await risposta.text()
     if (!risposta.ok) {
@@ -93,6 +115,8 @@ export async function controlla(
         esito: `La funzione ha risposto ${risposta.status}: ${testo.slice(0, 200)}`,
       }
     }
+    if (!giro)
+      return { chiamata: true, esito: riassumiNotifiche(JSON.parse(testo) as RispostaNotifiche) }
     const r = JSON.parse(testo) as RiepilogoFunzione
     const letture = r.eseguite?.length ?? 0
     const errori = r.eseguite?.filter((e) => e.esito === 'errore').length ?? 0

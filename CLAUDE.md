@@ -349,9 +349,10 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
           diario con prefisso `PREFISSO_BLOCCO`). Non lanciare giri a raffica: il controllo automatico li
           distanzia (Fase 2.5);
    5. controllo automatico ✅ (9/11/2026): Worker Cloudflare `arcieri-eugubini-controllo` in
-      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `*/5 5-22 * * *` (UTC) e
-      controllo dell'ora italiana nel codice: **ogni 15 minuti dalle 7:00 alle 22:45**, **il lunedì ogni 5** (Mattia, 15/11/2026: `daChiamare`).
-      Ogni chiamata = un giro di `aggiorna-fitarco` (al massimo 6 letture, 1 pesante; zero richieste se non
+      `workers/controllo/` (logica in `src/controllo.ts`, con test). Cron `* 5-22 * * *` (UTC) e
+      controllo dell'ora italiana nel codice: giro **ogni 15 minuti dalle 7:00 alle 22:45**, **il lunedì ogni 5** (Mattia, 15/11/2026: `daChiamare`);
+      negli **altri minuti (7:00–22:59) solo le notifiche** (`{"azione":"notifiche"}`: nessuna richiesta a Fitarco, arrivano entro un
+      minuto; Mattia, 15/11/2026). Ogni giro di `aggiorna-fitarco` (al massimo 6 letture, 1 pesante; zero richieste se non
       c'è niente da fare); tiene anche sveglio Supabase. La chiave è il segreto `AGGIORNA_CHIAVE` del
       Worker (uguale a quello della funzione). Pubblicazione dalla cartella del Worker:
       `npx wrangler@4.152.0 deploy` (serve `npx wrangler@4.152.0 login` di Mattia, già fatto); log in
@@ -412,8 +413,8 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         `registra_push` e `rimuovi_push` (se sul telefono entra un'altra persona la registrazione passa a
         lei; all'uscita dall'app il telefono viene tolto);
       - il motore (`invito()`) accoda la notifica con `vaNotificato`; l'invio (`inviaNotifiche`, in
-        `_shared/aggiornamento/notifiche.ts`) parte alla fine di ogni giro di `aggiorna-fitarco`: nessun cron
-        nuovo, il Worker dei 15 minuti basta. Nessun telefono registrato → la notifica si chiude; consegna
+        `_shared/aggiornamento/notifiche.ts`) parte alla fine di ogni giro di `aggiorna-fitarco` e, tra un giro e
+        l'altro, ogni minuto con `{"azione":"notifiche"}` (dal 15/11/2026; vale per tutti gli avvisi). Nessun telefono registrato → la notifica si chiude; consegna
         fallita per tutti → riprova (per 2 giorni); telefono scaduto (404/410) → registrazione cancellata;
       - invio con `web-push` (`aggiorna-fitarco/push.ts`): segreti `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` su
         Supabase, `VITE_VAPID_PUBLIC_KEY` su Cloudflare Pages (vedi `supabase/README.md`). Senza chiavi le
@@ -674,7 +675,7 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
    1. server ✅: migrazione `20261121120000_tecnico_regionale.sql`; finché c'è un tecnico regionale attivo, `combinazioni`
       (motore) aggiunge le 34 classifiche a quelle dei nostri atleti: si scaricano se mancano e si rileggono il lunedì
       dalle 10 (una lettura pesante per giro);
-   2. Worker: **il lunedì ogni 5 minuti** (7:00–22:45), gli altri giorni ogni 15;
+   2. Worker: **il lunedì ogni 5 minuti** (7:00–22:45), gli altri giorni ogni 15 (le notifiche ogni minuto);
    3. app ✅ (`pagine/CoppaRegioni.tsx`, `/classifica/coppa-regioni`, riga "Coppa delle Regioni" nel tab per chi ha il
       ruolo, `useSonoTecnicoRegionale`; casella in Amministrazione): elenco delle 34 classifiche (tipo, arco, classe
       con distanza, genere); toccando si apre la classifica

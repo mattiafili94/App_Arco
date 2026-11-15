@@ -7,7 +7,9 @@
 //
 // Corpo della richiesta (JSON, facoltativo):
 //   {}                      → un giro: pianifica e fa qualche lettura dalla lista;
-//   { "azione": "ranking" } → mette in lista le classifiche (ranking) dei nostri atleti.
+//   { "azione": "ranking" } → mette in lista le classifiche (ranking) dei nostri atleti;
+//   { "azione": "notifiche" } → manda solo le notifiche in coda, senza leggere Fitarco (il Worker la chiama ogni
+//                             minuto tra un giro e l'altro, Mattia 15/11/2026).
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3'
 import {
   accodaRanking,
@@ -53,6 +55,9 @@ Deno.serve(async (req) => {
 
   try {
     const corpo = (await req.json().catch(() => ({}))) as { azione?: string }
+    if (corpo.azione === 'notifiche') {
+      return Response.json({ notifiche: await mandaNotifiche(db) })
+    }
     if (corpo.azione === 'ranking') {
       return Response.json({ accodate: await accodaRanking(ctx) })
     }
