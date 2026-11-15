@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { controlla, inOrario, oraItaliana, type Ambiente } from './controllo'
+import { controlla, daChiamare, eLunedi, inOrario, oraItaliana, type Ambiente } from './controllo'
 import worker from './index'
 
 const ENV: Ambiente = {
@@ -29,6 +29,34 @@ describe('orario del controllo automatico', () => {
     expect(inOrario(new Date('2026-11-10T22:00:00Z'))).toBe(false) // 23:00
     expect(inOrario(new Date('2026-07-10T05:00:00Z'))).toBe(true) // 7:00 d'estate
     expect(inOrario(new Date('2026-07-10T21:00:00Z'))).toBe(false) // 23:00 d'estate
+  })
+})
+
+describe('il lunedì ogni 5 minuti, gli altri giorni ogni 15', () => {
+  it('riconosce il lunedì italiano (anche a cavallo della mezzanotte UTC)', () => {
+    expect(eLunedi(new Date('2026-11-16T09:00:00Z'))).toBe(true)
+    expect(eLunedi(new Date('2026-11-15T23:30:00Z'))).toBe(true) // 00:30 di lunedì in Italia
+    expect(eLunedi(new Date('2026-11-17T09:00:00Z'))).toBe(false)
+  })
+
+  it('lunedì: ogni 5 minuti; martedì: solo ai minuti 0, 15, 30, 45', () => {
+    expect(daChiamare(new Date('2026-11-16T09:05:00Z'))).toBe(true)
+    expect(daChiamare(new Date('2026-11-16T09:15:00Z'))).toBe(true)
+    expect(daChiamare(new Date('2026-11-17T09:05:00Z'))).toBe(false)
+    expect(daChiamare(new Date('2026-11-17T09:15:00Z'))).toBe(true)
+    // Fuori orario mai, nemmeno di lunedì.
+    expect(daChiamare(new Date('2026-11-16T05:05:00Z'))).toBe(false)
+  })
+
+  it('un risveglio che non tocca non chiama la funzione', async () => {
+    const f = vi.fn<typeof fetch>()
+    const r = await controlla(
+      { URL_FUNZIONE: 'https://prova.invalid', AGGIORNA_CHIAVE: 'k' },
+      new Date('2026-11-17T09:05:00Z'),
+      f,
+    )
+    expect(r).toEqual({ chiamata: false, esito: 'Non è lunedì: si chiama ogni 15 minuti' })
+    expect(f).not.toHaveBeenCalled()
   })
 })
 

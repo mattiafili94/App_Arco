@@ -7,9 +7,10 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
 [triggers]
-# Ogni 15 minuti tra le 5 e le 22 UTC: copre 7:00–22:45 in Italia sia d'inverno sia d'estate.
-# Il controllo dell'orario preciso (ora italiana) è nel codice: fuori orario non fa niente.
-crons = ["0,15,30,45 5-22 * * *"]
+# Ogni 5 minuti tra le 5 e le 22 UTC: copre 7:00–22:45 in Italia sia d'inverno sia d'estate.
+# Il controllo dell'orario preciso (ora italiana) e del giorno è nel codice: fuori orario non fa niente, e la
+# funzione si chiama ogni 5 minuti solo il lunedì (gli altri giorni ogni 15).
+crons = ["*/5 5-22 * * *"]
 
 [vars]
 # Indirizzo pubblico della funzione (non è un segreto: senza chiave risponde "Non autorizzato").

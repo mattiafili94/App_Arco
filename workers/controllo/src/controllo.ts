@@ -4,6 +4,8 @@
  * Tiene anche sveglio Supabase (il piano gratuito va in pausa dopo una settimana senza attività).
  *
  * Orario scelto da Mattia (9/11/2026): ogni 15 minuti dalle 7:00 alle 22:45, ora italiana.
+ * Dal 15/11/2026 il lunedì ogni 5 minuti (è il giorno delle classifiche): il cron sveglia il Worker ogni 5 minuti
+ * e gli altri giorni si chiama la funzione solo ai minuti 0, 15, 30 e 45.
  */
 
 export interface Ambiente {
@@ -32,6 +34,27 @@ export function inOrario(istante: Date): boolean {
   return ora >= ORA_INIZIO && ora < ORA_FINE
 }
 
+/** È lunedì in Italia? */
+export function eLunedi(istante: Date): boolean {
+  return (
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', weekday: 'short' }).format(
+      istante,
+    ) === 'Mon'
+  )
+}
+
+/** Minuti tra due chiamate: 5 il lunedì, 15 gli altri giorni. */
+export const MINUTI_LUNEDI = 5
+export const MINUTI_ALTRI_GIORNI = 15
+
+/** Questo risveglio del cron (ogni 5 minuti) deve chiamare la funzione? */
+export function daChiamare(istante: Date): boolean {
+  if (!inOrario(istante)) return false
+  // I minuti sono gli stessi in Italia e in UTC (il fuso cambia di ore intere).
+  const passo = eLunedi(istante) ? MINUTI_LUNEDI : MINUTI_ALTRI_GIORNI
+  return istante.getUTCMinutes() % passo === 0
+}
+
 export interface EsitoControllo {
   /** La funzione è stata chiamata. */
   chiamata: boolean
@@ -51,6 +74,9 @@ export async function controlla(
   f: typeof fetch = fetch,
 ): Promise<EsitoControllo> {
   if (!inOrario(istante)) return { chiamata: false, esito: 'Fuori orario: niente da fare' }
+  if (!daChiamare(istante)) {
+    return { chiamata: false, esito: 'Non è lunedì: si chiama ogni 15 minuti' }
+  }
   if (!env.AGGIORNA_CHIAVE) {
     return { chiamata: false, esito: 'Manca il segreto AGGIORNA_CHIAVE del Worker' }
   }
