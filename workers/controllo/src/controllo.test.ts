@@ -48,15 +48,34 @@ describe('il lunedì ogni 5 minuti, gli altri giorni ogni 15', () => {
     expect(daChiamare(new Date('2026-11-16T05:05:00Z'))).toBe(false)
   })
 
-  it('un risveglio che non tocca non chiama la funzione', async () => {
-    const f = vi.fn<typeof fetch>()
-    const r = await controlla(
-      { URL_FUNZIONE: 'https://prova.invalid', AGGIORNA_CHIAVE: 'k' },
-      new Date('2026-11-17T09:05:00Z'),
-      f,
+  it('tra un giro e l’altro chiede solo le notifiche (nessuna lettura di Fitarco)', async () => {
+    const f = funzione(200, {
+      notifiche: {
+        inviti: { notifiche: 1, inviate: 2, scadute: 0, errori: 0 },
+        programma: { notifiche: 0, inviate: 0, scadute: 0, errori: 0 },
+        sondaggi: { notifiche: 1, inviate: 3, scadute: 0, errori: 0 },
+      },
+    })
+    const r = await controlla(ENV, new Date('2026-11-17T09:07:00Z'), f)
+    expect(r).toEqual({ chiamata: true, esito: 'Solo notifiche: 5 inviate' })
+    expect(f.mock.calls[0]![1]).toMatchObject({ body: '{"azione":"notifiche"}' })
+  })
+
+  it('ai minuti del giro fa il giro completo', async () => {
+    const f = funzione(200, {})
+    await controlla(ENV, new Date('2026-11-17T09:15:00Z'), f)
+    expect(f.mock.calls[0]![1]).toMatchObject({ body: '{}' })
+  })
+
+  it('riassume anche le notifiche senza chiavi o con errore', async () => {
+    const t = new Date('2026-11-17T09:07:00Z')
+    expect(
+      (await controlla(ENV, t, funzione(200, { notifiche: 'chiavi VAPID mancanti' }))).esito,
+    ).toBe('Solo notifiche: chiavi VAPID mancanti')
+    expect((await controlla(ENV, t, funzione(200, { notifiche: { errore: 'boh' } }))).esito).toBe(
+      'Solo notifiche: errore boh',
     )
-    expect(r).toEqual({ chiamata: false, esito: 'Non è lunedì: si chiama ogni 15 minuti' })
-    expect(f).not.toHaveBeenCalled()
+    expect((await controlla(ENV, t, funzione(200, {}))).esito).toBe('Solo notifiche: 0 inviate')
   })
 })
 

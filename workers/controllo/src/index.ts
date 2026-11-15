@@ -1,4 +1,4 @@
-// Worker "arcieri-eugubini-controllo": il cron (wrangler.toml) lo sveglia ogni 5 minuti (la funzione si chiama ogni 5 il lunedì, ogni 15 gli altri giorni).
+// Worker "arcieri-eugubini-controllo": il cron (wrangler.toml) lo sveglia ogni minuto: giro di letture ogni 5 minuti il lunedì e ogni 15 gli altri giorni, negli altri minuti solo le notifiche.
 import { controlla, type Ambiente } from './controllo.ts'
 
 interface ControlloProgrammato {
