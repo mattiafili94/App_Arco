@@ -18,6 +18,8 @@ export interface Atleta {
   haAccesso: boolean
   /** Ha anche il ruolo di allenatore (Fase 7). */
   allenatore?: boolean
+  /** Ha anche il ruolo di tecnico regionale (vede la sezione "Coppa delle Regioni"). */
+  tecnicoRegionale?: boolean
 }
 
 export type EsitoAccedi =
@@ -64,6 +66,8 @@ export interface ServizioAccesso {
   seguiAtleta(atletaId: string, segui: boolean): Promise<void>
   /** L'amministratore dà o toglie il ruolo di allenatore. Lancia un errore se non riesce. */
   impostaAllenatore(atletaId: string, allenatore: boolean): Promise<void>
+  /** L'amministratore dà o toglie il ruolo di tecnico regionale. Lancia un errore se non riesce. */
+  impostaTecnicoRegionale(atletaId: string, tecnico: boolean): Promise<void>
 }
 
 export const nomeCompleto = (a: Pick<Atleta, 'nome' | 'cognome'>) => `${a.nome} ${a.cognome}`

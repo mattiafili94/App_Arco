@@ -14,7 +14,7 @@ import {
   type FiltroClassifica,
 } from '@arco/shared'
 import { useAtletaCorrente } from '../accesso/contesto'
-import { useMiePosizioni } from '../classifica/dati'
+import { useMiePosizioni, useSonoTecnicoRegionale } from '../classifica/dati'
 import { Button } from '../componenti/Button'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Scelte } from '../componenti/Scelte'
@@ -42,6 +42,7 @@ export function Classifica() {
   const io = useAtletaCorrente()
   const { posizioni } = useMiePosizioni(io.matricola)
   const navigate = useNavigate()
+  const tecnico = useSonoTecnicoRegionale()
   const [scelta, setScelta] = useState<Partial<FiltroClassifica> & { regione?: string }>({})
 
   const iniziale: FiltroClassifica = posizioni?.[0] ?? PREDEFINITO
@@ -90,6 +91,16 @@ export function Classifica() {
               </p>
             )}
           </div>
+        )}
+
+        {tecnico && (
+          <ListGroup title="Tecnico regionale">
+            <ListRow
+              label="Coppa delle Regioni"
+              description="Le classifiche degli atleti umbri per le categorie della Coppa"
+              href="/classifica/coppa-regioni"
+            />
+          </ListGroup>
         )}
 
         <section className={styles.sezione} aria-labelledby="cerca-classifica">

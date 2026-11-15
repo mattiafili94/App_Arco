@@ -104,6 +104,17 @@ export function servizioFinto({
     registraPush: vi.fn<(i: IscrizionePush) => Promise<void>>(async () => {}),
     rimuoviPush: vi.fn<(endpoint: string) => Promise<void>>(async () => {}),
     impostaAvvisi: vi.fn<(endpoint: string, avvisi: Avvisi) => Promise<void>>(async () => {}),
+    impostaTecnicoRegionale: vi.fn(async (atletaId: string, tecnico: boolean) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      elenco.find((x) => x.id === atletaId)!.tecnicoRegionale = tecnico
+      const riga = remoto.righe.atleti.find((r) => r.id === atletaId)
+      if (riga)
+        remoto.scrivi('atleti', {
+          ...riga,
+          tecnico_regionale: tecnico,
+          aggiornato_il: new Date().toISOString(),
+        })
+    }),
     // Come il server: il sondaggio arriva ai telefoni con la sincronizzazione.
     apriSondaggio: vi.fn(async (garaCodice: string) => {
       if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')

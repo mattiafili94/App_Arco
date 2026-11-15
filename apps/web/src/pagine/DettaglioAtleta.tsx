@@ -26,6 +26,7 @@ export function DettaglioAtleta() {
   const [confermaRevoca, setConfermaRevoca] = useState(false)
   // Il ruolo scelto si vede subito, prima che l'elenco si ricarichi dal server.
   const [ruolo, setRuolo] = useState<boolean | null>(null)
+  const [tecnico, setTecnico] = useState<boolean | null>(null)
 
   if (io.ruolo !== 'amministratore') return <Navigate to="/impostazioni" replace />
 
@@ -58,6 +59,27 @@ export function DettaglioAtleta() {
       })
     } catch (e) {
       setRuolo(null)
+      setEsito({ tipo: 'error', testo: (e as Error).message })
+    } finally {
+      setInCorso(null)
+    }
+  }
+
+  const cambiaTecnico = async (valore: boolean) => {
+    setEsito(null)
+    setInCorso('ruolo')
+    setTecnico(valore)
+    try {
+      await servizio.impostaTecnicoRegionale(atleta.id, valore)
+      carica()
+      setEsito({
+        tipo: 'success',
+        testo: valore
+          ? `${atleta.nome} ora è anche tecnico regionale.`
+          : `${atleta.nome} non è più tecnico regionale.`,
+      })
+    } catch (e) {
+      setTecnico(null)
       setEsito({ tipo: 'error', testo: (e as Error).message })
     } finally {
       setInCorso(null)
@@ -136,6 +158,13 @@ export function DettaglioAtleta() {
           checked={ruolo ?? atleta.allenatore ?? false}
           disabled={inCorso !== null}
           onChange={(e) => void cambiaRuolo(e.target.checked)}
+        />
+        {/* Il ruolo di tecnico regionale: vede le classifiche della Coppa delle Regioni (tab Classifica). */}
+        <Checkbox
+          label="Tecnico regionale: vede le classifiche umbre per la Coppa delle Regioni"
+          checked={tecnico ?? atleta.tecnicoRegionale ?? false}
+          disabled={inCorso !== null}
+          onChange={(e) => void cambiaTecnico(e.target.checked)}
         />
 
         {esito && <Notice status={esito.tipo}>{esito.testo}</Notice>}

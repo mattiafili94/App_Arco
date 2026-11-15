@@ -6,9 +6,19 @@ import type {
   MiaPosizione,
   RispostaAggiorna,
 } from '@arco/shared'
-import { useAccesso } from '../accesso/contesto'
+import { useAccesso, useAtletaCorrente } from '../accesso/contesto'
 import { useOnline } from '../stato/useOnline'
 import { useSincronizzazione } from '../sync/contesto'
+
+/** L'atleta collegato è tecnico regionale? `undefined` finché si legge (dai dati sincronizzati). */
+export function useSonoTecnicoRegionale(): boolean | undefined {
+  const { db } = useSincronizzazione()
+  const { id } = useAtletaCorrente()
+  return useLiveQuery(async () => {
+    const io = (await db.atleti.get(id)) as unknown as { tecnico_regionale?: boolean } | undefined
+    return io?.tecnico_regionale === true
+  }, [db, id])
+}
 
 /**
  * Le tue posizioni nelle classifiche (la tua riga di ognuna), dalla copia sul telefono; con la rete si

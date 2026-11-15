@@ -17,6 +17,8 @@ export interface AtletaProva {
   utente_id: string | null
   /** Ruolo di allenatore (Fase 7). */
   allenatore?: boolean
+  /** Ruolo di tecnico regionale (sezione "Coppa delle Regioni"). */
+  tecnico_regionale?: boolean
 }
 
 export const AMMINISTRATORE_PROVA: AtletaProva = {
@@ -305,6 +307,7 @@ export async function simulaSupabase(
   const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({
     ...a,
     allenatore: a.id === collegato?.id ? (collegato.allenatore ?? false) : false,
+    tecnico_regionale: a.id === collegato?.id ? (collegato.tecnico_regionale ?? false) : false,
   }))
   /** Chi segue chi (Fase 7). */
   const allenatoriAtleti = segue.map((atleta_id) => ({
@@ -405,6 +408,7 @@ export async function simulaSupabase(
           attivo: true,
           utente_id: null,
           allenatore: false,
+          tecnico_regionale: false,
         })
         return route.fulfill({ status: 201, headers: { 'Access-Control-Allow-Origin': '*' } })
       }

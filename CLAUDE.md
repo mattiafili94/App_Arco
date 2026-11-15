@@ -674,7 +674,9 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       (motore) aggiunge le 34 classifiche a quelle dei nostri atleti: si scaricano se mancano e si rileggono il lunedì
       dalle 10 (una lettura pesante per giro);
    2. Worker: **il lunedì ogni 5 minuti** (7:00–22:45), gli altri giorni ogni 15;
-   3. app: elenco delle 34 classifiche (tipo, arco, classe con distanza, genere); toccando si apre la classifica
+   3. app ✅ (`pagine/CoppaRegioni.tsx`, `/classifica/coppa-regioni`, riga "Coppa delle Regioni" nel tab per chi ha il
+      ruolo, `useSonoTecnicoRegionale`; casella in Amministrazione): elenco delle 34 classifiche (tipo, arco, classe
+      con distanza, genere); toccando si apre la classifica
       esistente con `?regione=umbria`.
 9. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
