@@ -440,8 +440,9 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         `Scelte` **Partecipo / Non partecipo** (solo a sondaggio aperto e gara non passata), riga "Partecipano" con
         i nomi; l'amministratore vede anche "Non partecipano" e "Non hanno risposto" (gli atleti con l'accesso,
         `riepilogoSondaggio` in `packages/shared/src/sondaggi.ts`). Chi partecipa vede l'avviso verde "Partecipi a
-        questa gara." e, negli elenchi delle gare future, la riga **verde** (`ListRow positiva`: fondo
-        `status-success-subtle`, bordo `status-success`) con la scritta "Partecipi" (`useGareCuiPartecipo`). La
+        questa gara.". Negli elenchi delle gare future (Mattia, 15/11/2026, `statoSondaggioGara`, `useSondaggiPerMe`,
+        `ListRow tono`): **giallo** "Sondaggio aperto: rispondi" (aperto, senza risposta), **verde** "Partecipi", **rosso**
+        "Non partecipi" (anche a sondaggio chiuso; ruoli `status-warning`/`-success`/`-error`, fondo `-subtle`). La
         risposta si salva sul telefono (`gare/sondaggio.ts`, `da_inviare`) e la manda la sincronizzazione
         (`SCRIVIBILI`, `remoto.salvaRisposta`): se il server non la salva (sondaggio chiuso) la copia si toglie.
         Dexie versione 7 (`sondaggi`, `risposte_sondaggio`). Impostazioni → Notifiche: **"Sondaggi delle gare"**
