@@ -150,9 +150,9 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
       if (error) throw new Error(error.message)
     },
 
-    async apriSondaggio(garaCodice) {
+    async apriSondaggio(garaCodice, turni) {
       if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
-      const { error } = await supabase.rpc('apri_sondaggio', { p_gara: garaCodice })
+      const { error } = await supabase.rpc('apri_sondaggio', { p_gara: garaCodice, p_turni: turni })
       if (error) throw new Error('Non riuscito. Riprova tra poco.')
     },
 

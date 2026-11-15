@@ -36,7 +36,9 @@ export function useRisposte(codice: string): RispostaSalvata[] | undefined {
 /** Per una gara: il suo sondaggio è aperto? E la risposta dell’atleta collegato (se c’è). */
 export interface SondaggioPerMe {
   aperto: boolean
+  turni: string[]
   partecipa?: boolean
+  turno?: string | null
 }
 
 const NESSUNO: ReadonlyMap<string, SondaggioPerMe> = new Map()
@@ -56,13 +58,11 @@ export function useSondaggiPerMe(): ReadonlyMap<string, SondaggioPerMe> {
         .equals(id)
         .toArray()) as unknown as RispostaSondaggio[]
       const mappa = new Map<string, SondaggioPerMe>(
-        sondaggi.map((x) => [x.gara_codice, { aperto: x.aperto }]),
+        sondaggi.map((x) => [x.gara_codice, { aperto: x.aperto, turni: x.turni ?? [] }]),
       )
       for (const r of mie) {
-        mappa.set(r.gara_codice, {
-          aperto: mappa.get(r.gara_codice)?.aperto ?? false,
-          partecipa: r.partecipa,
-        })
+        const sondaggio = mappa.get(r.gara_codice) ?? { aperto: false, turni: [] }
+        mappa.set(r.gara_codice, { ...sondaggio, partecipa: r.partecipa, turno: r.turno ?? null })
       }
       return mappa
     }, [db, id]) ?? NESSUNO
@@ -78,6 +78,8 @@ export async function salvaRisposta(
   garaCodice: string,
   atletaId: string,
   partecipa: boolean,
+  /** Il turno scelto (solo con "Partecipo" e se il sondaggio ha i turni). */
+  turno: string | null = null,
   adesso: Date = new Date(),
 ): Promise<RispostaSalvata> {
   return db.transaction('rw', db.risposte_sondaggio, async () => {
@@ -89,6 +91,7 @@ export async function salvaRisposta(
       gara_codice: garaCodice,
       atleta_id: atletaId,
       partecipa,
+      turno: partecipa ? turno : null,
       modificato_il: new Date(Math.max(adesso.getTime(), prima + 1)).toISOString(),
       da_inviare: 1,
     }

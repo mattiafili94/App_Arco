@@ -2,13 +2,18 @@ import { useState } from 'react'
 import { CloudOff } from 'lucide-react'
 import {
   elencoNomi,
+  etichetteTurni,
+  partecipantiPerTurno,
   puoAprireSondaggio,
   riepilogoSondaggio,
   sondaggioRispondibile,
+  turniPossibili,
   type Gara,
 } from '@arco/shared'
 import { useAccesso, useAtletaCorrente } from '../accesso/contesto'
 import { useAtleti } from '../atleti/dati'
+import { Button } from '../componenti/Button'
+import { Checkbox } from '../componenti/Checkbox'
 import { ListGroup, ListRow } from '../componenti/List'
 import { Notice } from '../componenti/Notice'
 import { Scelte } from '../componenti/Scelte'
@@ -17,15 +22,15 @@ import { useSincronizzazione } from '../sync/contesto'
 import { salvaRisposta, useRisposte, useSondaggio } from './sondaggio'
 import styles from './SezioneSondaggio.module.css'
 
-const SCELTE = [
-  { valore: 'si', etichetta: 'Partecipo' },
-  { valore: 'no', etichetta: 'Non partecipo' },
-] as const
+const NON_PARTECIPO = { valore: 'no', etichetta: 'Non partecipo' } as const
+const SENZA_TURNI = [{ valore: 'si', etichetta: 'Partecipo' }, NON_PARTECIPO] as const
 
 /**
  * Il sondaggio "Partecipo / Non partecipo" nella scheda gara (Fase 3.5). L'amministratore lo apre (gara futura con
- * l'invito) e lo chiude; ognuno risponde per sé, anche offline. Tutti vedono chi partecipa; l'amministratore vede
- * anche chi non partecipa e chi non ha ancora risposto.
+ * l'invito), scegliendo i turni della gara (Mattia, 15/11/2026: mattina e pomeriggio di ogni giorno; nessuno = senza
+ * turni), e lo chiude; ognuno risponde per sé, anche offline: con i turni sceglie il suo turno (uno solo) o "Non
+ * partecipo". Tutti vedono chi partecipa (turno per turno); l'amministratore vede anche chi non partecipa e chi non
+ * ha ancora risposto.
  */
 export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
   const io = useAtletaCorrente()
@@ -36,18 +41,22 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
   const atleti = useAtleti()
   const [occupato, setOccupato] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
+  /** L'amministratore sta scegliendo i turni prima di aprire il sondaggio. */
+  const [scegliTurni, setScegliTurni] = useState(false)
+  const [turniScelti, setTurniScelti] = useState<string[]>([])
   const amministratore = io.ruolo === 'amministratore'
 
   if (sondaggio === undefined || risposte === undefined || atleti === undefined) return null
 
   /** Apre, riapre o chiude il sondaggio (serve la rete), poi scarica subito la novità. */
-  const cambiaSondaggio = async (aperto: boolean) => {
+  const cambiaSondaggio = async (aperto: boolean, turni: string[] = []) => {
     setOccupato(true)
     setErrore(null)
     try {
-      if (aperto) await servizio.apriSondaggio(gara.codice)
+      if (aperto) await servizio.apriSondaggio(gara.codice, turni)
       else await servizio.chiudiSondaggio(gara.codice)
       await aggiorna()
+      setScegliTurni(false)
     } catch (e) {
       setErrore(e instanceof Error ? e.message : 'Non riuscito. Riprova tra poco.')
     } finally {
@@ -59,37 +68,95 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
 
   if (!sondaggio) {
     if (!amministratore || !puoAprireSondaggio(gara, oggi)) return null
+    if (scegliTurni) {
+      const possibili = turniPossibili(gara)
+      const etichette = etichetteTurni(possibili)
+      // I turni restano nell'ordine della gara, qualunque sia l'ordine in cui si spuntano.
+      const scelti = possibili.filter((t) => turniScelti.includes(t))
+      return (
+        <>
+          <fieldset className={styles.turni}>
+            <legend className="type-label">Turni della gara</legend>
+            <p className={`type-caption ${styles.spiegazione}`}>
+              Chi partecipa sceglie uno dei turni spuntati. Senza turni si risponde solo Partecipo o
+              Non partecipo.
+            </p>
+            {possibili.map((t) => (
+              <Checkbox
+                key={t}
+                label={etichette.get(t) ?? t}
+                checked={turniScelti.includes(t)}
+                onChange={(e) =>
+                  setTurniScelti(
+                    e.target.checked ? [...turniScelti, t] : turniScelti.filter((x) => x !== t),
+                  )
+                }
+              />
+            ))}
+            <div className={styles.azioni}>
+              <Button
+                variant="primary"
+                disabled={occupato}
+                onClick={() => void cambiaSondaggio(true, scelti)}
+              >
+                {occupato ? 'Apertura in corso…' : 'Apri sondaggio'}
+              </Button>
+              <Button variant="text" disabled={occupato} onClick={() => setScegliTurni(false)}>
+                Annulla
+              </Button>
+            </div>
+          </fieldset>
+          {avviso}
+        </>
+      )
+    }
     return (
-      <>
-        <ListGroup title="Sondaggio">
-          <ListRow
-            label={occupato ? 'Apertura in corso…' : 'Apri sondaggio'}
-            description="Chiedi a tutti se partecipano: ricevono una notifica e rispondono Partecipo o Non partecipo."
-            onSelect={occupato ? undefined : () => void cambiaSondaggio(true)}
-          />
-        </ListGroup>
-        {avviso}
-      </>
+      <ListGroup title="Sondaggio">
+        <ListRow
+          label="Apri sondaggio"
+          description="Chiedi a tutti se partecipano e in che turno: ricevono una notifica e rispondono."
+          onSelect={() => setScegliTurni(true)}
+        />
+      </ListGroup>
     )
   }
 
+  const turni = sondaggio.turni ?? []
+  const etichette = etichetteTurni(turni)
   const mia = risposte.find((r) => r.atleta_id === io.id)
+  const mioTurno = mia?.partecipa && mia.turno && turni.includes(mia.turno) ? mia.turno : null
   const rispondibile = sondaggioRispondibile(sondaggio, gara, oggi)
   const riepilogo = riepilogoSondaggio(risposte, atleti)
+  const perTurno = partecipantiPerTurno(riepilogo.partecipano, risposte, turni)
 
-  const rispondi = async (valore: string) => {
-    await salvaRisposta(db, gara.codice, io.id, valore === 'si')
+  const opzioni = turni.length
+    ? [...turni.map((t) => ({ valore: t, etichetta: etichette.get(t) ?? t })), NON_PARTECIPO]
+    : SENZA_TURNI
+  const valore = !mia ? '' : !mia.partecipa ? 'no' : turni.length ? (mioTurno ?? '') : 'si'
+
+  const rispondi = async (v: string) => {
+    const partecipa = v !== 'no'
+    await salvaRisposta(db, gara.codice, io.id, partecipa, partecipa && turni.length ? v : null)
     modificato()
   }
+
+  /** "Partecipo" o "Partecipo · Sabato mattina". */
+  const testoMiaRisposta = !mia
+    ? 'Nessuna'
+    : !mia.partecipa
+      ? 'Non partecipo'
+      : mioTurno
+        ? `Partecipo · ${etichette.get(mioTurno)}`
+        : 'Partecipo'
 
   return (
     <>
       {rispondibile && (
         <div className={styles.risposta}>
           <Scelte
-            label="Partecipi a questa gara?"
-            opzioni={SCELTE}
-            valore={mia ? (mia.partecipa ? 'si' : 'no') : ''}
+            label={turni.length ? 'In che turno partecipi?' : 'Partecipi a questa gara?'}
+            opzioni={opzioni}
+            valore={valore}
             onChange={(v) => void rispondi(v)}
           />
           {mia?.da_inviare === 1 && (
@@ -97,24 +164,43 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
           )}
         </div>
       )}
-      {mia?.partecipa && <Notice status="success">Partecipi a questa gara.</Notice>}
+      {mia?.partecipa &&
+        (mioTurno ? (
+          <Notice status="success">Partecipi a questa gara: {etichette.get(mioTurno)}.</Notice>
+        ) : turni.length && rispondibile ? (
+          <Notice status="warning">Scegli il turno in cui partecipi.</Notice>
+        ) : (
+          <Notice status="success">Partecipi a questa gara.</Notice>
+        ))}
       <ListGroup title="Sondaggio">
         <ListRow
           label="Sondaggio"
           value={rispondibile ? 'Aperto' : 'Chiuso'}
           description={rispondibile ? 'Puoi cambiare risposta finché è aperto.' : undefined}
         />
-        {!rispondibile && (
-          <ListRow
-            label="La tua risposta"
-            value={mia ? (mia.partecipa ? 'Partecipo' : 'Non partecipo') : 'Nessuna'}
-          />
-        )}
+        {!rispondibile && <ListRow label="La tua risposta" value={testoMiaRisposta} />}
         <ListRow
           label="Partecipano"
           value={String(riepilogo.partecipano.length)}
-          description={elencoNomi(riepilogo.partecipano) || 'Ancora nessuno'}
+          description={
+            turni.length ? undefined : elencoNomi(riepilogo.partecipano) || 'Ancora nessuno'
+          }
         />
+        {perTurno.perTurno.map(({ turno, persone }) => (
+          <ListRow
+            key={turno}
+            label={etichette.get(turno) ?? turno}
+            value={String(persone.length)}
+            description={elencoNomi(persone) || 'Ancora nessuno'}
+          />
+        ))}
+        {turni.length > 0 && perTurno.senzaTurno.length > 0 && (
+          <ListRow
+            label="Turno non indicato"
+            value={String(perTurno.senzaTurno.length)}
+            description={elencoNomi(perTurno.senzaTurno)}
+          />
+        )}
         {amministratore && (
           <>
             <ListRow

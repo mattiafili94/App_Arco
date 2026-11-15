@@ -51,7 +51,10 @@ const atleta = (a: typeof ATLETA) => ({
 const CARLA = { ...ATLETA, id: 'id-carla', matricola: '900003', nome: 'Carla', cognome: 'Esempio' }
 
 /** Perugia (futura, con invito), Terni (futura, annullata), Gubbio (passata). */
-function remotoConGare({ sondaggio }: { sondaggio?: 'aperto' | 'chiuso' } = {}) {
+function remotoConGare({
+  sondaggio,
+  turni = [],
+}: { sondaggio?: 'aperto' | 'chiuso'; turni?: string[] } = {}) {
   const remoto = new RemotoFinto()
   remoto.scrivi('gare', gara('R2611040'))
   remoto.scrivi('gare', gara('R2611050', { localita: 'Terni (TR)', stato: 'annullata' }))
@@ -72,6 +75,7 @@ function remotoConGare({ sondaggio }: { sondaggio?: 'aperto' | 'chiuso' } = {}) 
       aperto_da: AMMINISTRATORE.id,
       aperto_il: aggiornato_il,
       chiuso_il: sondaggio === 'chiuso' ? aggiornato_il : null,
+      turni,
       aggiornato_il,
     })
   }
@@ -92,7 +96,9 @@ describe('sondaggio: l’amministratore', () => {
     const finto = servizioFinto({ remoto: remotoConGare(), collegato: AMMINISTRATORE })
     await apriGara(finto.servizio)
     await userEvent.click(await screen.findByRole('button', { name: /Apri sondaggio/ }))
-    expect(finto.servizio.apriSondaggio).toHaveBeenCalledWith('R2611040')
+    // Prima i turni: senza spuntarne nessuno il sondaggio è senza turni.
+    await userEvent.click(await screen.findByRole('button', { name: 'Apri sondaggio' }))
+    expect(finto.servizio.apriSondaggio).toHaveBeenCalledWith('R2611040', [])
 
     expect(
       await screen.findByRole('radiogroup', { name: 'Partecipi a questa gara?' }),
@@ -134,7 +140,34 @@ describe('sondaggio: l’amministratore', () => {
     )
     await apriGara(finto.servizio)
     await userEvent.click(await screen.findByRole('button', { name: /Apri sondaggio/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Apri sondaggio' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Serve la rete')
+  })
+
+  it('apre il sondaggio con i turni spuntati, nell’ordine della gara', async () => {
+    const finto = servizioFinto({ remoto: remotoConGare(), collegato: AMMINISTRATORE })
+    await apriGara(finto.servizio)
+    await userEvent.click(await screen.findByRole('button', { name: /Apri sondaggio/ }))
+    const turni = await screen.findByRole('group', { name: 'Turni della gara' })
+    await userEvent.click(within(turni).getByRole('checkbox', { name: 'Sabato pomeriggio' }))
+    await userEvent.click(within(turni).getByRole('checkbox', { name: 'Sabato mattina' }))
+    await userEvent.click(within(turni).getByRole('button', { name: 'Apri sondaggio' }))
+    expect(finto.servizio.apriSondaggio).toHaveBeenCalledWith('R2611040', [
+      '2026-12-12:mattina',
+      '2026-12-12:pomeriggio',
+    ])
+    expect(
+      await screen.findByRole('radiogroup', { name: 'In che turno partecipi?' }),
+    ).toBeInTheDocument()
+  })
+
+  it('“Annulla” torna indietro senza aprire niente', async () => {
+    const finto = servizioFinto({ remoto: remotoConGare(), collegato: AMMINISTRATORE })
+    await apriGara(finto.servizio)
+    await userEvent.click(await screen.findByRole('button', { name: /Apri sondaggio/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Annulla' }))
+    expect(await screen.findByRole('button', { name: /Apri sondaggio/ })).toBeInTheDocument()
+    expect(finto.servizio.apriSondaggio).not.toHaveBeenCalled()
   })
 })
 
@@ -221,5 +254,81 @@ describe('sondaggio: l’atleta', () => {
     expect(within(sondaggio).getByText('Partecipo')).toBeInTheDocument()
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
     expect(within(sondaggio).queryByRole('button', { name: /sondaggio/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('sondaggio con i turni', () => {
+  const TURNI = ['2026-12-12:mattina', '2026-12-12:pomeriggio']
+
+  it('l’atleta sceglie il suo turno: la gara è verde con il turno, i partecipanti sono divisi per turno', async () => {
+    const remoto = remotoConGare({ sondaggio: 'aperto', turni: TURNI })
+    await apriGara(servizioFinto({ remoto }).servizio)
+    const gruppo = await screen.findByRole('radiogroup', { name: 'In che turno partecipi?' })
+    expect(
+      within(gruppo)
+        .getAllByRole('radio')
+        .map((b) => b.textContent),
+    ).toEqual(['Sabato mattina', 'Sabato pomeriggio', 'Non partecipo'])
+    await userEvent.click(within(gruppo).getByRole('radio', { name: 'Sabato pomeriggio' }))
+    expect(
+      await screen.findByText('Partecipi a questa gara: Sabato pomeriggio.'),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(remoto.righe.risposte_sondaggio).toMatchObject([
+        { partecipa: true, turno: '2026-12-12:pomeriggio' },
+      ]),
+    )
+    const sondaggio = screen.getByRole('region', { name: 'Sondaggio' })
+    expect(sondaggio).toHaveTextContent(/Sabato mattina\s*Ancora nessuno\s*0/)
+    expect(sondaggio).toHaveTextContent(/Sabato pomeriggio\s*Bruno Prova\s*1/)
+
+    await userEvent.click(screen.getAllByRole('link', { name: /Gare/ })[0]!)
+    const riga = await screen.findByRole('link', { name: /Perugia/ })
+    await waitFor(() => expect(riga).toHaveTextContent('Partecipi · Sabato pomeriggio'))
+    expect(riga.className).toMatch(/positivo/)
+
+    // "Non partecipo" toglie il turno.
+    await userEvent.click(riga)
+    await userEvent.click(await screen.findByRole('radio', { name: 'Non partecipo' }))
+    await waitFor(() =>
+      expect(remoto.righe.risposte_sondaggio).toMatchObject([{ partecipa: false, turno: null }]),
+    )
+  })
+
+  it('chi ha risposto "Partecipo" da un’app vecchia (senza turno) vede la gara gialla: deve scegliere il turno', async () => {
+    const remoto = remotoConGare({ sondaggio: 'aperto', turni: TURNI })
+    remoto.scrivi('risposte_sondaggio', {
+      gara_codice: 'R2611040',
+      atleta_id: ATLETA.id,
+      partecipa: true,
+      turno: null,
+      modificato_il: aggiornato_il,
+      aggiornato_il,
+    })
+    await renderApp('/gare', { servizio: servizioFinto({ remoto }).servizio })
+    const riga = await screen.findByRole('link', { name: /Perugia/ })
+    await waitFor(() => expect(riga).toHaveTextContent('Scegli il turno'))
+    expect(riga.className).toMatch(/avviso/)
+
+    await userEvent.click(riga)
+    expect(await screen.findByText('Scegli il turno in cui partecipi.')).toBeInTheDocument()
+    const sondaggio = screen.getByRole('region', { name: 'Sondaggio' })
+    expect(sondaggio).toHaveTextContent(/Turno non indicato\s*Bruno Prova/)
+  })
+
+  it('a sondaggio chiuso si vede la propria risposta con il turno', async () => {
+    const remoto = remotoConGare({ sondaggio: 'chiuso', turni: TURNI })
+    remoto.scrivi('risposte_sondaggio', {
+      gara_codice: 'R2611040',
+      atleta_id: ATLETA.id,
+      partecipa: true,
+      turno: '2026-12-12:mattina',
+      modificato_il: aggiornato_il,
+      aggiornato_il,
+    })
+    await apriGara(servizioFinto({ remoto }).servizio)
+    const sondaggio = await screen.findByRole('region', { name: 'Sondaggio' })
+    expect(within(sondaggio).getByText('Partecipo · Sabato mattina')).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
   })
 })

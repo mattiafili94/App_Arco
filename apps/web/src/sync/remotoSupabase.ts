@@ -76,6 +76,7 @@ export function creaRemotoSupabase(supabase: SupabaseClient): Remoto {
           p_gara: x.gara_codice,
           p_partecipa: x.partecipa,
           p_modificato_il: x.modificato_il,
+          p_turno: x.turno ?? null,
         }),
       ) as Riga | null
       // Senza risposta sul server il database restituisce una riga vuota (tutti i campi null).

@@ -302,6 +302,8 @@ export async function simulaSupabase(
     segue = [] as string[],
     /** Il sondaggio "Partecipo / Non partecipo" della gara futura (Perugia) è già aperto. */
     sondaggioAperto = false,
+    /** Il sondaggio aperto ha i turni: mattina del primo giorno e pomeriggio del secondo. */
+    conTurni = false,
   } = {},
 ) {
   const atleti = [AMMINISTRATORE_PROVA, ATLETA_PROVA, SENZA_ACCESSO_PROVA].map((a) => ({
@@ -340,6 +342,9 @@ export async function simulaSupabase(
           aperto_da: AMMINISTRATORE_PROVA.id,
           aperto_il: new Date().toISOString(),
           chiuso_il: null,
+          turni: conTurni
+            ? [`${GARE_PROVA[1]!.dal}:mattina`, `${GARE_PROVA[1]!.al}:pomeriggio`]
+            : [],
           aggiornato_il: new Date().toISOString(),
         },
       ]
@@ -472,6 +477,7 @@ export async function simulaSupabase(
         p_gara: string
         p_partecipa: boolean
         p_modificato_il: string
+        p_turno?: string | null
       }
       const aperto = sondaggi.some((x) => x.gara_codice === p.p_gara && x.aperto)
       let mia = risposte.find((x) => x.gara_codice === p.p_gara && x.atleta_id === collegato?.id)
@@ -483,6 +489,7 @@ export async function simulaSupabase(
           gara_codice: p.p_gara,
           atleta_id: collegato!.id,
           partecipa: p.p_partecipa,
+          turno: p.p_partecipa ? (p.p_turno ?? null) : null,
           modificato_il: p.p_modificato_il,
           aggiornato_il: new Date().toISOString(),
         }
