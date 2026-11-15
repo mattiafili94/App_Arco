@@ -5,7 +5,7 @@
 -- I controlli dei turni, comuni ad apertura e modifica.
 create function public.controlla_turni(g public.gare, turni text[]) returns void
 language plpgsql
-immutable
+stable
 set search_path = ''
 as $$
 declare
