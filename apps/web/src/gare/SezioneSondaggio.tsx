@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CloudOff } from 'lucide-react'
 import {
   elencoNomi,
+  garaPassata,
   etichetteTurni,
   partecipantiPerTurno,
   puoAprireSondaggio,
@@ -41,20 +42,18 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
   const atleti = useAtleti()
   const [occupato, setOccupato] = useState(false)
   const [errore, setErrore] = useState<string | null>(null)
-  /** L'amministratore sta scegliendo i turni prima di aprire il sondaggio. */
+  /** L'amministratore sta scegliendo i turni: prima di aprire il sondaggio o per cambiarli. */
   const [scegliTurni, setScegliTurni] = useState(false)
-  const [turniScelti, setTurniScelti] = useState<string[]>([])
   const amministratore = io.ruolo === 'amministratore'
 
   if (sondaggio === undefined || risposte === undefined || atleti === undefined) return null
 
-  /** Apre, riapre o chiude il sondaggio (serve la rete), poi scarica subito la novità. */
-  const cambiaSondaggio = async (aperto: boolean, turni: string[] = []) => {
+  /** Apre, riapre, chiude il sondaggio o ne cambia i turni (serve la rete), poi scarica subito la novità. */
+  const cambiaSondaggio = async (azione: () => Promise<void>) => {
     setOccupato(true)
     setErrore(null)
     try {
-      if (aperto) await servizio.apriSondaggio(gara.codice, turni)
-      else await servizio.chiudiSondaggio(gara.codice)
+      await azione()
       await aggiorna()
       setScegliTurni(false)
     } catch (e) {
@@ -69,43 +68,18 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
   if (!sondaggio) {
     if (!amministratore || !puoAprireSondaggio(gara, oggi)) return null
     if (scegliTurni) {
-      const possibili = turniPossibili(gara)
-      const etichette = etichetteTurni(possibili)
-      // I turni restano nell'ordine della gara, qualunque sia l'ordine in cui si spuntano.
-      const scelti = possibili.filter((t) => turniScelti.includes(t))
       return (
         <>
-          <fieldset className={styles.turni}>
-            <legend className="type-label">Turni della gara</legend>
-            <p className={`type-caption ${styles.spiegazione}`}>
-              Chi partecipa sceglie uno dei turni spuntati. Senza turni si risponde solo Partecipo o
-              Non partecipo.
-            </p>
-            {possibili.map((t) => (
-              <Checkbox
-                key={t}
-                label={etichette.get(t) ?? t}
-                checked={turniScelti.includes(t)}
-                onChange={(e) =>
-                  setTurniScelti(
-                    e.target.checked ? [...turniScelti, t] : turniScelti.filter((x) => x !== t),
-                  )
-                }
-              />
-            ))}
-            <div className={styles.azioni}>
-              <Button
-                variant="primary"
-                disabled={occupato}
-                onClick={() => void cambiaSondaggio(true, scelti)}
-              >
-                {occupato ? 'Apertura in corso…' : 'Apri sondaggio'}
-              </Button>
-              <Button variant="text" disabled={occupato} onClick={() => setScegliTurni(false)}>
-                Annulla
-              </Button>
-            </div>
-          </fieldset>
+          <SceltaTurni
+            gara={gara}
+            iniziali={[]}
+            pulsante={occupato ? 'Apertura in corso…' : 'Apri sondaggio'}
+            occupato={occupato}
+            onConferma={(turni) =>
+              void cambiaSondaggio(() => servizio.apriSondaggio(gara.codice, turni))
+            }
+            onAnnulla={() => setScegliTurni(false)}
+          />
           {avviso}
         </>
       )
@@ -222,13 +196,96 @@ export function SezioneSondaggio({ gara, oggi }: { gara: Gara; oggi: string }) {
                       ? 'Chiudi sondaggio'
                       : 'Riapri sondaggio'
                 }
-                onSelect={occupato ? undefined : () => void cambiaSondaggio(!sondaggio.aperto)}
+                onSelect={
+                  occupato
+                    ? undefined
+                    : () =>
+                        void cambiaSondaggio(() =>
+                          sondaggio.aperto
+                            ? servizio.chiudiSondaggio(gara.codice)
+                            : servizio.apriSondaggio(gara.codice, turni),
+                        )
+                }
+              />
+            )}
+            {!garaPassata(gara, oggi) && !scegliTurni && (
+              <ListRow
+                label="Modifica turni"
+                description={turni.length ? undefined : 'Il sondaggio non ha turni.'}
+                onSelect={occupato ? undefined : () => setScegliTurni(true)}
               />
             )}
           </>
         )}
       </ListGroup>
+      {amministratore && scegliTurni && (
+        <SceltaTurni
+          gara={gara}
+          iniziali={turni}
+          pulsante={occupato ? 'Salvataggio in corso…' : 'Salva turni'}
+          occupato={occupato}
+          onConferma={(nuovi) =>
+            void cambiaSondaggio(() => servizio.modificaTurniSondaggio(gara.codice, nuovi))
+          }
+          onAnnulla={() => setScegliTurni(false)}
+        />
+      )}
       {avviso}
     </>
+  )
+}
+
+/**
+ * Le caselle "Turni della gara" (mattina e pomeriggio di ogni giorno): per aprire il sondaggio o cambiarne i turni.
+ * I turni si mandano nell'ordine della gara, qualunque sia l'ordine in cui si spuntano.
+ */
+function SceltaTurni({
+  gara,
+  iniziali,
+  pulsante,
+  occupato,
+  onConferma,
+  onAnnulla,
+}: {
+  gara: Gara
+  iniziali: readonly string[]
+  pulsante: string
+  occupato: boolean
+  onConferma(turni: string[]): void
+  onAnnulla(): void
+}) {
+  const [scelti, setScelti] = useState<readonly string[]>(iniziali)
+  const possibili = turniPossibili(gara)
+  const etichette = etichetteTurni(possibili)
+  return (
+    <fieldset className={styles.turni}>
+      <legend className="type-label">Turni della gara</legend>
+      <p className={`type-caption ${styles.spiegazione}`}>
+        Chi partecipa sceglie uno dei turni spuntati. Senza turni si risponde solo Partecipo o Non
+        partecipo.
+      </p>
+      {possibili.map((t) => (
+        <Checkbox
+          key={t}
+          label={etichette.get(t) ?? t}
+          checked={scelti.includes(t)}
+          onChange={(e) =>
+            setScelti(e.target.checked ? [...scelti, t] : scelti.filter((x) => x !== t))
+          }
+        />
+      ))}
+      <div className={styles.azioni}>
+        <Button
+          variant="primary"
+          disabled={occupato}
+          onClick={() => onConferma(possibili.filter((t) => scelti.includes(t)))}
+        >
+          {pulsante}
+        </Button>
+        <Button variant="text" disabled={occupato} onClick={onAnnulla}>
+          Annulla
+        </Button>
+      </div>
+    </fieldset>
   )
 }

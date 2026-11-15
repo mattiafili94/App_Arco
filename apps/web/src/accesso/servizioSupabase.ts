@@ -162,6 +162,15 @@ export function creaServizioSupabase(url: string, chiavePubblica: string): Servi
       if (error) throw new Error('Non riuscito. Riprova tra poco.')
     },
 
+    async modificaTurniSondaggio(garaCodice, turni) {
+      if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const { error } = await supabase.rpc('modifica_turni_sondaggio', {
+        p_gara: garaCodice,
+        p_turni: turni,
+      })
+      if (error) throw new Error('Non riuscito. Riprova tra poco.')
+    },
+
     async seguiAtleta(atletaId, segui) {
       if (senzaRete()) throw new Error('Serve la rete. Riprova quando sei connesso.')
       const { error } = await supabase.rpc('segui_atleta', { p_atleta: atletaId, p_segui: segui })
