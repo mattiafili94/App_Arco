@@ -458,6 +458,11 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
         `etichetteTurni`: con la data se un giorno della settimana si ripete) o "Non partecipo"; "Partecipano" diviso
         per turno (`partecipantiPerTurno`, più "Turno non indicato"); riga verde "Partecipi · Sabato mattina";
         gialla "Scegli il turno" se partecipi senza turno a un sondaggio aperto con i turni.
+      - **3.5d ✅ "Modifica turni"** (Mattia, 15/11/2026: i sondaggi aperti prima dei turni): l'amministratore cambia i
+        turni di un sondaggio di una gara non passata (`modifica_turni_sondaggio`, migrazione `20261123120000`, stessi
+        controlli in `controlla_turni`); chi aveva un turno tolto resta "Partecipo" senza turno (gialla "Scegli il
+        turno"), senza avviso di nuove risposte. App: riga "Modifica turni" nel sondaggio, caselle `SceltaTurni`
+        partendo dai turni attuali.
 4. **Tab Atleti**, due PR (piano approvato il 10/11/2026):
    1. elenco, scheda con record e storico ✅. Note:
       - elenco (`pagine/Atleti.tsx`): gli atleti **attivi con l'accesso** (link generato, anche se non sono ancora

@@ -64,4 +64,7 @@ export const servizioPredefinito: ServizioAccesso =
         chiudiSondaggio: async () => {
           throw new Error('App non collegata al server.')
         },
+        modificaTurniSondaggio: async () => {
+          throw new Error('App non collegata al server.')
+        },
       }

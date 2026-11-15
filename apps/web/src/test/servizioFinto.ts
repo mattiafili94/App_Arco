@@ -143,6 +143,18 @@ export function servizioFinto({
           aggiornato_il: adesso,
         })
     }),
+    // Come il server: i turni nuovi; chi aveva un turno tolto resta senza turno.
+    modificaTurniSondaggio: vi.fn(async (garaCodice: string, turni: string[]) => {
+      if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')
+      const esistente = remoto.righe.sondaggi.find((s) => s.gara_codice === garaCodice)
+      const adesso = new Date().toISOString()
+      if (!esistente) throw new Error('Non riuscito. Riprova tra poco.')
+      remoto.scrivi('sondaggi', { ...esistente, turni, aggiornato_il: adesso })
+      for (const r of remoto.righe.risposte_sondaggio.filter((x) => x.gara_codice === garaCodice)) {
+        if (r.turno && !turni.includes(String(r.turno)))
+          remoto.scrivi('risposte_sondaggio', { ...r, turno: null, aggiornato_il: adesso })
+      }
+    }),
     // Come il server: la riga di "chi segue chi" arriva ai telefoni con la sincronizzazione.
     seguiAtleta: vi.fn(async (atletaId: string, segui: boolean) => {
       if (!rete) throw new Error('Serve la rete. Riprova quando sei connesso.')

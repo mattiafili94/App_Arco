@@ -62,6 +62,8 @@ export interface ServizioAccesso {
   apriSondaggio(garaCodice: string, turni: string[]): Promise<void>
   /** L'amministratore chiude il sondaggio di una gara. Lancia un errore con un messaggio da mostrare. */
   chiudiSondaggio(garaCodice: string): Promise<void>
+  /** L'amministratore cambia i turni di un sondaggio già aperto. Lancia un errore con un messaggio da mostrare. */
+  modificaTurniSondaggio(garaCodice: string, turni: string[]): Promise<void>
   /** L'allenatore collegato inizia o smette di seguire un atleta. Lancia un errore con un messaggio da mostrare. */
   seguiAtleta(atletaId: string, segui: boolean): Promise<void>
   /** L'amministratore dà o toglie il ruolo di allenatore. Lancia un errore se non riesce. */

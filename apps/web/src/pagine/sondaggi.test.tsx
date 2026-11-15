@@ -332,3 +332,64 @@ describe('sondaggio con i turni', () => {
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
   })
 })
+
+describe('Modifica turni (amministratore)', () => {
+  it('aggiunge i turni a un sondaggio aperto senza turni: chi partecipava deve scegliere il turno', async () => {
+    const remoto = remotoConGare({ sondaggio: 'aperto' })
+    remoto.scrivi('risposte_sondaggio', {
+      gara_codice: 'R2611040',
+      atleta_id: CARLA.id,
+      partecipa: true,
+      turno: null,
+      modificato_il: aggiornato_il,
+      aggiornato_il,
+    })
+    const finto = servizioFinto({ remoto, collegato: AMMINISTRATORE })
+    await apriGara(finto.servizio)
+    await userEvent.click(await screen.findByRole('button', { name: /Modifica turni/ }))
+    const turni = await screen.findByRole('group', { name: 'Turni della gara' })
+    expect(within(turni).getByRole('checkbox', { name: 'Sabato mattina' })).not.toBeChecked()
+    await userEvent.click(within(turni).getByRole('checkbox', { name: 'Sabato pomeriggio' }))
+    await userEvent.click(within(turni).getByRole('checkbox', { name: 'Sabato mattina' }))
+    await userEvent.click(within(turni).getByRole('button', { name: 'Salva turni' }))
+    expect(finto.servizio.modificaTurniSondaggio).toHaveBeenCalledWith('R2611040', [
+      '2026-12-12:mattina',
+      '2026-12-12:pomeriggio',
+    ])
+    expect(
+      await screen.findByRole('radiogroup', { name: 'In che turno partecipi?' }),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('group', { name: 'Turni della gara' })).not.toBeInTheDocument(),
+    )
+    const sondaggio = screen.getByRole('region', { name: 'Sondaggio' })
+    expect(sondaggio).toHaveTextContent(/Turno non indicato\s*Carla Esempio/)
+
+    // Riaprendo "Modifica turni" le caselle partono dai turni attuali.
+    await userEvent.click(screen.getByRole('button', { name: /Modifica turni/ }))
+    const di_nuovo = await screen.findByRole('group', { name: 'Turni della gara' })
+    expect(within(di_nuovo).getByRole('checkbox', { name: 'Sabato mattina' })).toBeChecked()
+    await userEvent.click(within(di_nuovo).getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByRole('group', { name: 'Turni della gara' })).not.toBeInTheDocument()
+  })
+
+  it('senza rete lo dice', async () => {
+    const finto = servizioFinto({
+      remoto: remotoConGare({ sondaggio: 'aperto' }),
+      collegato: AMMINISTRATORE,
+    })
+    finto.servizio.modificaTurniSondaggio.mockRejectedValueOnce(
+      new Error('Serve la rete. Riprova quando sei connesso.'),
+    )
+    await apriGara(finto.servizio)
+    await userEvent.click(await screen.findByRole('button', { name: /Modifica turni/ }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Salva turni' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Serve la rete')
+  })
+
+  it('l’atleta non vede “Modifica turni”', async () => {
+    await apriGara(servizioFinto({ remoto: remotoConGare({ sondaggio: 'aperto' }) }).servizio)
+    await screen.findByRole('region', { name: 'Sondaggio' })
+    expect(screen.queryByRole('button', { name: /Modifica turni/ })).not.toBeInTheDocument()
+  })
+})
