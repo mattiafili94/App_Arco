@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   chiaveClassifica,
+  CLASSIFICHE_COPPA_REGIONI,
   controllaRanking,
   dataItaliana,
   filtroDaChiave,
@@ -171,5 +172,38 @@ describe('controllaRanking', () => {
     expect(controllaRanking(300, 300, 400)).toBeNull()
     expect(controllaRanking(0, 0, null)).toBeNull()
     expect(controllaRanking(0, 0, 0)).toBeNull()
+  })
+})
+
+describe('classifiche della Coppa delle Regioni', () => {
+  it('34 classifiche valide, senza doppioni, maschili e femminili', () => {
+    expect(CLASSIFICHE_COPPA_REGIONI).toHaveLength(34)
+    expect(CLASSIFICHE_COPPA_REGIONI.every((c) => filtroValido(c))).toBe(true)
+    expect(new Set(CLASSIFICHE_COPPA_REGIONI.map(chiaveClassifica)).size).toBe(34)
+    expect(CLASSIFICHE_COPPA_REGIONI.filter((c) => c.genere === 'F')).toHaveLength(17)
+  })
+
+  it('Targa: Olimpico e Compound senza Master, con la distanza; Campagna: Nudo, Olimpico e Compound', () => {
+    const targa = CLASSIFICHE_COPPA_REGIONI.filter((c) => c.tipo === 'T')
+    expect(targa).toHaveLength(16)
+    expect(targa.some((c) => c.classe === 'M')).toBe(false)
+    const distanze = Object.fromEntries(
+      targa.filter((c) => c.genere === 'M').map((c) => [`${c.divisione}${c.classe}`, c.distanza]),
+    )
+    expect(distanze).toEqual({
+      OLS: 70,
+      OLJ: 70,
+      OLA: 60,
+      OLR: 40,
+      COS: 50,
+      COJ: 50,
+      COA: 50,
+      COR: 50,
+    })
+    const campagna = CLASSIFICHE_COPPA_REGIONI.filter((c) => c.tipo === 'C')
+    expect(campagna).toHaveLength(18)
+    expect(new Set(campagna.map((c) => c.divisione))).toEqual(new Set(['AN', 'OL', 'CO']))
+    expect(new Set(campagna.map((c) => c.classe))).toEqual(new Set(['S', 'J', 'M']))
+    expect(campagna.every((c) => c.distanza === null)).toBe(true)
   })
 })

@@ -39,6 +39,7 @@ import {
   chiaveClassifica,
   filtroDaChiave,
   PRIORITA_CLASSIFICA,
+  CLASSIFICHE_COPPA_REGIONI,
   pianificaClassifiche,
   type ClassificaScaricata,
   type FiltroClassifica,
@@ -74,6 +75,8 @@ export interface GaraSalvata extends RigaGara {
 
 export interface AtletaArchivio extends AtletaNoto {
   classi_ranking: Record<string, string>
+  /** Ha il ruolo di tecnico regionale: servono anche le classifiche della Coppa delle Regioni. */
+  tecnico_regionale?: boolean
 }
 
 export type Esito = 'ok' | 'invariato' | 'errore' | 'anomalia'
@@ -537,13 +540,20 @@ async function combinazioni(ctx: Contesto) {
   // Solo gli archi usati nelle ultime stagioni: un arco lasciato anni fa non ha più una ranking.
   const dal = inizioClassificheComplete(ctx.oggi)
   const storico = (await ctx.archivio.storicoConTipologia()).filter((s) => s.dal >= dal)
-  return combinazioniRanking(
+  const nostre = combinazioniRanking(
     atleti.map((a) => ({
       id: a.id,
       classiRanking: a.classi_ranking,
       gare: storico.filter((s) => s.atleta_id === a.id),
     })),
   )
+  // Con un tecnico regionale servono anche le classifiche della Coppa delle Regioni (senza doppioni).
+  if (!atleti.some((a) => a.tecnico_regionale)) return nostre
+  const gia = new Set(nostre.map(chiaveClassifica))
+  const coppa = CLASSIFICHE_COPPA_REGIONI.filter((c) => !gia.has(chiaveClassifica(c))).map(
+    ({ tipo, divisione, classe, genere }) => ({ tipo, divisione, classe, genere, atleti: [] }),
+  )
+  return [...nostre, ...coppa]
 }
 
 /** Esito della lettura di una classifica (ranking) da Fitarco. */

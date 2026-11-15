@@ -663,7 +663,20 @@ Nei test nel browser Supabase è simulato (`apps/web/e2e/supabase-finto.ts`): ma
       telefoni con `inviti`. App: in Impostazioni → Notifiche l'interruttore **"Programma dell'allenatore"** (solo per
       chi ha un allenatore) accanto a "Nuovi inviti"; il telefono resta registrato finché un avviso è acceso
       (`useNotifiche`, scelta ricordata in `localStorage` `arco.avvisi`).
-8. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
+8. **Ruolo tecnico regionale** (Mattia, 15/11/2026), tre PR. Si dà come il ruolo allenatore (`atleti.tecnico_regionale`,
+   solo l'amministratore). Chi ce l'ha vede nel **tab Classifica** la sezione **"Coppa delle Regioni"**: solo da guardare,
+   nessuna azione. Categorie della Coppa Italia delle Regioni (regolamento 2024, il più recente trovato; confermate dai
+   PDF di Venaria 2025): **Targa** Olimpico e Compound × Senior, Junior, Allievi, Ragazzi (**niente Master**); **Campagna**
+   Nudo, Olimpico e Compound × Senior, Junior, Master; tutte M e F = **34 classifiche** (`CLASSIFICHE_COPPA_REGIONI` in
+   `_shared/aggiornamento/classifica.ts`, con la distanza della Targa: Olimpico S/J 70, A 60, R 40; Compound 50).
+   Niente controllo di chi è "già occupato" né esclusioni (Mattia).
+   1. server ✅: migrazione `20261121120000_tecnico_regionale.sql`; finché c'è un tecnico regionale attivo, `combinazioni`
+      (motore) aggiunge le 34 classifiche a quelle dei nostri atleti: si scaricano se mancano e si rileggono il lunedì
+      dalle 10 (una lettura pesante per giro);
+   2. Worker: **il lunedì ogni 5 minuti** (7:00–22:45), gli altri giorni ogni 15;
+   3. app: elenco delle 34 classifiche (tipo, arco, classe con distanza, genere); toccando si apre la classifica
+      esistente con `?regione=umbria`.
+9. **In futuro**: smartwatch (servirebbe un'app nativa: valutare Capacitor sulla stessa web app).
 
 ## Design system
 
